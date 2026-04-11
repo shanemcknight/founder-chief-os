@@ -25,12 +25,14 @@ const chatMessages = [
   { role: "chief" as const, text: "Strong. $4,840 today across Shopify and Amazon. You're tracking ~$28K for the week which puts you ahead of last week by 14%. Klaviyo open rates are up too — 38.2%. The wholesale outreach sequence is driving inbound." },
 ];
 
-const initialLogs = [
-  { time: "10:43", agent: "HERMES", text: "Slack message sent", ms: "38ms", type: "success" as const },
-  { time: "10:43", agent: "ORACLE", text: "Email drafted", ms: "124ms", type: "success" as const },
-  { time: "10:42", agent: "FORGE", text: "Webhook triggered", ms: "22ms", type: "success" as const },
-  { time: "10:41", agent: "HERMES", text: "API call complete", ms: "41ms", type: "success" as const },
-  { time: "10:40", agent: "CHIEF", text: "Briefing generated", ms: "890ms", type: "success" as const },
+type LogEntry = { time: string; agent: string; text: string; ms: string; type: "success" | "error" | "info" };
+
+const initialLogs: LogEntry[] = [
+  { time: "10:43", agent: "HERMES", text: "Slack message sent", ms: "38ms", type: "success" },
+  { time: "10:43", agent: "ORACLE", text: "Email drafted", ms: "124ms", type: "success" },
+  { time: "10:42", agent: "FORGE", text: "Webhook triggered", ms: "22ms", type: "success" },
+  { time: "10:41", agent: "HERMES", text: "API call complete", ms: "41ms", type: "success" },
+  { time: "10:40", agent: "CHIEF", text: "Briefing generated", ms: "890ms", type: "success" },
 ];
 
 const rotatingLogs = [
