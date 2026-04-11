@@ -99,8 +99,9 @@ export default function DashboardTopbar() {
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="w-7 h-7 rounded-full text-[10px] font-bold flex items-center justify-center cursor-pointer text-white"
               style={{
-                background: "linear-gradient(135deg, #5D9992, #4d8880)",
-                boxShadow: "0 0 0 2px #1A1D21, 0 0 0 4px #5D9992, 0 0 12px rgba(93,153,146,0.35)",
+                background: "linear-gradient(145deg, rgba(93,153,146,0.9), rgba(61,110,104,0.95))",
+                border: "1px solid rgba(93,153,146,0.6)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.2), 0 2px 8px rgba(93,153,146,0.3)",
               }}
             >
               {initials}
@@ -113,8 +114,9 @@ export default function DashboardTopbar() {
                   <div
                     className="w-9 h-9 rounded-full text-xs font-bold flex items-center justify-center shrink-0 text-white"
                     style={{
-                      background: "linear-gradient(135deg, #5D9992, #4d8880)",
-                      boxShadow: "0 0 0 2px #1A1D21, 0 0 0 4px #5D9992, 0 0 12px rgba(93,153,146,0.35)",
+                      background: "linear-gradient(145deg, rgba(93,153,146,0.9), rgba(61,110,104,0.95))",
+                      border: "1px solid rgba(93,153,146,0.6)",
+                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.2), 0 2px 8px rgba(93,153,146,0.3)",
                     }}
                   >
                     {initials}
@@ -185,7 +187,16 @@ export default function DashboardTopbar() {
           </div>
 
           {!isMobile && (
-            <button onClick={() => navigate("/agents/new")} className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-md deploy-glow hover:bg-primary/90 transition-colors duration-150">
+            <button
+              onClick={() => navigate("/agents/new")}
+              className="text-xs font-semibold px-3 py-1.5 text-white transition-all duration-150 hover:brightness-110"
+              style={{
+                background: "linear-gradient(145deg, rgba(93,153,146,0.85), rgba(61,110,104,0.9))",
+                border: "1px solid rgba(93,153,146,0.5)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.2), 0 2px 6px rgba(93,153,146,0.25)",
+                borderRadius: "7px",
+              }}
+            >
               Deploy Agent +
             </button>
           )}
