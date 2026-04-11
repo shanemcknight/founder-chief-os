@@ -5,7 +5,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import CommandPage from "./pages/CommandPage";
-import StoryPage from "./pages/StoryPage";
+import SocialPage from "./pages/SocialPage";
 import SalesPage from "./pages/SalesPage";
 import InboxPage from "./pages/InboxPage";
 import PublishPage from "./pages/PublishPage";

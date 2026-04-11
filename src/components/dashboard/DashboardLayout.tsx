@@ -10,7 +10,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const mobileTabItems = [
   { label: "COMMAND", path: "/dashboard", icon: LayoutDashboard },
   { label: "INBOX", path: "/inbox", icon: Mail },
-  { label: "STORY", path: "/story", icon: BookOpen },
+  { label: "SOCIAL", path: "/social", icon: BookOpen },
   { label: "CHIEF", path: "/chief", icon: Brain },
   { label: "More", path: "", icon: MoreHorizontal },
 ];
