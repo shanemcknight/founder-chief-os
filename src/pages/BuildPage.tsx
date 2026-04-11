@@ -58,25 +58,23 @@ export default function BuildPage() {
           <h2 className="text-sm font-bold text-foreground">Your Tools</h2>
           <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded">3 active</span>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="space-y-2">
           {tools.map((tool) => (
-            <div key={tool.name} className="bg-card border border-border rounded-xl p-4 flex flex-col">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Zap size={14} className="text-primary" />
-                  <h3 className="text-xs font-bold text-foreground">{tool.name}</h3>
-                </div>
-                <span className="text-[9px] font-semibold bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded">
+            <div key={tool.name} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
+              <div className="flex items-center gap-2 shrink-0 w-[180px]">
+                <Zap size={14} className="text-primary" />
+                <h3 className="text-xs font-bold text-foreground">{tool.name}</h3>
+                <span className="text-[9px] font-semibold bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded ml-1">
                   {tool.status}
                 </span>
               </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed mb-3 flex-1">{tool.description}</p>
-              <div className="flex items-center gap-1.5 mb-3">
+              <p className="text-[11px] text-muted-foreground leading-relaxed flex-1">{tool.description}</p>
+              <div className="flex items-center gap-1.5 shrink-0">
                 {tool.connected.map((c) => (
                   <span key={c} className="text-[9px] font-medium bg-muted/50 text-muted-foreground px-1.5 py-0.5 rounded">{c}</span>
                 ))}
               </div>
-              <div className="flex items-center gap-2 pt-2 border-t border-border">
+              <div className="flex items-center gap-3 shrink-0 pl-3 border-l border-border">
                 <button className="text-[10px] font-semibold text-primary hover:underline">Open Tool</button>
                 <button className="text-[10px] font-medium text-muted-foreground hover:text-foreground flex items-center gap-1">
                   <Settings size={10} /> Settings
