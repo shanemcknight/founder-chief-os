@@ -2,9 +2,9 @@ const pillars = [
   { name: "COMMAND", icon: "⌘", desc: "Every business metric, every tool, one screen." },
   { name: "STORY", icon: "✦", desc: "Social publishing and email marketing, unified." },
   { name: "SALES", icon: "◎", desc: "CRM, outreach, and pipeline that closes deals." },
-  { name: "INBOX", icon: "✉", desc: "AI reads your email. You approve the responses." },
+  { name: "INBOX", icon: "✉", desc: "Your email managed by AI. Your voice on every reply. Your approval before anything sends." },
   { name: "PUBLISH", icon: "▤", desc: "Long-form content drafted and published for you." },
-  { name: "CHIEF", icon: "◈", desc: "An AI operating partner that never clocks out." },
+  { name: "CHIEF", icon: "◈", desc: "Your AI Chief of Operations. Briefings, approvals, strategy — running in the background so you don't have to." },
   { name: "BUILD", icon: "⚙", desc: "Describe a tool. Watch it get built." },
 ];
 
