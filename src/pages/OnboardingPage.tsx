@@ -199,21 +199,30 @@ export default function OnboardingPage() {
                 <label className="text-xs font-medium text-foreground block mb-2">Primary Goal</label>
                 <div className="space-y-2">
                   {goals.map((g) => (
-                    <label key={g} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedGoal === g ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/30"
-                    }`}>
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => setSelectedGoal(g)}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors w-full text-left ${
+                        selectedGoal === g ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/30"
+                      }`}
+                    >
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
                         selectedGoal === g ? "border-primary" : "border-muted-foreground"
                       }`}>
                         {selectedGoal === g && <div className="w-2 h-2 rounded-full bg-primary" />}
                       </div>
                       <span className="text-xs text-foreground">{g}</span>
-                    </label>
+                    </button>
                   ))}
                 </div>
               </div>
             </div>
-            <button onClick={() => { setSelectedGoal(selectedGoal); next(); }} className="w-full bg-primary text-primary-foreground text-sm font-semibold py-3 rounded-lg hover:bg-primary/90 transition-colors">
+            <button
+              onClick={next}
+              disabled={!selectedGoal}
+              className="w-full bg-primary text-primary-foreground text-sm font-semibold py-3 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               Continue →
             </button>
           </div>
