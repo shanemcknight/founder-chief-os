@@ -46,12 +46,12 @@ export default function PricingSection() {
         <h2 className="text-3xl font-bold text-foreground text-center mb-4">Pricing</h2>
         <p className="text-muted-foreground text-center mb-14">Start free. Scale when you're ready.</p>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {plans.map((plan) => (
             <div
               key={plan.name}
               className={`bg-card border rounded-xl p-6 flex flex-col ${
-                plan.featured ? "border-primary glow-primary relative" : "border-border"
+                plan.featured ? "border-primary glow-primary relative border-t-2 border-t-primary" : "border-border"
               }`}
             >
               {plan.badge && (
@@ -73,7 +73,7 @@ export default function PricingSection() {
                 ))}
               </ul>
               <Link
-                to="/dashboard"
+                to="/onboarding"
                 className={`text-sm font-medium text-center py-2.5 rounded-md transition-opacity duration-150 ${
                   plan.featured
                     ? "bg-primary text-primary-foreground hover:opacity-90"
