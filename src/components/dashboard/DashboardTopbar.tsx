@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Search, Bell, Sun, Moon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toggleTheme } from "@/lib/theme";
 
 export default function DashboardTopbar() {

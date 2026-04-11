@@ -13,6 +13,7 @@ import ChiefPage from "./pages/ChiefPage";
 import BuildPage from "./pages/BuildPage";
 import SettingsPage from "./pages/SettingsPage";
 import OnboardingPage from "./pages/OnboardingPage";
+import AgentDeployPage from "./pages/AgentDeployPage";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/chief" element={<ChiefPage />} />
             <Route path="/build" element={<BuildPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/agents/new" element={<AgentDeployPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
