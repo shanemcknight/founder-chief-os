@@ -7,6 +7,7 @@ const plans = [
     period: "",
     features: ["1 agent", "3 social accounts", "Basic CRM — 25 contacts", "100 AI email responses/mo"],
     featured: false,
+    cta: "Start Free",
   },
   {
     name: "TITAN",
@@ -22,6 +23,7 @@ const plans = [
       "Chief AI full access",
     ],
     featured: true,
+    cta: "Start with Titan",
   },
   {
     name: "OLYMPUS",
@@ -36,9 +38,9 @@ const plans = [
       "SLA",
     ],
     featured: false,
+    cta: "Talk to Us",
   },
 ];
-
 export default function PricingSection() {
   return (
     <section id="pricing" className="py-24">
