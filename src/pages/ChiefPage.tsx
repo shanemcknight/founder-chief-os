@@ -49,7 +49,7 @@ const rotatingLogs = [
 ];
 
 export default function ChiefPage() {
-  const [logs, setLogs] = useState(initialLogs);
+  const [logs, setLogs] = useState<LogEntry[]>(initialLogs);
   const logRef = useRef<HTMLDivElement>(null);
   const rotateIndex = useRef(0);
 
