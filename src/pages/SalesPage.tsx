@@ -60,9 +60,10 @@ export default function SalesPage() {
       </div>
 
       {/* Kanban Board */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="overflow-x-auto -mx-2 px-2">
+        <div className="flex gap-3" style={{ minWidth: "920px" }}>
         {pipelineColumns.map((col) => (
-          <div key={col.title} className="min-h-[300px]">
+          <div key={col.title} className="min-h-[300px] min-w-[220px] flex-1">
             <div className="flex items-center gap-2 mb-3">
               <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{col.title}</h3>
               <span className="text-[9px] font-semibold bg-muted text-muted-foreground px-1.5 py-0.5 rounded">{col.count}</span>
@@ -97,6 +98,7 @@ export default function SalesPage() {
             </div>
           </div>
         ))}
+        </div>
       </div>
 
       {/* Apollo Prospect Search */}
