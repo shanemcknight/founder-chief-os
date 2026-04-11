@@ -5,6 +5,7 @@ import { toggleTheme } from "@/lib/theme";
 
 export default function DashboardTopbar() {
   const [dark, setDark] = useState(document.documentElement.classList.contains("dark"));
+  const navigate = useNavigate();
 
   return (
     <header className="h-12 border-b border-border bg-card flex items-center justify-between px-4 shrink-0">
@@ -45,7 +46,7 @@ export default function DashboardTopbar() {
         <div className="w-7 h-7 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center">
           SM
         </div>
-        <button className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-[#9a2f4d] transition-colors duration-150">
+        <button onClick={() => navigate("/agents/new")} className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-[#9a2f4d] transition-colors duration-150">
           Deploy Agent +
         </button>
       </div>
