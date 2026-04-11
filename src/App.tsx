@@ -12,6 +12,7 @@ import PublishPage from "./pages/PublishPage";
 import ChiefPage from "./pages/ChiefPage";
 import BuildPage from "./pages/BuildPage";
 import SettingsPage from "./pages/SettingsPage";
+import OnboardingPage from "./pages/OnboardingPage";
 
 const queryClient = new QueryClient();
 
