@@ -39,7 +39,7 @@ const plans = [
 
 export default function SettingsPage() {
   const [activeNav, setActiveNav] = useState("Team");
-  const [showInvite, setShowInvite] = useState(true);
+  const [showInvite, setShowInvite] = useState(false);
 
   return (
     <div className="flex gap-6 h-full min-h-0">
