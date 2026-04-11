@@ -102,4 +102,11 @@
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(135deg, hsl(341 47% 48%), hsl(36 91% 44%));
   }
+  .deploy-glow {
+    animation: deployPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes deployPulse {
+    0%, 100% { box-shadow: 0 0 0 0 hsl(341 47% 48% / 0); }
+    50% { box-shadow: 0 0 16px 4px hsl(341 47% 48% / 0.35); }
+  }
 }
