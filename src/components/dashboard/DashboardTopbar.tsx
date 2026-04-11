@@ -1,5 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Bell, Sun, Moon, Menu, X, Settings, LogOut } from "lucide-react";
+import {
+  Search, Bell, Sun, Moon, Menu, X,
+  User, Users, CreditCard, Plug,
+  Rocket, UserPlus, Key,
+  BookOpen, Sparkles, MessageSquare, Brain,
+  LogOut,
+} from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { toggleTheme } from "@/lib/theme";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -10,6 +16,8 @@ export default function DashboardTopbar() {
   const [dark, setDark] = useState(document.documentElement.classList.contains("dark"));
   const [showDrawer, setShowDrawer] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
   const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -32,6 +40,11 @@ export default function DashboardTopbar() {
     setShowUserMenu(false);
     await signOut();
     navigate("/");
+  };
+
+  const closeAndNavigate = (path: string) => {
+    setShowUserMenu(false);
+    navigate(path);
   };
 
   return (
@@ -78,6 +91,8 @@ export default function DashboardTopbar() {
               3
             </span>
           </button>
+
+          {/* User Avatar + Dropdown */}
           <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
@@ -85,31 +100,79 @@ export default function DashboardTopbar() {
             >
               {initials}
             </button>
+
             {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-lg shadow-xl z-50 py-1">
-                <div className="px-4 py-2.5 border-b border-border">
-                  <p className="text-xs font-medium text-foreground truncate">{displayName}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+              <div className="absolute right-0 mt-2 w-60 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden">
+                {/* Header */}
+                <div className="px-4 py-3 border-b border-border flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center shrink-0">
+                    {initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-foreground truncate">{displayName}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+                    <span className="inline-block mt-1 text-[9px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-sm">
+                      TITAN
+                    </span>
+                  </div>
                 </div>
-                <Link
-                  to="/settings"
-                  onClick={() => setShowUserMenu(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-xs text-foreground hover:bg-muted/50 transition-colors"
-                >
-                  <Settings size={13} />
-                  Account Settings
-                </Link>
-                <div className="border-t border-border my-1" />
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center gap-2 w-full px-4 py-2 text-xs text-destructive hover:bg-destructive/10 transition-colors"
-                >
-                  <LogOut size={13} />
-                  Sign Out
-                </button>
+
+                {/* Section 1 — Your Account */}
+                <div className="py-1.5">
+                  <p className="px-4 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Your Account</p>
+                  <MenuItem icon={User} label="Profile & Settings" onClick={() => closeAndNavigate("/settings")} />
+                  <MenuItem icon={Users} label="Team & Seats" onClick={() => closeAndNavigate("/settings")} />
+                  <MenuItem icon={CreditCard} label="Billing & Plan" onClick={() => closeAndNavigate("/settings")} />
+                  <MenuItem icon={Plug} label="Connected Integrations" onClick={() => closeAndNavigate("/settings")} />
+                </div>
+
+                <div className="mx-3 border-t border-border" />
+
+                {/* Section 2 — Your Workspace */}
+                <div className="py-1.5">
+                  <p className="px-4 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Your Workspace</p>
+                  <MenuItem icon={Rocket} label="Deploy New Agent" onClick={() => closeAndNavigate("/agents/new")} />
+                  <MenuItem icon={UserPlus} label="Invite Teammate" onClick={() => { setShowUserMenu(false); /* TODO: open invite modal */ }} />
+                  <MenuItem icon={Key} label="API Keys & Webhooks" onClick={() => closeAndNavigate("/settings")} />
+                </div>
+
+                <div className="mx-3 border-t border-border" />
+
+                {/* Section 3 — Help & Support */}
+                <div className="py-1.5">
+                  <p className="px-4 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Help & Support</p>
+                  <a
+                    href="https://docs.mythoshq.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2.5 px-4 py-1.5 text-[11px] text-foreground hover:bg-muted/40 transition-colors cursor-pointer"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    <BookOpen size={13} className="text-muted-foreground shrink-0" />
+                    Documentation
+                    <span className="ml-auto text-[9px] text-muted-foreground">↗</span>
+                  </a>
+                  <MenuItem icon={Sparkles} label="What's New / Changelog" onClick={() => { setShowUserMenu(false); }} />
+                  <MenuItem icon={MessageSquare} label="Send Feedback" onClick={() => { setShowUserMenu(false); setShowFeedback(true); }} />
+                  <MenuItem icon={Brain} label="Talk to Chief" onClick={() => closeAndNavigate("/chief")} />
+                </div>
+
+                <div className="mx-3 border-t border-border" />
+
+                {/* Danger Zone */}
+                <div className="py-1.5">
+                  <button
+                    onClick={handleSignOut}
+                    className="flex items-center gap-2.5 w-full px-4 py-1.5 text-[11px] text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    <LogOut size={13} className="shrink-0" />
+                    Sign Out
+                  </button>
+                </div>
               </div>
             )}
           </div>
+
           {!isMobile && (
             <button onClick={() => navigate("/agents/new")} className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-md deploy-glow hover:bg-primary/90 transition-colors duration-150">
               Deploy Agent +
@@ -117,6 +180,32 @@ export default function DashboardTopbar() {
           )}
         </div>
       </header>
+
+      {/* Feedback Modal */}
+      {showFeedback && (
+        <div className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm flex items-center justify-center" onClick={() => setShowFeedback(false)}>
+          <div className="w-full max-w-sm bg-card border border-border rounded-xl shadow-2xl p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-foreground">Send Feedback</h3>
+              <button onClick={() => setShowFeedback(false)} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
+            </div>
+            <textarea
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              placeholder="Tell us what's on your mind..."
+              rows={4}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none"
+            />
+            <button
+              onClick={() => { setShowFeedback(false); setFeedbackText(""); }}
+              disabled={!feedbackText.trim()}
+              className="w-full mt-3 bg-primary text-primary-foreground text-xs font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40"
+            >
+              Submit Feedback
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Mobile sidebar drawer */}
       {isMobile && showDrawer && (
@@ -134,5 +223,17 @@ export default function DashboardTopbar() {
         </div>
       )}
     </>
+  );
+}
+
+function MenuItem({ icon: Icon, label, onClick }: { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2.5 w-full px-4 py-1.5 text-[11px] text-foreground hover:bg-muted/40 transition-colors"
+    >
+      <Icon size={13} className="text-muted-foreground shrink-0" />
+      {label}
+    </button>
   );
 }
