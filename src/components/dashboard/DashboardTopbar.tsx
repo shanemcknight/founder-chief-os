@@ -1,15 +1,38 @@
-import { useState } from "react";
-import { Search, Bell, Sun, Moon, Menu, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { Search, Bell, Sun, Moon, Menu, X, Settings, LogOut } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import { toggleTheme } from "@/lib/theme";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 import DashboardSidebar from "./DashboardSidebar";
 
 export default function DashboardTopbar() {
   const [dark, setDark] = useState(document.documentElement.classList.contains("dark"));
   const [showDrawer, setShowDrawer] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { user, profile, signOut } = useAuth();
+
+  const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
+  const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSignOut = async () => {
+    setShowUserMenu(false);
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <>
