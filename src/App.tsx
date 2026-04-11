@@ -1,22 +1,36 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Index from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import DashboardLayout from "./components/dashboard/DashboardLayout";
+import CommandPage from "./pages/CommandPage";
+import StoryPage from "./pages/StoryPage";
+import SalesPage from "./pages/SalesPage";
+import InboxPage from "./pages/InboxPage";
+import PublishPage from "./pages/PublishPage";
+import ChiefPage from "./pages/ChiefPage";
+import BuildPage from "./pages/BuildPage";
+import SettingsPage from "./pages/SettingsPage";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<CommandPage />} />
+            <Route path="/story" element={<StoryPage />} />
+            <Route path="/sales" element={<SalesPage />} />
+            <Route path="/inbox" element={<InboxPage />} />
+            <Route path="/publish" element={<PublishPage />} />
+            <Route path="/chief" element={<ChiefPage />} />
+            <Route path="/build" element={<BuildPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
