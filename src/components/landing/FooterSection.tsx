@@ -1,10 +1,30 @@
 import { Link } from "react-router-dom";
 
 const columns = [
-  { title: "Product", links: ["Features", "Pricing", "Integrations", "Changelog"] },
-  { title: "Company", links: ["About", "Blog", "Careers", "Press"] },
-  { title: "Resources", links: ["Documentation", "API Reference", "Community", "Status"] },
-  { title: "Legal", links: ["Privacy", "Terms", "Security", "DPA"] },
+  { title: "Product", links: [
+    { label: "Features", href: "#" },
+    { label: "Pricing", href: "#pricing" },
+    { label: "Integrations", href: "#" },
+    { label: "Changelog", href: "#" },
+  ]},
+  { title: "Company", links: [
+    { label: "About", href: "#" },
+    { label: "Blog", href: "#" },
+    { label: "Careers", href: "#" },
+    { label: "Press", href: "#" },
+  ]},
+  { title: "Resources", links: [
+    { label: "Documentation", href: "#" },
+    { label: "API Reference", href: "#" },
+    { label: "Community", href: "#" },
+    { label: "Status", href: "#" },
+  ]},
+  { title: "Legal", links: [
+    { label: "Privacy", href: "/privacy" },
+    { label: "Terms", href: "/terms" },
+    { label: "Data Deletion", href: "/data-deletion" },
+    { label: "DPA", href: "#" },
+  ]},
 ];
 
 export default function FooterSection() {
@@ -29,7 +49,13 @@ export default function FooterSection() {
               <p className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">{col.title}</p>
               <ul className="space-y-2">
                 {col.links.map((l) => (
-                  <li key={l}><a href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150">{l}</a></li>
+                  <li key={l.label}>
+                    {l.href.startsWith("/") ? (
+                      <Link to={l.href} className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150">{l.label}</Link>
+                    ) : (
+                      <a href={l.href} className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150">{l.label}</a>
+                    )}
+                  </li>
                 ))}
               </ul>
             </div>
