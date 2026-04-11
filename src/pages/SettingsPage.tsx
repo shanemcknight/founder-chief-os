@@ -22,8 +22,8 @@ const teamMembers = [
   { name: "pending@email.com", role: "Member", pillars: "INBOX", status: "Pending" as const },
 ];
 
-const allPillars = ["COMMAND", "STORY", "SALES", "INBOX", "PUBLISH", "CHIEF", "BUILD"];
-const defaultChecked = ["STORY", "PUBLISH"];
+const allPillars = ["COMMAND", "SOCIAL", "SALES", "INBOX", "PUBLISH", "CHIEF", "BUILD"];
+const defaultChecked = ["SOCIAL", "PUBLISH"];
 
 const invoices = [
   { date: "Apr 1, 2026", amount: "$49.00", status: "Paid" },
