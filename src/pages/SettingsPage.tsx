@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Mail, ShoppingBag, BarChart3, Share2, Users, Wrench, X, Download, CreditCard } from "lucide-react";
+import AccountSettings from "@/components/settings/AccountSettings";
+import ChiefSettings from "@/components/settings/ChiefSettings";
 
 const navItems = ["Account", "Team", "Integrations", "Chief Settings", "Billing", "API & Webhooks", "Notifications"];
 
@@ -38,7 +40,7 @@ const plans = [
 ];
 
 export default function SettingsPage() {
-  const [activeNav, setActiveNav] = useState("Team");
+  const [activeNav, setActiveNav] = useState("Account");
   const [showInvite, setShowInvite] = useState(false);
 
   return (
@@ -291,7 +293,11 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {!["Team", "Billing", "Integrations"].includes(activeNav) && (
+        {activeNav === "Account" && <AccountSettings />}
+
+        {activeNav === "Chief Settings" && <ChiefSettings />}
+
+        {!["Team", "Billing", "Integrations", "Account", "Chief Settings"].includes(activeNav) && (
           <div>
             <h2 className="text-lg font-bold text-foreground mb-4">{activeNav}</h2>
             <p className="text-sm text-muted-foreground">This section is coming soon.</p>
