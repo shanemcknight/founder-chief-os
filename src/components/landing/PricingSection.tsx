@@ -7,6 +7,7 @@ const plans = [
     period: "",
     features: ["1 agent", "3 social accounts", "Basic CRM — 25 contacts", "100 AI email responses/mo"],
     featured: false,
+    cta: "Start Free",
   },
   {
     name: "TITAN",
@@ -22,6 +23,7 @@ const plans = [
       "Chief AI full access",
     ],
     featured: true,
+    cta: "Start with Titan",
   },
   {
     name: "OLYMPUS",
@@ -36,9 +38,9 @@ const plans = [
       "SLA",
     ],
     featured: false,
+    cta: "Talk to Us",
   },
 ];
-
 export default function PricingSection() {
   return (
     <section id="pricing" className="py-24">
@@ -51,7 +53,7 @@ export default function PricingSection() {
             <div
               key={plan.name}
               className={`bg-card border rounded-xl p-6 flex flex-col ${
-                plan.featured ? "border-primary glow-primary relative border-t-2 border-t-primary" : "border-border"
+                plan.featured ? "border-primary glow-primary relative border-t-2 border-t-primary scale-[1.03]" : "border-border"
               }`}
             >
               {plan.badge && (
@@ -80,7 +82,7 @@ export default function PricingSection() {
                     : "border border-border text-foreground hover:bg-muted/50"
                 }`}
               >
-                Get Started
+                {plan.cta}
               </Link>
             </div>
           ))}
