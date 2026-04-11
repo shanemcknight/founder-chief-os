@@ -17,7 +17,7 @@ export default function LandingNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const links = ["Features", "Story", "Sales", "Pricing", "Docs"];
+  const links = ["Features", "Social", "Sales", "Pricing", "Docs"];
 
   return (
     <>

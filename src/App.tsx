@@ -5,7 +5,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import CommandPage from "./pages/CommandPage";
-import StoryPage from "./pages/StoryPage";
+import SocialPage from "./pages/SocialPage";
 import SalesPage from "./pages/SalesPage";
 import InboxPage from "./pages/InboxPage";
 import PublishPage from "./pages/PublishPage";
@@ -26,7 +26,7 @@ const App = () => (
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<CommandPage />} />
-            <Route path="/story" element={<StoryPage />} />
+            <Route path="/social" element={<SocialPage />} />
             <Route path="/sales" element={<SalesPage />} />
             <Route path="/inbox" element={<InboxPage />} />
             <Route path="/publish" element={<PublishPage />} />

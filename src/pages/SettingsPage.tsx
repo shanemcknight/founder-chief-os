@@ -17,13 +17,13 @@ const categories: { label: string; icon: typeof Mail; items: Integration[] }[] =
 
 const teamMembers = [
   { name: "Shane McKnight", role: "Owner", pillars: "All pillars", status: "Active" as const },
-  { name: "Maria Santos", role: "Manager", pillars: "STORY + PUBLISH", status: "Active" as const },
+  { name: "Maria Santos", role: "Manager", pillars: "SOCIAL + PUBLISH", status: "Active" as const },
   { name: "James T.", role: "Member", pillars: "SALES", status: "Active" as const },
   { name: "pending@email.com", role: "Member", pillars: "INBOX", status: "Pending" as const },
 ];
 
-const allPillars = ["COMMAND", "STORY", "SALES", "INBOX", "PUBLISH", "CHIEF", "BUILD"];
-const defaultChecked = ["STORY", "PUBLISH"];
+const allPillars = ["COMMAND", "SOCIAL", "SALES", "INBOX", "PUBLISH", "CHIEF", "BUILD"];
+const defaultChecked = ["SOCIAL", "PUBLISH"];
 
 const invoices = [
   { date: "Apr 1, 2026", amount: "$49.00", status: "Paid" },

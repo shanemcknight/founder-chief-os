@@ -30,7 +30,7 @@ const metrics = [
   { platform: "Pinterest", line1: "412 outbound clicks", line2: "+22% vs last week" },
 ];
 
-export default function StoryPage() {
+export default function SocialPage() {
   const [selectedPlatform, setSelectedPlatform] = useState("LinkedIn");
 
   return (

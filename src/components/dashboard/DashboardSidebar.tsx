@@ -13,7 +13,7 @@ import {
 
 const navItems = [
   { label: "COMMAND", path: "/dashboard", icon: LayoutDashboard },
-  { label: "STORY", path: "/story", icon: BookOpen },
+  { label: "SOCIAL", path: "/social", icon: BookOpen },
   { label: "SALES", path: "/sales", icon: Target },
   { label: "INBOX", path: "/inbox", icon: Mail },
   { label: "PUBLISH", path: "/publish", icon: FileText },
