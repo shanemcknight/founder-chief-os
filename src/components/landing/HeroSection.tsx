@@ -101,7 +101,7 @@ export default function HeroSection() {
           </div>
 
           <div className="flex justify-center lg:justify-center">
-            <div className="relative" style={{ perspective: "1000px" }}>
+            <div className="relative" style={{ perspective: "1000px", background: "radial-gradient(ellipse at 75% 50%, rgba(181,65,101,0.06) 0%, transparent 60%)" }}>
               <div className="glow-primary rounded-xl" style={{ transform: "rotateY(-8deg) rotateX(4deg)" }}>
                 <ChiefMockup />
               </div>

@@ -96,7 +96,7 @@
     background-size: 60px 60px;
   }
   .glow-primary {
-    box-shadow: 0 0 40px hsl(341 47% 48% / 0.25), 0 0 80px hsl(341 47% 48% / 0.1);
+    box-shadow: 0 0 20px hsl(341 47% 48% / 0.08), 0 0 40px hsl(341 47% 48% / 0.04);
   }
   .gradient-text {
     @apply bg-clip-text text-transparent;
