@@ -46,7 +46,7 @@ export default function HeroSection() {
               MYTHOS HQ is the all-in-one founder OS — with an AI Chief of Operations handling what doesn't need you, and surfacing everything that does.
             </p>
             <div className="flex gap-3">
-              <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm font-medium bg-primary text-primary-foreground px-6 py-3 rounded-md hover:opacity-90 transition-opacity duration-150">
+              <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm font-medium bg-primary text-primary-foreground px-6 py-3 rounded-md hover:bg-[#9a2f4d] transition-colors duration-150">
                 Start Free →
               </Link>
               <a href="#features" className="inline-flex items-center text-sm font-medium text-foreground border border-border px-6 py-3 rounded-md hover:bg-muted/50 transition-colors duration-150">
@@ -69,7 +69,7 @@ export default function HeroSection() {
             ["10,000+", "Founders"],
             ["99.99%", "Uptime"],
             ["7", "Pillars"],
-            ["$276/mo", "Replaced"],
+            ["$276/mo", "Saved"],
           ].map(([val, label]) => (
             <div key={label}>
               <p className="text-2xl font-bold text-foreground">{val}</p>

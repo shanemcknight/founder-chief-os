@@ -18,8 +18,8 @@ export default function LandingNav() {
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-150 ${scrolled ? "glass-nav" : "bg-transparent"}`}>
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to="/" className="text-xl font-bold tracking-tight text-foreground">
-          MYTHOS <span className="text-primary">HQ</span>
+        <Link to="/" className="text-xl tracking-tight text-foreground">
+          <span className="font-bold">MYTHOS</span> <span className="font-normal text-lg text-primary">HQ</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8">
@@ -45,7 +45,7 @@ export default function LandingNav() {
           <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
             Log in
           </Link>
-          <Link to="/dashboard" className="text-sm font-medium bg-primary text-primary-foreground px-4 py-2 rounded-md hover:opacity-90 transition-opacity duration-150">
+          <Link to="/dashboard" className="text-sm font-medium bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-[#9a2f4d] transition-colors duration-150">
             Get Started
           </Link>
         </div>
