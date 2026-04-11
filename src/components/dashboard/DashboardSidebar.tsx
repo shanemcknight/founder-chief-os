@@ -9,7 +9,9 @@ import {
   Wrench,
   Settings,
   PlusCircle,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { label: "COMMAND", path: "/dashboard", icon: LayoutDashboard },
@@ -23,6 +25,15 @@ const navItems = [
 
 export default function DashboardSidebar() {
   const location = useLocation();
+  const { user, profile, signOut } = useAuth();
+
+  const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
+  const initials = displayName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <aside className="w-[220px] shrink-0 border-r border-border bg-card flex flex-col overflow-y-auto">
@@ -87,14 +98,19 @@ export default function DashboardSidebar() {
       <div className="p-3 border-t border-border">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
-            SM
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">Shane M.</p>
-            <span className="text-[10px] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-sm">
-              TITAN
-            </span>
+            <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
           </div>
+          <button
+            onClick={signOut}
+            className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            title="Log out"
+          >
+            <LogOut size={14} />
+          </button>
         </div>
       </div>
     </aside>

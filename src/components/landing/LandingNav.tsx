@@ -47,7 +47,7 @@ export default function LandingNav() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
               )}
             </button>
-            <Link to="/dashboard" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
+            <Link to="/login" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
               Log in
             </Link>
             <Link to="/onboarding" className="text-sm font-medium bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors duration-150">
@@ -71,7 +71,7 @@ export default function LandingNav() {
                 {l}
               </a>
             ))}
-            <Link to="/dashboard" onClick={() => setMobileMenu(false)} className="text-lg text-muted-foreground">Log in</Link>
+            <Link to="/login" onClick={() => setMobileMenu(false)} className="text-lg text-muted-foreground">Log in</Link>
           </div>
         </div>
       )}

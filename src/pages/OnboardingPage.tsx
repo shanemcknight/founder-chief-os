@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const stepLabels = ["Account", "Business", "Connect", "Agent", "Meet Chief"];
 
@@ -32,13 +33,44 @@ const agentTemplates = [
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [signupLoading, setSignupLoading] = useState(false);
   const [connectedTools, setConnectedTools] = useState<Record<string, "connecting" | "connected">>({});
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { signUp } = useAuth();
 
   const next = () => setStep((s) => Math.min(s + 1, 4));
   const back = () => setStep((s) => Math.max(s - 1, 0));
+
+  const handleAccountStep = async () => {
+    setError("");
+    if (!fullName || !email || !password || !confirmPassword) {
+      setError("All fields are required.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    setSignupLoading(true);
+    const { error } = await signUp(email, password, fullName);
+    setSignupLoading(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      next();
+    }
+  };
 
   const connectTool = (name: string) => {
     setConnectedTools((prev) => ({ ...prev, [name]: "connecting" }));
@@ -73,29 +105,71 @@ export default function OnboardingPage() {
           </button>
         )}
 
-        {/* STEP 1 — Account */}
+        {/* STEP 1 — Account (Real Signup) */}
         {step === 0 && (
           <div className="space-y-5">
             <div className="text-center mb-6">
               <h1 className="text-2xl font-bold text-foreground mb-1">Welcome to MYTHOS HQ</h1>
               <p className="text-sm text-muted-foreground">Let's get you set up in 5 minutes.</p>
             </div>
+            {error && (
+              <div className="bg-destructive/10 border border-destructive/30 text-destructive text-xs rounded-lg px-3 py-2">
+                {error}
+              </div>
+            )}
             <div className="space-y-3">
-              {["Full Name", "Email", "Password", "Confirm Password"].map((label) => (
-                <div key={label}>
-                  <label className="text-xs font-medium text-foreground block mb-1">{label}</label>
-                  <input
-                    type={label.toLowerCase().includes("password") ? "password" : label === "Email" ? "email" : "text"}
-                    placeholder={label}
-                    className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-                  />
-                </div>
-              ))}
+              <div>
+                <label className="text-xs font-medium text-foreground block mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Full Name"
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-foreground block mb-1">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email"
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-foreground block mb-1">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-foreground block mb-1">Confirm Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm Password"
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                />
+              </div>
             </div>
-            <button onClick={next} className="w-full bg-primary text-primary-foreground text-sm font-semibold py-3 rounded-lg hover:bg-primary/90 transition-colors">
-              Continue →
+            <button
+              onClick={handleAccountStep}
+              disabled={signupLoading}
+              className="w-full bg-primary text-primary-foreground text-sm font-semibold py-3 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {signupLoading ? "Creating account..." : "Continue →"}
             </button>
-            <p className="text-center text-xs text-muted-foreground">Already have an account? <span className="text-primary cursor-pointer hover:underline">Log in</span></p>
+            <p className="text-center text-xs text-muted-foreground">
+              Already have an account?{" "}
+              <span onClick={() => navigate("/login")} className="text-primary cursor-pointer hover:underline">Log in</span>
+            </p>
           </div>
         )}
 
@@ -250,7 +324,7 @@ export default function OnboardingPage() {
               </div>
 
               <div className="bg-muted/30 rounded-lg p-3">
-                <span className="text-[10px] font-semibold text-muted-foreground block mb-1">SHANE</span>
+                <span className="text-[10px] font-semibold text-muted-foreground block mb-1">YOU</span>
                 <p className="text-xs text-foreground">What should I do first?</p>
               </div>
 
