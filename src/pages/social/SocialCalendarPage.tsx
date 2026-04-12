@@ -126,7 +126,7 @@ export default function SocialCalendarPage() {
         platforms: form.platforms,
         scheduledDate: form.scheduledDate || null,
         scheduledTime: form.scheduledTime || null,
-        status: "scheduled",
+        status: "pending_approval",
       });
     } else {
       addPost({
@@ -135,7 +135,7 @@ export default function SocialCalendarPage() {
         platforms: form.platforms,
         scheduledDate: form.scheduledDate || null,
         scheduledTime: form.scheduledTime || null,
-        status: "scheduled",
+        status: "pending_approval",
       });
     }
     setModalOpen(false);
