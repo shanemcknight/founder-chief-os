@@ -65,6 +65,245 @@ export type Database = {
         }
         Relationships: []
       }
+      social_brand_voice_rules: {
+        Row: {
+          created_at: string
+          example: string
+          id: string
+          rule: string
+          sort_order: number
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          example?: string
+          id?: string
+          rule: string
+          sort_order?: number
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          example?: string
+          id?: string
+          rule?: string
+          sort_order?: number
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      social_content_pillars: {
+        Row: {
+          best_platforms: string[]
+          color: string
+          created_at: string
+          description: string
+          emoji: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          best_platforms?: string[]
+          color?: string
+          created_at?: string
+          description?: string
+          emoji?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          best_platforms?: string[]
+          color?: string
+          created_at?: string
+          description?: string
+          emoji?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      social_platform_guides: {
+        Row: {
+          audience: string
+          cadence: string
+          caption_formula: string
+          color_hex: string
+          created_at: string
+          example_post: string
+          icon: string
+          id: string
+          platform: string
+          role: string
+          tone_guide: string
+          updated_at: string
+          user_id: string
+          voice_keywords: string[]
+          what_not_to_post: string[]
+          what_to_post: string[]
+        }
+        Insert: {
+          audience?: string
+          cadence?: string
+          caption_formula?: string
+          color_hex?: string
+          created_at?: string
+          example_post?: string
+          icon?: string
+          id?: string
+          platform: string
+          role?: string
+          tone_guide?: string
+          updated_at?: string
+          user_id: string
+          voice_keywords?: string[]
+          what_not_to_post?: string[]
+          what_to_post?: string[]
+        }
+        Update: {
+          audience?: string
+          cadence?: string
+          caption_formula?: string
+          color_hex?: string
+          created_at?: string
+          example_post?: string
+          icon?: string
+          id?: string
+          platform?: string
+          role?: string
+          tone_guide?: string
+          updated_at?: string
+          user_id?: string
+          voice_keywords?: string[]
+          what_not_to_post?: string[]
+          what_to_post?: string[]
+        }
+        Relationships: []
+      }
+      social_posts: {
+        Row: {
+          alt_text: string
+          boost_budget: number
+          boost_enabled: boolean
+          caption: string
+          content_pillar: string | null
+          created_at: string
+          first_comment: string
+          hashtags: string
+          id: string
+          media_url: string
+          platforms: string[]
+          post_types: Json
+          scheduled_date: string | null
+          scheduled_time: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alt_text?: string
+          boost_budget?: number
+          boost_enabled?: boolean
+          caption?: string
+          content_pillar?: string | null
+          created_at?: string
+          first_comment?: string
+          hashtags?: string
+          id?: string
+          media_url?: string
+          platforms?: string[]
+          post_types?: Json
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alt_text?: string
+          boost_budget?: number
+          boost_enabled?: boolean
+          caption?: string
+          content_pillar?: string | null
+          created_at?: string
+          first_comment?: string
+          hashtags?: string
+          id?: string
+          media_url?: string
+          platforms?: string[]
+          post_types?: Json
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_social_posts_pillar"
+            columns: ["content_pillar"]
+            isOneToOne: false
+            referencedRelation: "social_content_pillars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_shot_lists: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          duration: string
+          id: string
+          platform: string
+          sort_order: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          duration?: string
+          id?: string
+          platform?: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          duration?: string
+          id?: string
+          platform?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
