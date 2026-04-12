@@ -47,10 +47,10 @@ export default function SocialPipelinePage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-x-auto p-4">
-        <div className="flex gap-3 h-full min-w-max">
+      <div className="flex-1 overflow-auto p-4">
+        <div className="flex gap-2 h-full">
           {columns.map(col => (
-            <div key={col.status} className="w-[200px] shrink-0 flex flex-col bg-muted/30 rounded-xl"
+            <div key={col.status} className="flex-1 min-w-0 flex flex-col bg-muted/30 rounded-xl"
               onDragOver={e => e.preventDefault()} onDrop={e => handleDrop(e, col.status)}>
               <div className="flex items-center gap-2 px-3 py-3">
                 <span className={cn("w-2 h-2 rounded-full", getStatusColor(col.status))} />
