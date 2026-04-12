@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 // --- Types ---
 export type PlatformId = "ig" | "fb" | "pinterest" | "tt" | "li";
@@ -6,14 +8,8 @@ export type PostStatus = "idea" | "draft" | "review" | "pending_approval" | "app
 
 export const STATUS_ORDER: PostStatus[] = ["idea", "draft", "review", "pending_approval", "approved", "scheduled", "posted"];
 export const STATUS_LABELS: Record<PostStatus, string> = {
-  idea: "Idea",
-  draft: "Draft",
-  review: "In Review",
-  pending_approval: "Pending Approval",
-  approved: "Approved",
-  scheduled: "Scheduled",
-  posted: "Posted",
-  rejected: "Rejected",
+  idea: "Idea", draft: "Draft", review: "In Review", pending_approval: "Pending Approval",
+  approved: "Approved", scheduled: "Scheduled", posted: "Posted", rejected: "Rejected",
 };
 
 export interface Platform {
@@ -56,56 +52,49 @@ export interface ContentPillar {
   id: string;
   name: string;
   color: string;
+  emoji: string;
+  description: string;
+  bestPlatforms: string[];
 }
 
-// --- Seed Data ---
-const SEED_PILLARS: ContentPillar[] = [
-  { id: "p1", name: "Behind the Scenes", color: "#8B5CF6" },
-  { id: "p2", name: "Education", color: "#3B82F6" },
-  { id: "p3", name: "Social Proof", color: "#10B981" },
-  { id: "p4", name: "Product Showcase", color: "#F59E0B" },
-  { id: "p5", name: "Culture & Values", color: "#EC4899" },
-];
-
-function makePost(overrides: Partial<SocialPost> = {}): SocialPost {
+// --- DB Row -> App Model ---
+function rowToPost(row: any): SocialPost {
   return {
-    id: crypto.randomUUID(),
-    title: "",
-    caption: "",
-    hashtags: "",
-    platforms: [],
-    postTypes: {},
-    status: "idea",
-    scheduledDate: null,
-    scheduledTime: null,
-    mediaUrl: "",
-    altText: "",
-    firstComment: "",
-    contentPillar: "",
-    boostEnabled: false,
-    boostBudget: 0,
-    createdAt: new Date().toISOString().split("T")[0],
-    ...overrides,
+    id: row.id,
+    title: row.title,
+    caption: row.caption,
+    hashtags: row.hashtags,
+    platforms: (row.platforms || []) as PlatformId[],
+    postTypes: (row.post_types || {}) as Record<string, string>,
+    status: row.status as PostStatus,
+    scheduledDate: row.scheduled_date,
+    scheduledTime: row.scheduled_time,
+    mediaUrl: row.media_url,
+    altText: row.alt_text,
+    firstComment: row.first_comment,
+    contentPillar: row.content_pillar || "",
+    boostEnabled: row.boost_enabled,
+    boostBudget: row.boost_budget,
+    createdAt: row.created_at?.split("T")[0] || "",
   };
 }
 
-const SEED_POSTS: SocialPost[] = [
-  makePost({ title: "Coachella throwback: 250 kegs/day", platforms: ["li"], status: "scheduled", scheduledDate: "2026-04-07", scheduledTime: "09:00", contentPillar: "p1" }),
-  makePost({ title: "BIB soda gun install shot", platforms: ["ig"], status: "scheduled", scheduledDate: "2026-04-08", scheduledTime: "12:00", contentPillar: "p4" }),
-  makePost({ title: "Lab formulation BTS", platforms: ["tt"], status: "draft", scheduledDate: "2026-04-10", scheduledTime: "15:00", contentPillar: "p1" }),
-  makePost({ title: "Kirkland origin story", platforms: ["li"], status: "scheduled", scheduledDate: "2026-04-11", scheduledTime: "10:00", contentPillar: "p3" }),
-  makePost({ title: "Ginger Beer cocktail recipe", platforms: ["pinterest"], status: "scheduled", scheduledDate: "2026-04-12", scheduledTime: "11:00", contentPillar: "p4" }),
-  makePost({ title: "Draft system ROI breakdown", platforms: ["li", "fb"], status: "pending_approval", scheduledDate: "2026-04-14", scheduledTime: "10:00", contentPillar: "p2", caption: "Your ginger beer costs $0.45/oz. Mine costs $0.05/oz. Here's how." }),
-  makePost({ title: "Festival setup timelapse", platforms: ["tt", "ig"], status: "review", scheduledDate: "2026-04-15", scheduledTime: "14:00", contentPillar: "p1" }),
-  makePost({ title: "Non-alcoholic market opportunity", platforms: ["li"], status: "idea", contentPillar: "p2" }),
-  makePost({ title: "Customer testimonial - Globe Restaurant", platforms: ["ig", "fb"], status: "approved", scheduledDate: "2026-04-16", scheduledTime: "12:00", contentPillar: "p3" }),
-  makePost({ title: "Summer cocktail recipe series", platforms: ["pinterest", "ig"], status: "idea", contentPillar: "p4" }),
-];
+function rowToPillar(row: any): ContentPillar {
+  return {
+    id: row.id,
+    name: row.name,
+    color: row.color,
+    emoji: row.emoji,
+    description: row.description,
+    bestPlatforms: row.best_platforms || [],
+  };
+}
 
 // --- Context ---
 interface SocialContextType {
   posts: SocialPost[];
   pillars: ContentPillar[];
+  loading: boolean;
   addPost: (overrides?: Partial<SocialPost>) => SocialPost;
   updatePost: (id: string, updates: Partial<SocialPost>) => void;
   deletePost: (id: string) => void;
@@ -120,44 +109,146 @@ interface SocialContextType {
 const SocialContext = createContext<SocialContextType | null>(null);
 
 export function SocialProvider({ children }: { children: ReactNode }) {
-  const [posts, setPosts] = useState<SocialPost[]>(SEED_POSTS);
+  const { user } = useAuth();
+  const userId = user?.id;
+
+  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [pillars, setPillars] = useState<ContentPillar[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [slideOutOpen, setSlideOutOpen] = useState(false);
-  const pillars = SEED_PILLARS;
+
+  // Load data from DB
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      const [postsRes, pillarsRes] = await Promise.all([
+        supabase.from("social_posts").select("*").order("created_at", { ascending: false }),
+        supabase.from("social_content_pillars").select("*").order("sort_order"),
+      ]);
+
+      if (cancelled) return;
+
+      setPosts((postsRes.data || []).map(rowToPost));
+      setPillars((pillarsRes.data || []).map(rowToPillar));
+      setLoading(false);
+    }
+    load();
+
+    // Realtime subscription for posts
+    const channel = supabase
+      .channel("social_posts_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "social_posts" }, () => {
+        // Reload on any change
+        supabase.from("social_posts").select("*").order("created_at", { ascending: false })
+          .then(({ data }) => { if (!cancelled && data) setPosts(data.map(rowToPost)); });
+      })
+      .subscribe();
+
+    return () => { cancelled = true; supabase.removeChannel(channel); };
+  }, [userId]);
 
   const addPost = useCallback((overrides?: Partial<SocialPost>) => {
-    const post = makePost(overrides);
-    setPosts(prev => [post, ...prev]);
-    return post;
-  }, []);
+    const tempId = crypto.randomUUID();
+    const newPost: SocialPost = {
+      id: tempId,
+      title: overrides?.title || "",
+      caption: overrides?.caption || "",
+      hashtags: "",
+      platforms: overrides?.platforms || [],
+      postTypes: {},
+      status: overrides?.status || "idea",
+      scheduledDate: overrides?.scheduledDate || null,
+      scheduledTime: overrides?.scheduledTime || null,
+      mediaUrl: "",
+      altText: "",
+      firstComment: "",
+      contentPillar: overrides?.contentPillar || "",
+      boostEnabled: false,
+      boostBudget: 0,
+      createdAt: new Date().toISOString().split("T")[0],
+    };
+
+    // Optimistic update
+    setPosts(prev => [newPost, ...prev]);
+
+    // Persist
+    if (userId) {
+      supabase.from("social_posts").insert({
+        id: tempId,
+        user_id: userId,
+        title: newPost.title,
+        caption: newPost.caption,
+        platforms: newPost.platforms,
+        status: newPost.status,
+        scheduled_date: newPost.scheduledDate,
+        scheduled_time: newPost.scheduledTime,
+        content_pillar: newPost.contentPillar || null,
+      }).then(({ error }) => {
+        if (error) console.error("Failed to create post:", error);
+      });
+    }
+
+    return newPost;
+  }, [userId]);
 
   const updatePost = useCallback((id: string, updates: Partial<SocialPost>) => {
     setPosts(prev => prev.map(p => (p.id === id ? { ...p, ...updates } : p)));
+
+    // Map app fields to DB columns
+    const dbUpdates: Record<string, any> = {};
+    if (updates.title !== undefined) dbUpdates.title = updates.title;
+    if (updates.caption !== undefined) dbUpdates.caption = updates.caption;
+    if (updates.hashtags !== undefined) dbUpdates.hashtags = updates.hashtags;
+    if (updates.platforms !== undefined) dbUpdates.platforms = updates.platforms;
+    if (updates.postTypes !== undefined) dbUpdates.post_types = updates.postTypes;
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (updates.scheduledDate !== undefined) dbUpdates.scheduled_date = updates.scheduledDate;
+    if (updates.scheduledTime !== undefined) dbUpdates.scheduled_time = updates.scheduledTime;
+    if (updates.mediaUrl !== undefined) dbUpdates.media_url = updates.mediaUrl;
+    if (updates.altText !== undefined) dbUpdates.alt_text = updates.altText;
+    if (updates.firstComment !== undefined) dbUpdates.first_comment = updates.firstComment;
+    if (updates.contentPillar !== undefined) dbUpdates.content_pillar = updates.contentPillar || null;
+    if (updates.boostEnabled !== undefined) dbUpdates.boost_enabled = updates.boostEnabled;
+    if (updates.boostBudget !== undefined) dbUpdates.boost_budget = updates.boostBudget;
+
+    if (Object.keys(dbUpdates).length > 0) {
+      supabase.from("social_posts").update(dbUpdates).eq("id", id)
+        .then(({ error }) => { if (error) console.error("Failed to update post:", error); });
+    }
   }, []);
 
   const deletePost = useCallback((id: string) => {
     setPosts(prev => prev.filter(p => p.id !== id));
     if (selectedPostId === id) { setSlideOutOpen(false); setSelectedPostId(null); }
+    supabase.from("social_posts").delete().eq("id", id)
+      .then(({ error }) => { if (error) console.error("Failed to delete post:", error); });
   }, [selectedPostId]);
 
   const movePost = useCallback((id: string, newStatus: PostStatus) => {
     setPosts(prev => prev.map(p => (p.id === id ? { ...p, status: newStatus } : p)));
+    supabase.from("social_posts").update({ status: newStatus }).eq("id", id)
+      .then(({ error }) => { if (error) console.error("Failed to move post:", error); });
   }, []);
 
   const duplicatePost = useCallback((id: string) => {
-    setPosts(prev => {
-      const original = prev.find(p => p.id === id);
-      if (!original) return prev;
-      const dup = { ...original, id: crypto.randomUUID(), title: original.title + " (copy)", status: "draft" as PostStatus, createdAt: new Date().toISOString().split("T")[0] };
-      return [dup, ...prev];
+    const original = posts.find(p => p.id === id);
+    if (!original) return;
+    addPost({
+      ...original,
+      title: original.title + " (copy)",
+      status: "draft" as PostStatus,
     });
-  }, []);
+  }, [posts, addPost]);
 
   const openSlideOut = useCallback((id: string) => { setSelectedPostId(id); setSlideOutOpen(true); }, []);
   const closeSlideOut = useCallback(() => { setSlideOutOpen(false); setSelectedPostId(null); }, []);
 
   return (
-    <SocialContext.Provider value={{ posts, pillars, addPost, updatePost, deletePost, movePost, duplicatePost, selectedPostId, slideOutOpen, openSlideOut, closeSlideOut }}>
+    <SocialContext.Provider value={{ posts, pillars, loading, addPost, updatePost, deletePost, movePost, duplicatePost, selectedPostId, slideOutOpen, openSlideOut, closeSlideOut }}>
       {children}
     </SocialContext.Provider>
   );
