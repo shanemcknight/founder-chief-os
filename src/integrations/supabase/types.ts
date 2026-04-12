@@ -98,6 +98,45 @@ export type Database = {
         }
         Relationships: []
       }
+      social_connections: {
+        Row: {
+          access_token_encrypted: string
+          created_at: string
+          id: string
+          platform: string
+          platform_user_id: string
+          platform_username: string
+          refresh_token_encrypted: string
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token_encrypted?: string
+          created_at?: string
+          id?: string
+          platform: string
+          platform_user_id?: string
+          platform_username?: string
+          refresh_token_encrypted?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token_encrypted?: string
+          created_at?: string
+          id?: string
+          platform?: string
+          platform_user_id?: string
+          platform_username?: string
+          refresh_token_encrypted?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       social_content_pillars: {
         Row: {
           best_platforms: string[]
