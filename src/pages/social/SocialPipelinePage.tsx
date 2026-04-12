@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useSocial, STATUS_ORDER, STATUS_LABELS, PlatformId, PostStatus, getStatusColor, PLATFORMS } from "@/contexts/SocialContext";
+import { useSocial, STATUS_LABELS, PlatformId, PostStatus, getStatusColor, PLATFORMS } from "@/contexts/SocialContext";
 import { Filter, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,8 +12,10 @@ export default function SocialPipelinePage() {
     return posts.filter(p => platformFilter === "all" || p.platforms.includes(platformFilter));
   }, [posts, platformFilter]);
 
+  const PIPELINE_COLUMNS: PostStatus[] = ["idea", "draft", "review", "scheduled", "posted"];
+
   const columns = useMemo(() => {
-    return STATUS_ORDER.map(status => ({
+    return PIPELINE_COLUMNS.map(status => ({
       status,
       label: STATUS_LABELS[status],
       posts: filteredPosts.filter(p => p.status === status),
@@ -48,7 +50,7 @@ export default function SocialPipelinePage() {
       <div className="flex-1 overflow-x-auto p-4">
         <div className="flex gap-3 h-full min-w-max">
           {columns.map(col => (
-            <div key={col.status} className="w-[240px] flex flex-col bg-muted/30 rounded-xl"
+            <div key={col.status} className="w-[200px] shrink-0 flex flex-col bg-muted/30 rounded-xl"
               onDragOver={e => e.preventDefault()} onDrop={e => handleDrop(e, col.status)}>
               <div className="flex items-center gap-2 px-3 py-3">
                 <span className={cn("w-2 h-2 rounded-full", getStatusColor(col.status))} />

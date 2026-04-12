@@ -10,7 +10,8 @@ export default function SocialApprovalsPage() {
 
   const pendingPosts = posts.filter(p => p.status === "pending_approval");
 
-  const handleApprove = (id: string) => { updatePost(id, { status: "approved" }); toast.success("Post approved!"); };
+  const handleApprove = (id: string) => { updatePost(id, { status: "scheduled" }); toast.success("Post approved & scheduled!"); };
+  const handleReject = (id: string) => { updatePost(id, { status: "draft" }); toast.info("Post sent back to drafts"); };
   const handleDelete = (id: string) => { deletePost(id); setConfirmDelete(null); toast.success("Post deleted"); };
 
   return (
@@ -75,7 +76,7 @@ export default function SocialApprovalsPage() {
                     ) : (
                       <div className="flex items-center gap-3">
                         <button onClick={() => handleApprove(post.id)} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors"><Check className="w-5 h-5" />APPROVE</button>
-                        <button onClick={() => openSlideOut(post.id)} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 transition-colors"><Pencil className="w-5 h-5" />EDIT</button>
+                        <button onClick={() => handleReject(post.id)} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 transition-colors"><Pencil className="w-5 h-5" />REJECT</button>
                         <button onClick={() => setConfirmDelete(post.id)} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"><Trash2 className="w-5 h-5" />DELETE</button>
                       </div>
                     )}
