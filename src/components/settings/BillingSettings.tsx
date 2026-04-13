@@ -25,8 +25,28 @@ function formatTokens(n: number): string {
 }
 
 export default function BillingSettings() {
-  const { subscription, isLoading } = useSubscription();
+  const { subscription, isLoading, refetch } = useSubscription();
   const [portalLoading, setPortalLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+
+  const handleSyncPlan = async () => {
+    setSyncLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-subscription");
+      if (error) throw error;
+      if (data?.verified) {
+        toast.success(`Plan synced: ${(data.plan || "").toUpperCase()}`);
+      } else {
+        toast.info("No active Stripe subscription found.");
+      }
+      refetch();
+    } catch (err) {
+      console.error("Sync error:", err);
+      toast.error("Failed to sync plan with Stripe.");
+    } finally {
+      setSyncLoading(false);
+    }
+  };
 
   const plan = subscription?.plan || "scout";
   const tokensUsed = subscription?.tokens_used || 0;
