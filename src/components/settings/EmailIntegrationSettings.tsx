@@ -4,8 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-const NANGO_PUBLIC_KEY = "fe3881db-307d-4891-a006-bce07fd0832a";
-
 export default function EmailIntegrationSettings() {
   const { user } = useAuth();
   const [outlookConnected, setOutlookConnected] = useState(false);
@@ -39,10 +37,21 @@ export default function EmailIntegrationSettings() {
     if (!user) return;
     setConnecting(true);
     try {
+      // 1. Get connect session token from backend
+      const { data: { session } } = await supabase.auth.getSession();
+      const sessionRes = await supabase.functions.invoke("create-nango-session", {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (sessionRes.error) throw sessionRes.error;
+      const connectSessionToken = sessionRes.data?.token;
+      if (!connectSessionToken) throw new Error("No session token returned");
+
+      // 2. Init Nango with connect session token and open UI
       const { default: Nango } = await import("@nangohq/frontend");
-      const nango = new Nango({ publicKey: NANGO_PUBLIC_KEY });
+      const nango = new Nango({ connectSessionToken });
       const result = await nango.auth("microsoft-outlook", user.id);
 
+      // 3. Store connection
       await supabase.from("user_integrations").upsert(
         {
           user_id: user.id,
