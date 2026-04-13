@@ -53,7 +53,7 @@ const App = () => (
             <Route path="/data-deletion" element={<DataDeletionPage />} />
             <Route path="/beta" element={<BetaPage />} />
             <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route path="/onboarding" element={<Navigate to="/beta" replace />} />
             <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<CommandPage />} />
               <Route path="/social" element={<SocialLayout />}>
