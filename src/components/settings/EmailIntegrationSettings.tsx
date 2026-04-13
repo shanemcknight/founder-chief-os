@@ -3,7 +3,6 @@ import { Mail, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import Nango from "@nangohq/frontend";
 
 const NANGO_PUBLIC_KEY = "fe3881db-307d-4891-a006-bce07fd0832a";
 
@@ -40,6 +39,7 @@ export default function EmailIntegrationSettings() {
     if (!user) return;
     setConnecting(true);
     try {
+      const { default: Nango } = await import("@nangohq/frontend");
       const nango = new Nango({ publicKey: NANGO_PUBLIC_KEY });
       const result = await nango.auth("microsoft-outlook", user.id);
 
