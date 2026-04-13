@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
 const NANGO_API_URL = "https://api.nango.dev";
 
@@ -64,7 +69,7 @@ serve(async (req) => {
         headers: {
           Authorization: `Bearer ${NANGO_SECRET_KEY}`,
           "Connection-Id": integration.nango_connection_id,
-          "Provider-Config-Key": "microsoft-outlook",
+          "Provider-Config-Key": "microsoft",
         },
       }
     );
