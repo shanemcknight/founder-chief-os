@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
 export default function SocialLibraryPage() {
-  const { posts, openSlideOut, duplicatePost, updatePost, pillars } = useSocial();
+  const { posts, openSlideOut, duplicatePost, updatePost, pillars, addPost } = useSocial();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<PostStatus | "all">("all");
   const [platformFilter, setPlatformFilter] = useState<PlatformId | "all">("all");
