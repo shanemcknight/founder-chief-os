@@ -501,6 +501,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_integrations: {
+        Row: {
+          connected_at: string
+          created_at: string
+          id: string
+          nango_connection_id: string
+          provider: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string
+          created_at?: string
+          id?: string
+          nango_connection_id: string
+          provider: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string
+          created_at?: string
+          id?: string
+          nango_connection_id?: string
+          provider?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
