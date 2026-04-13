@@ -109,6 +109,7 @@ export default function SocialLibraryPage() {
                       <CalendarPlus className="w-3 h-3" />Schedule
                     </button>
                   </td>
+                </tr>
               );
             })}
             {filtered.length === 0 && (
