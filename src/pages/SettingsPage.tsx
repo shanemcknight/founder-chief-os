@@ -5,6 +5,7 @@ import ChiefSettings from "@/components/settings/ChiefSettings";
 import ApiWebhooksSettings from "@/components/settings/ApiWebhooksSettings";
 import NotificationsSettings from "@/components/settings/NotificationsSettings";
 import EmailIntegrationSettings from "@/components/settings/EmailIntegrationSettings";
+import BillingSettings from "@/components/settings/BillingSettings";
 
 const navItems = ["Account", "Team", "Integrations", "Chief Settings", "Billing", "API & Webhooks", "Notifications"];
 
@@ -164,92 +165,7 @@ export default function SettingsPage() {
         )}
 
         {/* BILLING */}
-        {activeNav === "Billing" && (
-          <div className="space-y-6">
-            <h2 className="text-lg font-bold text-foreground">Billing & Plan</h2>
-
-            <div className="bg-card border border-border rounded-xl p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <h3 className="text-sm font-bold text-foreground">TITAN</h3>
-                <span className="text-[10px] font-semibold bg-primary/15 text-primary px-2 py-0.5 rounded">Current Plan</span>
-              </div>
-              <p className="text-xs text-muted-foreground mb-4">$49/month · Renews May 11, 2026</p>
-              <div className="space-y-2 mb-4">
-                {[
-                  { label: "Seats", used: 4, total: 5 },
-                  { label: "Agents", used: 7, total: 999, display: "7 of unlimited" },
-                  { label: "Runs", used: 47203, total: 100000, display: "47,203 of 100,000" },
-                ].map((u) => (
-                  <div key={u.label}>
-                    <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="text-muted-foreground">{u.label}</span>
-                      <span className="text-foreground font-medium">{u.display || `${u.used} of ${u.total}`}</span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min((u.used / u.total) * 100, 100)}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center gap-3">
-                <button className="text-xs font-semibold text-primary border border-primary px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors">Upgrade to OLYMPUS</button>
-                <button className="text-xs font-medium text-muted-foreground border border-border px-4 py-2 rounded-lg hover:bg-muted/30 transition-colors">Manage Payment Method</button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              {plans.map((p) => (
-                <div key={p.name} className={`bg-card border rounded-xl p-4 ${p.current ? "border-primary ring-1 ring-primary/30" : "border-border"}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-sm font-bold text-foreground">{p.name}</h3>
-                    {p.current && <span className="text-[8px] font-bold bg-primary/15 text-primary px-1.5 py-0.5 rounded">CURRENT</span>}
-                  </div>
-                  <p className="text-xl font-bold text-foreground mb-3">{p.price}<span className="text-xs font-normal text-muted-foreground">{p.period}</span></p>
-                  <ul className="space-y-1">
-                    {p.features.map((f) => (
-                      <li key={f} className="text-[11px] text-muted-foreground">✓ {f}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-
-            <div>
-              <h3 className="text-sm font-bold text-foreground mb-3">Invoice History</h3>
-              <div className="bg-card border border-border rounded-xl overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-[11px] text-muted-foreground">
-                      <th className="text-left p-3 font-medium">Date</th>
-                      <th className="text-left p-3 font-medium">Amount</th>
-                      <th className="text-left p-3 font-medium">Status</th>
-                      <th className="text-left p-3 font-medium">Download</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoices.map((inv) => (
-                      <tr key={inv.date} className="border-b border-border last:border-0">
-                        <td className="p-3 text-xs text-foreground">{inv.date}</td>
-                        <td className="p-3 text-xs text-foreground">{inv.amount}</td>
-                        <td className="p-3"><span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded">{inv.status}</span></td>
-                        <td className="p-3"><button className="text-[10px] text-primary hover:underline flex items-center gap-1"><Download size={10} /> PDF</button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 bg-card border border-border rounded-xl p-4">
-              <CreditCard size={16} className="text-muted-foreground" />
-              <div className="flex-1">
-                <p className="text-xs font-medium text-foreground">Visa ending 4242</p>
-                <p className="text-[11px] text-muted-foreground">Expires 08/27</p>
-              </div>
-              <button className="text-[10px] text-primary hover:underline">Update</button>
-            </div>
-          </div>
-        )}
+        {activeNav === "Billing" && <BillingSettings />}
 
         {/* INTEGRATIONS */}
         {activeNav === "Integrations" && (
