@@ -75,9 +75,7 @@ export default function EmailIntegrationSettings() {
       const nango = new Nango({ connectSessionToken });
       console.log("[Outlook] Calling nango.auth('microsoft-outlook')...");
 
-      const result = await nango.auth("microsoft", user.id, {
-        detectClosedAuthWindow: true,
-      });
+      const result = await nango.auth("microsoft");
       console.log("[Outlook] nango.auth() result:", result);
 
       // 3. Store connection
