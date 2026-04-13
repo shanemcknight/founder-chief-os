@@ -1,11 +1,13 @@
 import { useState, useMemo } from "react";
 import { useSocial, PlatformId, PostStatus, STATUS_LABELS, getStatusColor, PLATFORMS } from "@/contexts/SocialContext";
-import { Search, Filter, ArrowUpDown, Copy, CheckCircle } from "lucide-react";
+import { Search, Filter, ArrowUpDown, Copy, CheckCircle, CalendarPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export default function SocialLibraryPage() {
-  const { posts, openSlideOut, duplicatePost, updatePost, pillars } = useSocial();
+  const { posts, openSlideOut, duplicatePost, updatePost, pillars, addPost } = useSocial();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<PostStatus | "all">("all");
   const [platformFilter, setPlatformFilter] = useState<PlatformId | "all">("all");
@@ -83,6 +85,7 @@ export default function SocialLibraryPage() {
               <th className="px-3 py-2.5 cursor-pointer hover:text-foreground" onClick={() => toggleSort("scheduledDate")}><span className="flex items-center gap-1">Scheduled <ArrowUpDown className="w-3 h-3" /></span></th>
               <th className="px-3 py-2.5">Pillar</th>
               <th className="px-3 py-2.5 cursor-pointer hover:text-foreground" onClick={() => toggleSort("createdAt")}><span className="flex items-center gap-1">Created <ArrowUpDown className="w-3 h-3" /></span></th>
+              <th className="px-3 py-2.5">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -97,11 +100,20 @@ export default function SocialLibraryPage() {
                   <td className="px-3 py-3 text-xs text-muted-foreground">{post.scheduledDate || "—"}</td>
                   <td className="px-3 py-3">{pillar ? <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: pillar.color + "20", color: pillar.color }}>{pillar.name}</span> : "—"}</td>
                   <td className="px-3 py-3 text-xs text-muted-foreground">{post.createdAt}</td>
+                  <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => {
+                      addPost({ title: post.title, caption: post.caption, platforms: [...post.platforms], postType: post.postType, postNotes: post.postNotes, status: "draft" });
+                      toast.success("Post added — open Calendar to schedule it");
+                      navigate("/social/calendar");
+                    }} className="flex items-center gap-1 text-[11px] text-primary hover:underline">
+                      <CalendarPlus className="w-3 h-3" />Schedule
+                    </button>
+                  </td>
                 </tr>
               );
             })}
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="text-center py-16 text-muted-foreground">
+              <tr><td colSpan={8} className="text-center py-16 text-muted-foreground">
                 <div className="text-3xl mb-2">📭</div><div className="text-sm">No posts found</div>
               </td></tr>
             )}
