@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
-import { Zap, CreditCard, ExternalLink } from "lucide-react";
+import { Zap, CreditCard, ExternalLink, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 const PLAN_LABELS: Record<string, string> = {
   scout: "SCOUT",

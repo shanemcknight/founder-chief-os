@@ -111,7 +111,9 @@ serve(async (req) => {
         status: "active",
         stripe_customer_id: customer.id,
         stripe_subscription_id: stripeSub.id,
-        current_period_end: new Date(stripeSub.current_period_end * 1000).toISOString(),
+        current_period_end: stripeSub.current_period_end
+          ? new Date(stripeSub.current_period_end * 1000).toISOString()
+          : null,
       }, { onConflict: "user_id" });
 
     if (upsertError) {
