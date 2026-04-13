@@ -69,8 +69,9 @@ const EMPTY_FORM: PostFormData = {
 };
 
 function getChipBg(post: SocialPost): string {
-  if (post.status === "failed") return "bg-red-600";
-  if (post.status === "awaiting_manual_post") return "bg-amber-600";
+  const status = post.status as string;
+  if (status === "failed") return "bg-red-600";
+  if (status === "awaiting_manual_post") return "bg-amber-600";
   if (post.postType === "manual") return "bg-orange-600";
   const primary = post.platforms[0];
   if (primary && PLATFORM_COLORS[primary]) return "";
@@ -78,7 +79,8 @@ function getChipBg(post: SocialPost): string {
 }
 
 function getChipStyle(post: SocialPost): React.CSSProperties {
-  if (post.status === "failed" || post.status === "awaiting_manual_post" || post.postType === "manual") return {};
+  const status = post.status as string;
+  if (status === "failed" || status === "awaiting_manual_post" || post.postType === "manual") return {};
   const primary = post.platforms[0];
   if (primary && PLATFORM_COLORS[primary]) return { backgroundColor: PLATFORM_COLORS[primary] };
   return {};
