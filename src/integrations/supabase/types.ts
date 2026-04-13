@@ -246,6 +246,8 @@ export type Database = {
           id: string
           media_url: string
           platforms: string[]
+          post_notes: string
+          post_type: string
           post_types: Json
           scheduled_date: string | null
           scheduled_time: string | null
@@ -266,6 +268,8 @@ export type Database = {
           id?: string
           media_url?: string
           platforms?: string[]
+          post_notes?: string
+          post_type?: string
           post_types?: Json
           scheduled_date?: string | null
           scheduled_time?: string | null
@@ -286,6 +290,8 @@ export type Database = {
           id?: string
           media_url?: string
           platforms?: string[]
+          post_notes?: string
+          post_type?: string
           post_types?: Json
           scheduled_date?: string | null
           scheduled_time?: string | null
