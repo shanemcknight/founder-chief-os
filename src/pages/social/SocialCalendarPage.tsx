@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Filter, Plus, Upload, Clock, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Filter, Plus, Upload, Clock, Trash2, Send, FileText } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, startOfWeek, endOfWeek, isSameMonth, isToday, addWeeks, subWeeks } from "date-fns";
-import { useSocial, PlatformId, PLATFORMS, getPlatformColor } from "@/contexts/SocialContext";
+import { useSocial, PlatformId, PLATFORMS, getPlatformColor, PostType } from "@/contexts/SocialContext";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ interface PostFormData {
   platforms: PlatformId[];
   scheduledDate: string;
   scheduledTime: string;
+  postType: PostType;
+  postNotes: string;
 }
 
 const EMPTY_FORM: PostFormData = {
@@ -23,6 +25,8 @@ const EMPTY_FORM: PostFormData = {
   platforms: [],
   scheduledDate: "",
   scheduledTime: "12:00",
+  postType: "auto",
+  postNotes: "",
 };
 
 export default function SocialCalendarPage() {
@@ -31,7 +35,6 @@ export default function SocialCalendarPage() {
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
   const [platformFilter, setPlatformFilter] = useState<PlatformId | "all">("all");
 
-  // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [form, setForm] = useState<PostFormData>(EMPTY_FORM);
@@ -61,17 +64,12 @@ export default function SocialCalendarPage() {
     );
   };
 
-  // Open create modal for a specific date
   const openCreateModal = (dateStr?: string) => {
     setEditingPostId(null);
-    setForm({
-      ...EMPTY_FORM,
-      scheduledDate: dateStr || format(new Date(), "yyyy-MM-dd"),
-    });
+    setForm({ ...EMPTY_FORM, scheduledDate: dateStr || format(new Date(), "yyyy-MM-dd") });
     setModalOpen(true);
   };
 
-  // Open edit modal for an existing post
   const openEditModal = (postId: string) => {
     const post = posts.find(p => p.id === postId);
     if (!post) return;
@@ -82,6 +80,8 @@ export default function SocialCalendarPage() {
       platforms: [...post.platforms],
       scheduledDate: post.scheduledDate || "",
       scheduledTime: post.scheduledTime || "12:00",
+      postType: post.postType || "auto",
+      postNotes: post.postNotes || "",
     });
     setModalOpen(true);
   };
@@ -95,57 +95,32 @@ export default function SocialCalendarPage() {
     }));
   };
 
+  const getFormPayload = () => ({
+    title: form.title,
+    caption: form.caption,
+    platforms: form.platforms,
+    scheduledDate: form.scheduledDate || null,
+    scheduledTime: form.scheduledTime || null,
+    postType: form.postType,
+    postNotes: form.postNotes,
+  });
+
   const handleSaveDraft = () => {
-    if (editingPostId) {
-      updatePost(editingPostId, {
-        title: form.title,
-        caption: form.caption,
-        platforms: form.platforms,
-        scheduledDate: form.scheduledDate || null,
-        scheduledTime: form.scheduledTime || null,
-        status: "draft",
-      });
-    } else {
-      addPost({
-        title: form.title,
-        caption: form.caption,
-        platforms: form.platforms,
-        scheduledDate: form.scheduledDate || null,
-        scheduledTime: form.scheduledTime || null,
-        status: "draft",
-      });
-    }
+    const payload = { ...getFormPayload(), status: "draft" as const };
+    if (editingPostId) updatePost(editingPostId, payload);
+    else addPost(payload);
     setModalOpen(false);
   };
 
   const handleSchedule = () => {
-    if (editingPostId) {
-      updatePost(editingPostId, {
-        title: form.title,
-        caption: form.caption,
-        platforms: form.platforms,
-        scheduledDate: form.scheduledDate || null,
-        scheduledTime: form.scheduledTime || null,
-        status: "pending_approval",
-      });
-    } else {
-      addPost({
-        title: form.title,
-        caption: form.caption,
-        platforms: form.platforms,
-        scheduledDate: form.scheduledDate || null,
-        scheduledTime: form.scheduledTime || null,
-        status: "pending_approval",
-      });
-    }
+    const payload = { ...getFormPayload(), status: "pending_approval" as const };
+    if (editingPostId) updatePost(editingPostId, payload);
+    else addPost(payload);
     setModalOpen(false);
   };
 
   const handleDelete = () => {
-    if (editingPostId) {
-      deletePost(editingPostId);
-      setModalOpen(false);
-    }
+    if (editingPostId) { deletePost(editingPostId); setModalOpen(false); }
   };
 
   const getPlatformChipColor = (pid: PlatformId) => {
@@ -159,9 +134,7 @@ export default function SocialCalendarPage() {
     return map[pid] || "bg-muted text-muted-foreground";
   };
 
-  const getPlatformIcon = (pid: PlatformId) => {
-    return PLATFORMS.find(p => p.id === pid)?.icon || "📱";
-  };
+  const getPlatformIcon = (pid: PlatformId) => PLATFORMS.find(p => p.id === pid)?.icon || "📱";
 
   return (
     <div className="flex flex-col h-full">
@@ -211,48 +184,45 @@ export default function SocialCalendarPage() {
             const today_ = isToday(day);
             const dayStr = format(day, "yyyy-MM-dd");
             return (
-              <div
-                key={day.toISOString()}
-                onClick={() => openCreateModal(dayStr)}
-                className={cn(
-                  "bg-card p-2 group cursor-pointer transition-colors hover:bg-muted/50 relative",
+              <div key={day.toISOString()} onClick={() => openCreateModal(dayStr)}
+                className={cn("bg-card p-2 group cursor-pointer transition-colors hover:bg-muted/50 relative",
                   viewMode === "month" ? "min-h-[100px]" : "min-h-[300px]",
                   !inMonth && viewMode === "month" && "opacity-40"
-                )}
-              >
+                )}>
                 <div className="flex items-center justify-between mb-1">
                   <span className={cn("text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full", today_ && "bg-primary text-primary-foreground")}>
                     {format(day, "d")}
                   </span>
-                  <button
-                    onClick={e => { e.stopPropagation(); openCreateModal(dayStr); }}
-                    className="opacity-0 group-hover:opacity-100 flex items-center justify-center w-5 h-5 text-primary bg-primary/10 hover:bg-primary/20 rounded transition-all"
-                    title="New post"
-                  >
+                  <button onClick={e => { e.stopPropagation(); openCreateModal(dayStr); }}
+                    className="opacity-0 group-hover:opacity-100 flex items-center justify-center w-5 h-5 text-primary bg-primary/10 hover:bg-primary/20 rounded transition-all" title="New post">
                     <Plus className="w-3 h-3" />
                   </button>
                 </div>
                 <div className="space-y-1">
-                  {dayPosts.slice(0, viewMode === "month" ? 3 : 10).map(post => (
-                    <button
-                      key={post.id}
-                      onClick={e => { e.stopPropagation(); openEditModal(post.id); }}
-                      className="w-full text-left flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] transition-colors bg-muted hover:bg-muted/80"
-                    >
-                      {post.platforms.length > 0 ? (
-                        <span className="flex gap-0.5 shrink-0">
-                          {post.platforms.slice(0, 3).map(pid => (
-                            <span key={pid} className={cn("w-4 h-4 flex items-center justify-center rounded text-[8px]", getPlatformChipColor(pid))}>
-                              {getPlatformIcon(pid)}
-                            </span>
-                          ))}
-                        </span>
-                      ) : (
-                        <span className={cn("w-1.5 h-1.5 rounded-full shrink-0 bg-muted-foreground")} />
-                      )}
-                      <span className="truncate text-foreground/80">{post.title || post.caption?.slice(0, 30) || "Untitled"}</span>
-                    </button>
-                  ))}
+                  {dayPosts.slice(0, viewMode === "month" ? 3 : 10).map(post => {
+                    const isManual = post.postType === "manual";
+                    return (
+                      <button key={post.id} onClick={e => { e.stopPropagation(); openEditModal(post.id); }}
+                        className={cn("w-full text-left flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] transition-colors",
+                          isManual ? "bg-orange-500/15 hover:bg-orange-500/25" : "bg-muted hover:bg-muted/80"
+                        )}>
+                        {isManual ? (
+                          <Clock className="w-3 h-3 text-orange-400 shrink-0" />
+                        ) : post.platforms.length > 0 ? (
+                          <span className="flex gap-0.5 shrink-0">
+                            {post.platforms.slice(0, 3).map(pid => (
+                              <span key={pid} className={cn("w-4 h-4 flex items-center justify-center rounded text-[8px]", getPlatformChipColor(pid))}>
+                                {getPlatformIcon(pid)}
+                              </span>
+                            ))}
+                          </span>
+                        ) : (
+                          <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-muted-foreground" />
+                        )}
+                        <span className="truncate text-foreground/80">{post.title || post.caption?.slice(0, 30) || "Untitled"}</span>
+                      </button>
+                    );
+                  })}
                   {dayPosts.length > (viewMode === "month" ? 3 : 10) && (
                     <span className="text-[10px] text-muted-foreground px-1">+{dayPosts.length - (viewMode === "month" ? 3 : 10)} more</span>
                   )}
@@ -271,26 +241,65 @@ export default function SocialCalendarPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
+            {/* Post Type Toggle */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-2 block">Post Type</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setForm(prev => ({ ...prev, postType: "auto" }))}
+                  className={cn("flex-1 flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all",
+                    form.postType === "auto"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:bg-muted"
+                  )}>
+                  <Send className="w-4 h-4" />
+                  <div className="text-left">
+                    <div className="font-semibold text-xs">Auto-Publish</div>
+                    <div className="text-[10px] opacity-70">Posts automatically via API</div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setForm(prev => ({ ...prev, postType: "manual" }))}
+                  className={cn("flex-1 flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all",
+                    form.postType === "manual"
+                      ? "border-orange-500 bg-orange-500/10 text-orange-400"
+                      : "border-border bg-card text-muted-foreground hover:bg-muted"
+                  )}>
+                  <FileText className="w-4 h-4" />
+                  <div className="text-left">
+                    <div className="font-semibold text-xs">Manual Post</div>
+                    <div className="text-[10px] opacity-70">Sends reminder, you post manually</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             {/* Title */}
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Title</label>
-              <Input
-                value={form.title}
-                onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Post title (optional)"
-              />
+              <Input value={form.title} onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Post title (optional)" />
             </div>
 
             {/* Caption */}
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Caption</label>
-              <Textarea
-                value={form.caption}
-                onChange={e => setForm(prev => ({ ...prev, caption: e.target.value }))}
-                placeholder="Write your caption..."
-                rows={4}
-              />
+              <Textarea value={form.caption} onChange={e => setForm(prev => ({ ...prev, caption: e.target.value }))} placeholder="Write your caption..." rows={4} />
             </div>
+
+            {/* Post Notes (manual only) */}
+            {form.postType === "manual" && (
+              <div>
+                <label className="text-xs font-medium text-orange-400 mb-1 block">📝 Post Notes</label>
+                <Textarea
+                  value={form.postNotes}
+                  onChange={e => setForm(prev => ({ ...prev, postNotes: e.target.value }))}
+                  placeholder="e.g. 'Add trending audio', 'Use green screen effect', 'Tag @brandname'..."
+                  rows={3}
+                  className="border-orange-500/30 focus-visible:ring-orange-500/30"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Instructions for when you post manually in the native app</p>
+              </div>
+            )}
 
             {/* Platforms */}
             <div>
@@ -298,10 +307,7 @@ export default function SocialCalendarPage() {
               <div className="flex flex-wrap gap-3">
                 {PLATFORMS.map(p => (
                   <label key={p.id} className="flex items-center gap-2 cursor-pointer">
-                    <Checkbox
-                      checked={form.platforms.includes(p.id)}
-                      onCheckedChange={() => togglePlatform(p.id)}
-                    />
+                    <Checkbox checked={form.platforms.includes(p.id)} onCheckedChange={() => togglePlatform(p.id)} />
                     <span className="text-sm">{p.icon} {p.name}</span>
                   </label>
                 ))}
@@ -312,21 +318,11 @@ export default function SocialCalendarPage() {
             <div className="flex gap-3">
               <div className="flex-1">
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Date</label>
-                <Input
-                  type="date"
-                  value={form.scheduledDate}
-                  onChange={e => setForm(prev => ({ ...prev, scheduledDate: e.target.value }))}
-                />
+                <Input type="date" value={form.scheduledDate} onChange={e => setForm(prev => ({ ...prev, scheduledDate: e.target.value }))} />
               </div>
               <div className="w-32">
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Time</label>
-                <div className="relative">
-                  <Input
-                    type="time"
-                    value={form.scheduledTime}
-                    onChange={e => setForm(prev => ({ ...prev, scheduledTime: e.target.value }))}
-                  />
-                </div>
+                <Input type="time" value={form.scheduledTime} onChange={e => setForm(prev => ({ ...prev, scheduledTime: e.target.value }))} />
               </div>
             </div>
 
@@ -344,18 +340,14 @@ export default function SocialCalendarPage() {
             <div>
               {editingPostId && (
                 <Button variant="destructive" size="sm" onClick={handleDelete} className="gap-1">
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Delete
+                  <Trash2 className="w-3.5 h-3.5" /> Delete
                 </Button>
               )}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleSaveDraft}>
-                Save Draft
-              </Button>
+              <Button variant="outline" onClick={handleSaveDraft}>Save Draft</Button>
               <Button onClick={handleSchedule} className="gap-1.5">
-                <Clock className="w-4 h-4" />
-                Schedule
+                <Clock className="w-4 h-4" /> Schedule
               </Button>
             </div>
           </DialogFooter>

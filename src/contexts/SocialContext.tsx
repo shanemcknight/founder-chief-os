@@ -4,12 +4,14 @@ import { useAuth } from "@/contexts/AuthContext";
 
 // --- Types ---
 export type PlatformId = "ig" | "fb" | "pinterest" | "tt" | "li";
-export type PostStatus = "idea" | "draft" | "review" | "pending_approval" | "approved" | "scheduled" | "posted" | "rejected";
+export type PostStatus = "idea" | "draft" | "review" | "pending_approval" | "approved" | "scheduled" | "posted" | "rejected" | "awaiting_manual_post";
+export type PostType = "auto" | "manual";
 
 export const STATUS_ORDER: PostStatus[] = ["idea", "draft", "review", "pending_approval", "approved", "scheduled", "posted"];
 export const STATUS_LABELS: Record<PostStatus, string> = {
   idea: "Idea", draft: "Draft", review: "In Review", pending_approval: "Pending Approval",
   approved: "Approved", scheduled: "Scheduled", posted: "Posted", rejected: "Rejected",
+  awaiting_manual_post: "Awaiting Manual Post",
 };
 
 export interface Platform {
@@ -45,6 +47,8 @@ export interface SocialPost {
   contentPillar: string;
   boostEnabled: boolean;
   boostBudget: number;
+  postType: PostType;
+  postNotes: string;
   createdAt: string;
 }
 
@@ -75,6 +79,8 @@ function rowToPost(row: any): SocialPost {
     contentPillar: row.content_pillar || "",
     boostEnabled: row.boost_enabled,
     boostBudget: row.boost_budget,
+    postType: (row.post_type || "auto") as PostType,
+    postNotes: row.post_notes || "",
     createdAt: row.created_at?.split("T")[0] || "",
   };
 }
@@ -169,6 +175,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       contentPillar: overrides?.contentPillar || "",
       boostEnabled: false,
       boostBudget: 0,
+      postType: overrides?.postType || "auto",
+      postNotes: overrides?.postNotes || "",
       createdAt: new Date().toISOString().split("T")[0],
     };
 
@@ -187,6 +195,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         scheduled_date: newPost.scheduledDate,
         scheduled_time: newPost.scheduledTime,
         content_pillar: newPost.contentPillar || null,
+        post_type: newPost.postType,
+        post_notes: newPost.postNotes,
       }).then(({ error }) => {
         if (error) console.error("Failed to create post:", error);
       });
@@ -220,6 +230,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     if (updates.contentPillar !== undefined) dbUpdates.content_pillar = updates.contentPillar || null;
     if (updates.boostEnabled !== undefined) dbUpdates.boost_enabled = updates.boostEnabled;
     if (updates.boostBudget !== undefined) dbUpdates.boost_budget = updates.boostBudget;
+    if (updates.postType !== undefined) (dbUpdates as any).post_type = updates.postType;
+    if (updates.postNotes !== undefined) (dbUpdates as any).post_notes = updates.postNotes;
 
     if (Object.keys(dbUpdates).length > 0) {
       supabase.from("social_posts").update(dbUpdates).eq("id", id)
@@ -272,6 +284,7 @@ export function getStatusColor(status: PostStatus): string {
     idea: "bg-blue-400", draft: "bg-yellow-400", review: "bg-purple-400",
     pending_approval: "bg-amber-500", approved: "bg-emerald-500",
     scheduled: "bg-cyan-500", posted: "bg-green-600", rejected: "bg-red-500",
+    awaiting_manual_post: "bg-orange-500",
   };
   return map[status] || "bg-muted-foreground";
 }

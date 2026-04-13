@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useSocial, STATUS_LABELS, PlatformId, PostStatus, getStatusColor, PLATFORMS } from "@/contexts/SocialContext";
-import { Filter, Plus } from "lucide-react";
+import { Filter, Plus, Clock, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function SocialPipelinePage() {
@@ -12,7 +12,7 @@ export default function SocialPipelinePage() {
     return posts.filter(p => platformFilter === "all" || p.platforms.includes(platformFilter));
   }, [posts, platformFilter]);
 
-  const PIPELINE_COLUMNS: PostStatus[] = ["idea", "draft", "review", "scheduled", "posted"];
+  const PIPELINE_COLUMNS: PostStatus[] = ["idea", "draft", "review", "scheduled", "awaiting_manual_post", "posted"];
 
   const columns = useMemo(() => {
     return PIPELINE_COLUMNS.map(status => ({
@@ -83,7 +83,10 @@ export default function SocialPipelinePage() {
                           return <span key={pid} className="text-xs">{plat?.icon}</span>;
                         })}
                       </div>
-                      <div className="text-sm font-medium text-foreground mb-1 leading-tight">{post.title || "Untitled Post"}</div>
+                      <div className="text-sm font-medium text-foreground mb-1 leading-tight flex items-center gap-1">
+                        {post.postType === "manual" && <Clock className="w-3 h-3 text-orange-400 shrink-0" />}
+                        {post.title || "Untitled Post"}
+                      </div>
                       {pillar && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: pillar.color + "20", color: pillar.color }}>{pillar.name}</span>
                       )}
