@@ -12,7 +12,7 @@ const connected = ["Gmail", "Shopify", "Amazon", "Klaviyo", "Stripe", "QuickBook
 
 type Integration = { name: string; titan?: boolean };
 const categories: { label: string; icon: typeof Mail; items: Integration[] }[] = [
-  { label: "Communication", icon: Mail, items: [{ name: "Outlook" }, { name: "Discord" }, { name: "Telegram" }, { name: "WhatsApp Business", titan: true }] },
+  { label: "Communication", icon: Mail, items: [{ name: "Discord" }, { name: "Telegram" }, { name: "WhatsApp Business", titan: true }] },
   { label: "Commerce", icon: ShoppingBag, items: [{ name: "Walmart", titan: true }, { name: "eBay", titan: true }] },
   { label: "Marketing", icon: BarChart3, items: [{ name: "Meta Ads", titan: true }, { name: "Google Ads", titan: true }, { name: "Google Analytics" }, { name: "Mailchimp" }] },
   { label: "Social", icon: Share2, items: [{ name: "Instagram" }, { name: "TikTok", titan: true }, { name: "Pinterest" }, { name: "Facebook" }] },
