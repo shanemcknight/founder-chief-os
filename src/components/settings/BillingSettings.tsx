@@ -115,7 +115,7 @@ export default function BillingSettings() {
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {plan === "scout" ? (
             <a
               href="/pricing"
@@ -142,6 +142,14 @@ export default function BillingSettings() {
               </a>
             </>
           )}
+          <button
+            onClick={handleSyncPlan}
+            disabled={syncLoading}
+            className="text-xs font-medium text-muted-foreground border border-border px-4 py-2 rounded-lg hover:bg-muted/30 transition-colors inline-flex items-center gap-1 disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={syncLoading ? "animate-spin" : ""} />
+            {syncLoading ? "Syncing..." : "Sync Plan with Stripe"}
+          </button>
         </div>
       </div>
 
