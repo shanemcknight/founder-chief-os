@@ -64,6 +64,8 @@ const actions = [
 ];
 
 export default function CommandPage() {
+  // Triggers verify-subscription when landing with ?subscription=success
+  useSubscription();
   return (
     <div className="space-y-6">
       <div>
