@@ -100,7 +100,15 @@ export default function SocialLibraryPage() {
                   <td className="px-3 py-3 text-xs text-muted-foreground">{post.scheduledDate || "—"}</td>
                   <td className="px-3 py-3">{pillar ? <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: pillar.color + "20", color: pillar.color }}>{pillar.name}</span> : "—"}</td>
                   <td className="px-3 py-3 text-xs text-muted-foreground">{post.createdAt}</td>
-                </tr>
+                  <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => {
+                      addPost({ title: post.title, caption: post.caption, platforms: [...post.platforms], postType: post.postType, postNotes: post.postNotes, status: "draft" });
+                      toast.success("Post added — open Calendar to schedule it");
+                      navigate("/social/calendar");
+                    }} className="flex items-center gap-1 text-[11px] text-primary hover:underline">
+                      <CalendarPlus className="w-3 h-3" />Schedule
+                    </button>
+                  </td>
               );
             })}
             {filtered.length === 0 && (
