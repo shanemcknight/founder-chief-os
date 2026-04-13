@@ -1,10 +1,13 @@
 import { Link } from "react-router-dom";
+import { Check, Zap, Key } from "lucide-react";
 
 const plans = [
   {
     name: "SCOUT",
     price: "Free",
     period: "",
+    tokens: "500K tokens",
+    seats: "1 seat",
     features: ["1 agent", "3 social accounts", "Basic CRM — 25 contacts", "100 AI email responses/mo"],
     featured: false,
     cta: "Start Free",
@@ -14,23 +17,44 @@ const plans = [
     price: "$49",
     period: "/mo",
     badge: "Most Popular",
+    tokens: "10M tokens",
+    seats: "1 seat",
     features: [
       "Unlimited agents",
       "All 7 pillars",
       "Full CRM — unlimited contacts",
       "All integrations",
-      "5 team seats",
       "Chief AI full access",
     ],
     featured: true,
     cta: "Start with Titan",
+    byok: true,
+  },
+  {
+    name: "ATLAS",
+    price: "$79",
+    period: "/mo",
+    tokens: "20M tokens",
+    seats: "2 seats",
+    features: [
+      "Everything in TITAN",
+      "Priority support",
+      "Advanced analytics",
+      "Custom automations",
+      "Team collaboration",
+    ],
+    featured: false,
+    cta: "Start with Atlas",
+    byok: true,
   },
   {
     name: "OLYMPUS",
-    price: "$199",
+    price: "$149",
     period: "/mo",
+    tokens: "50M tokens",
+    seats: "5 seats",
     features: [
-      "Everything in TITAN",
+      "Everything in ATLAS",
       "Local node hosting",
       "White-label",
       "Dedicated Chief AI",
@@ -39,21 +63,23 @@ const plans = [
     ],
     featured: false,
     cta: "Talk to Us",
+    byok: true,
   },
 ];
+
 export default function PricingSection() {
   return (
     <section id="pricing" className="py-24">
-      <div className="max-w-5xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-6">
         <h2 className="text-3xl font-bold text-foreground text-center mb-4">Pricing</h2>
         <p className="text-muted-foreground text-center mb-14">Start free. Scale when you're ready.</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {plans.map((plan) => (
             <div
               key={plan.name}
               className={`bg-card border rounded-xl p-6 flex flex-col ${
-                plan.featured ? "border-primary glow-primary relative border-t-2 border-t-primary scale-[1.03]" : "border-border"
+                plan.featured ? "border-primary ring-1 ring-primary/30 relative scale-[1.02]" : "border-border"
               }`}
             >
               {plan.badge && (
@@ -62,18 +88,28 @@ export default function PricingSection() {
                 </span>
               )}
               <h3 className="text-sm font-semibold tracking-wide text-foreground mb-1">{plan.name}</h3>
-              <div className="mb-5">
+              <div className="mb-2">
                 <span className="text-3xl font-bold text-foreground">{plan.price}</span>
                 <span className="text-sm text-muted-foreground">{plan.period}</span>
               </div>
-              <ul className="space-y-2.5 mb-8 flex-1">
+              <div className="flex items-center gap-3 mb-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><Zap size={12} className="text-primary" />{plan.tokens}</span>
+                <span>{plan.seats}</span>
+              </div>
+              <ul className="space-y-2 mb-5 flex-1">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <svg className="w-4 h-4 text-success mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
+                    <Check size={14} className="text-emerald-400 mt-0.5 shrink-0" />
                     {f}
                   </li>
                 ))}
               </ul>
+              {plan.byok && (
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/30 rounded-md px-2.5 py-1.5 mb-4">
+                  <Key size={11} className="text-primary shrink-0" />
+                  <span>BYOK Anthropic for unlimited</span>
+                </div>
+              )}
               <Link
                 to="/pricing"
                 className={`text-sm font-medium text-center py-2.5 rounded-md transition-opacity duration-150 ${
