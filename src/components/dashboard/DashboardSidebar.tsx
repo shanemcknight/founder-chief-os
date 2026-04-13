@@ -17,7 +17,6 @@ import {
   Library,
   BarChart3,
   Lightbulb,
-  ChevronDown,
   ChevronRight,
   Inbox,
   CheckCircle2,
@@ -78,8 +77,8 @@ export default function DashboardSidebar() {
     .toUpperCase()
     .slice(0, 2);
 
-  const showSocialSub = socialOpen || isSocialActive;
-  const showInboxSub = inboxOpen || isInboxActive;
+  const showSocialSub = socialOpen;
+  const showInboxSub = inboxOpen;
 
   return (
     <aside className="w-[220px] shrink-0 border-r border-border bg-card flex flex-col overflow-y-auto">
@@ -100,7 +99,7 @@ export default function DashboardSidebar() {
 
         {/* INBOX — expandable */}
         <button
-          onClick={() => setInboxOpen(!showInboxSub)}
+          onClick={() => setInboxOpen(!inboxOpen)}
           className={cn(
             "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150",
             isInboxActive
@@ -115,7 +114,7 @@ export default function DashboardSidebar() {
               {inboxCounts.total}
             </span>
           )}
-          {showInboxSub ? <ChevronDown size={14} className="opacity-50" /> : <ChevronRight size={14} className="opacity-50" />}
+          <ChevronRight size={14} className={cn("opacity-50 transition-transform duration-200", inboxOpen && "rotate-90")} />
         </button>
 
         {showInboxSub && (
@@ -157,7 +156,7 @@ export default function DashboardSidebar() {
 
         {/* SOCIAL — expandable */}
         <button
-          onClick={() => setSocialOpen(!showSocialSub)}
+          onClick={() => setSocialOpen(!socialOpen)}
           className={cn(
             "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150",
             isSocialActive
@@ -167,7 +166,7 @@ export default function DashboardSidebar() {
         >
           <BookOpen size={16} />
           <span className="flex-1 text-left">SOCIAL</span>
-          {showSocialSub ? <ChevronDown size={14} className="opacity-50" /> : <ChevronRight size={14} className="opacity-50" />}
+          <ChevronRight size={14} className={cn("opacity-50 transition-transform duration-200", socialOpen && "rotate-90")} />
         </button>
 
         {showSocialSub && (
