@@ -17,7 +17,6 @@ import {
   Library,
   BarChart3,
   Lightbulb,
-  ChevronDown,
   ChevronRight,
   Inbox,
   CheckCircle2,
