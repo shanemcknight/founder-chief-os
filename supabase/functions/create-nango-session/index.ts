@@ -69,15 +69,16 @@ serve(async (req) => {
       });
     }
 
-    if (!responseData.token) {
+    const token = responseData.data?.token || responseData.token;
+    if (!token) {
       console.error("No token in Nango response:", JSON.stringify(responseData));
       return new Response(JSON.stringify({ error: "No token in Nango response", details: responseData }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log("Returning token, length:", responseData.token.length);
-    return new Response(JSON.stringify({ token: responseData.token }), {
+    console.log("Returning token, length:", token.length);
+    return new Response(JSON.stringify({ token }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
