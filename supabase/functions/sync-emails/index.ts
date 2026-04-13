@@ -64,7 +64,7 @@ serve(async (req) => {
 
     // Fetch emails via Nango proxy
     const nangoRes = await fetch(
-      `${NANGO_API_URL}/proxy/me/messages?$top=20&$orderby=receivedDateTime%20desc&$select=id,from,subject,bodyPreview,body,receivedDateTime`,
+      `${NANGO_API_URL}/proxy/v1.0/me/messages?$top=20&$orderby=receivedDateTime%20desc&$select=id,from,subject,bodyPreview,body,receivedDateTime`,
       {
         headers: {
           Authorization: `Bearer ${NANGO_SECRET_KEY}`,
