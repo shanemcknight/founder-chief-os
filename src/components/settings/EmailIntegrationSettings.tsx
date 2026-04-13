@@ -37,19 +37,48 @@ export default function EmailIntegrationSettings() {
     if (!user) return;
     setConnecting(true);
     try {
+      console.log("[Outlook] Connect button clicked");
+
       // 1. Get connect session token from backend
       const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("You must be logged in to connect Outlook");
+        return;
+      }
+      console.log("[Outlook] Calling create-nango-session edge function...");
+
       const sessionRes = await supabase.functions.invoke("create-nango-session", {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (sessionRes.error) throw sessionRes.error;
+
+      console.log("[Outlook] Edge function response:", sessionRes);
+
+      if (sessionRes.error) {
+        console.error("[Outlook] Edge function error:", sessionRes.error);
+        toast.error("Failed to create connection session");
+        return;
+      }
+
       const connectSessionToken = sessionRes.data?.token;
-      if (!connectSessionToken) throw new Error("No session token returned");
+      if (!connectSessionToken) {
+        console.error("[Outlook] No token in response:", sessionRes.data);
+        toast.error("No session token returned from server");
+        return;
+      }
+      console.log("[Outlook] Session token received:", connectSessionToken.substring(0, 20) + "...");
 
       // 2. Init Nango with connect session token and open UI
+      console.log("[Outlook] Importing @nangohq/frontend...");
       const { default: Nango } = await import("@nangohq/frontend");
+      console.log("[Outlook] Nango SDK loaded, initializing with connectSessionToken...");
+
       const nango = new Nango({ connectSessionToken });
-      const result = await nango.auth("microsoft-outlook", user.id);
+      console.log("[Outlook] Calling nango.auth('microsoft-outlook')...");
+
+      const result = await nango.auth("microsoft-outlook", user.id, {
+        detectClosedAuthWindow: true,
+      });
+      console.log("[Outlook] nango.auth() result:", result);
 
       // 3. Store connection
       await supabase.from("user_integrations").upsert(
@@ -66,8 +95,8 @@ export default function EmailIntegrationSettings() {
       setConnectionEmail(result.connectionId);
       toast.success("Outlook connected successfully");
     } catch (err: any) {
-      console.error("Nango OAuth error:", err);
-      toast.error("Failed to connect Outlook");
+      console.error("[Outlook] OAuth error:", err);
+      toast.error(err?.message || "Failed to connect Outlook");
     } finally {
       setConnecting(false);
     }
