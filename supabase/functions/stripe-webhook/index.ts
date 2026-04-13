@@ -44,28 +44,63 @@ serve(async (req) => {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.metadata?.user_id;
-        const plan = session.metadata?.plan || "titan";
-        const customerId = session.customer as string;
-        const subscriptionId = session.subscription as string;
 
-        if (!userId) { console.error("No user_id in metadata"); break; }
+        // 1. Retrieve the full session with expanded subscription & customer
+        const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+          expand: ['subscription', 'customer'],
+        });
 
-        const stripeSub = await stripe.subscriptions.retrieve(subscriptionId);
+        console.log("Full session object:", JSON.stringify(fullSession, null, 2));
 
+        const subscriptionObj = fullSession.subscription as Stripe.Subscription | null;
+        const plan = fullSession.metadata?.plan || "titan";
+
+        // 2. Determine user_id: first from metadata, then by matching email
+        let userId = fullSession.metadata?.user_id || null;
+
+        if (!userId && fullSession.customer_details?.email) {
+          // Look up user by email in auth.users via admin API
+          const { data: userData } = await supabase.auth.admin.listUsers();
+          const matchedUser = userData?.users?.find(
+            (u: any) => u.email === fullSession.customer_details!.email
+          );
+          if (matchedUser) {
+            userId = matchedUser.id;
+            console.log(`Matched user by email: ${fullSession.customer_details.email} -> ${userId}`);
+          }
+        }
+
+        if (!userId) {
+          console.error("No user_id found in metadata or by email match");
+          break;
+        }
+
+        const customerId = typeof fullSession.customer === 'string'
+          ? fullSession.customer
+          : (fullSession.customer as any)?.id;
+
+        const subscriptionId = typeof fullSession.subscription === 'string'
+          ? fullSession.subscription
+          : subscriptionObj?.id;
+
+        const currentPeriodEnd = subscriptionObj?.current_period_end
+          ? new Date(subscriptionObj.current_period_end * 1000).toISOString()
+          : null;
+
+        // 3. Upsert into subscriptions table
         const { error } = await supabase.from("subscriptions").upsert({
           user_id: userId,
-          stripe_customer_id: customerId,
-          stripe_subscription_id: subscriptionId,
+          stripe_customer_id: customerId || null,
+          stripe_subscription_id: subscriptionId || null,
           plan,
           status: "active",
           token_budget: TOKEN_BUDGETS[plan] || 500_000,
           tokens_used: 0,
-          current_period_end: new Date(stripeSub.current_period_end * 1000).toISOString(),
+          current_period_end: currentPeriodEnd,
         }, { onConflict: "user_id" });
 
-        if (error) console.error("Upsert error:", error);
-        else console.log(`Subscription created for user ${userId}, plan: ${plan}`);
+        if (error) console.error("Upsert error:", JSON.stringify(error));
+        else console.log(`Subscription created/updated for user ${userId}, plan: ${plan}`);
         break;
       }
 
@@ -102,6 +137,26 @@ serve(async (req) => {
         }).eq("user_id", userId);
 
         console.log(`Subscription canceled for user ${userId}, downgraded to SCOUT`);
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as any;
+        if (invoice.subscription) {
+          const { data: subData } = await supabase
+            .from("subscriptions")
+            .select("status")
+            .eq("stripe_subscription_id", invoice.subscription)
+            .single();
+
+          if (subData && subData.status !== "canceled") {
+            await supabase
+              .from("subscriptions")
+              .update({ status: "past_due" })
+              .eq("stripe_subscription_id", invoice.subscription);
+            console.log(`Marked subscription ${invoice.subscription} as past_due`);
+          }
+        }
         break;
       }
 
