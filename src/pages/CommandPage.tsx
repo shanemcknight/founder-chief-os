@@ -64,8 +64,17 @@ const actions = [
 ];
 
 export default function CommandPage() {
-  // Triggers verify-subscription when landing with ?subscription=success
-  useSubscription();
+  const { isVerifying } = useSubscription();
+
+  if (isVerifying) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 space-y-4">
+        <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-muted-foreground">Verifying your subscription with Stripe...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>

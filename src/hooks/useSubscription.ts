@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export interface Subscription {
   id: string;
@@ -23,9 +24,17 @@ const PLAN_DEFAULTS: Partial<Subscription> = {
   tokens_used: 0,
 };
 
+const PLAN_LABELS: Record<string, string> = {
+  titan: "TITAN",
+  atlas: "ATLAS",
+  olympus: "OLYMPUS",
+  scout: "SCOUT",
+};
+
 export function useSubscription() {
   const { user } = useAuth();
   const verifiedRef = useRef(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const query = useQuery({
     queryKey: ["subscription", user?.id],
@@ -50,20 +59,32 @@ export function useSubscription() {
     if (params.get("subscription") !== "success") return;
 
     verifiedRef.current = true;
+    setIsVerifying(true);
 
     const verify = async () => {
       try {
         const { data, error } = await supabase.functions.invoke("verify-subscription");
         console.log("verify-subscription result:", data, error);
+        
+        // Clean URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete("subscription");
+        window.history.replaceState({}, "", url.pathname);
+
         if (data?.verified) {
-          // Remove query param and refetch
-          const url = new URL(window.location.href);
-          url.searchParams.delete("subscription");
-          window.history.replaceState({}, "", url.pathname);
-          query.refetch();
+          const label = PLAN_LABELS[data.plan] || data.plan?.toUpperCase();
+          toast.success(`Welcome to ${label}! 🎉`, {
+            description: "Your subscription is now active.",
+          });
+          await query.refetch();
+        } else {
+          toast.info("Subscription verification pending. Try syncing from Settings → Billing.");
         }
       } catch (err) {
         console.error("verify-subscription error:", err);
+        toast.error("Failed to verify subscription. Try Settings → Billing → Sync Plan.");
+      } finally {
+        setIsVerifying(false);
       }
     };
 
@@ -73,6 +94,7 @@ export function useSubscription() {
   return {
     subscription: query.data,
     isLoading: query.isLoading,
+    isVerifying,
     refetch: query.refetch,
   };
 }
