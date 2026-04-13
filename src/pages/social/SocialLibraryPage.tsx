@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { useSocial, PlatformId, PostStatus, STATUS_LABELS, getStatusColor, PLATFORMS } from "@/contexts/SocialContext";
-import { Search, Filter, ArrowUpDown, Copy, CheckCircle } from "lucide-react";
+import { Search, Filter, ArrowUpDown, Copy, CheckCircle, CalendarPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export default function SocialLibraryPage() {
   const { posts, openSlideOut, duplicatePost, updatePost, pillars } = useSocial();
