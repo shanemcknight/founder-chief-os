@@ -98,46 +98,50 @@ serve(async (req) => {
     }));
 
     // Call AI for categorization via Lovable AI Gateway
-    const aiRes = await fetch("https://ai-gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are an email triage AI. For each email, return a JSON array with objects containing:
+    let categorizations: any[] = [];
+    try {
+      const aiRes = await fetch("https://ai-gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content: `You are an email triage AI. For each email, return a JSON array with objects containing:
 - "id": the email id
 - "category": one of "urgent", "lead", "customer", "vendor", "admin", "noise"
 - "summary": a one-line summary (max 80 chars) starting with a verb or key topic
 - "draft_reply": a short professional reply draft (2-3 sentences)
 
 Return ONLY valid JSON array, no markdown.`,
-          },
-          {
-            role: "user",
-            content: JSON.stringify(emailSummaries),
-          },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
+            },
+            {
+              role: "user",
+              content: JSON.stringify(emailSummaries),
+            },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
 
-    let categorizations: any[] = [];
-    if (aiRes.ok) {
-      const aiData = await aiRes.json();
-      const content = aiData.choices?.[0]?.message?.content || "[]";
-      try {
-        const parsed = JSON.parse(content);
-        categorizations = Array.isArray(parsed) ? parsed : parsed.emails || parsed.results || [];
-      } catch {
-        console.error("Failed to parse AI response:", content);
+      if (aiRes.ok) {
+        const aiData = await aiRes.json();
+        const content = aiData.choices?.[0]?.message?.content || "[]";
+        try {
+          const parsed = JSON.parse(content);
+          categorizations = Array.isArray(parsed) ? parsed : parsed.emails || parsed.results || [];
+        } catch {
+          console.error("Failed to parse AI response:", content);
+        }
+      } else {
+        console.error("AI categorization failed:", await aiRes.text());
       }
-    } else {
-      console.error("AI categorization failed:", await aiRes.text());
+    } catch (aiErr) {
+      console.error("AI gateway unreachable, syncing without categorization:", aiErr);
     }
 
     const catMap = new Map(categorizations.map((c: any) => [c.id, c]));
