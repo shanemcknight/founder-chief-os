@@ -52,26 +52,23 @@ export default function BetaPage() {
         <div className="w-full max-w-[560px]">
           {submitted ? (
             <div className="text-center space-y-6 animate-in fade-in-0 zoom-in-95 duration-500">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full" style={{ background: "rgba(93,153,146,0.15)" }}>
-                <CheckCircle className="w-8 h-8" style={{ color: "#5D9992" }} />
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/15">
+                <CheckCircle className="w-8 h-8 text-primary" />
               </div>
               <h1 className="text-3xl font-bold text-foreground">You're on the list! 🎉</h1>
-              <p className="text-muted-foreground text-lg">We'll be in touch within 48 hours.</p>
+              <p className="text-muted-foreground text-lg">We'll reach out when your spot is ready.</p>
             </div>
           ) : (
             <div className="space-y-8">
               <div className="text-center space-y-4">
-                <span
-                  className="inline-block text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full"
-                  style={{ background: "rgba(93,153,146,0.15)", color: "#5D9992" }}
-                >
-                  Limited Beta Access
+                <span className="inline-block text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-primary/10 text-primary">
+                  Coming Soon
                 </span>
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                  You've been invited to try MYTHOS HQ.
+                  Mythos HQ is in private beta.
                 </h1>
                 <p className="text-muted-foreground text-base leading-relaxed max-w-md mx-auto">
-                  MYTHOS HQ is the founder OS — 7 pillars, 30+ integrations, AI Chief of Operations. We're opening access to a small group of founders first. Request your spot below.
+                  Join the waitlist and we'll reach out when your spot is ready. We're opening access to a small group of founders first.
                 </p>
               </div>
 
@@ -116,16 +113,13 @@ export default function BetaPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-3 rounded-lg text-sm font-semibold text-white transition-all duration-150 disabled:opacity-60"
-                  style={{ background: "#5D9992" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#4d8880")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "#5D9992")}
+                  className="w-full py-3 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors duration-150 disabled:opacity-60"
                 >
-                  {submitting ? "Submitting..." : "Request Beta Access →"}
+                  {submitting ? "Submitting..." : "Join the Waitlist →"}
                 </button>
 
                 <div className="text-center space-y-1">
-                  <p className="text-xs text-muted-foreground">We'll email you within 48 hours with access.</p>
+                  <p className="text-xs text-muted-foreground">We'll email you when your spot is ready.</p>
                   <p className="text-xs text-muted-foreground/60">We won't spam you. Unsubscribe anytime.</p>
                 </div>
               </form>

@@ -79,8 +79,8 @@ export default function HeroSection() {
       <div className="max-w-7xl mx-auto px-6 pt-24 pb-16 w-full">
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div>
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-sm mb-6">
-              Now in Public Beta →
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-sm mb-6">
+              Private Beta — Invite Only
             </span>
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight text-foreground mb-6">
               Run your entire business.
@@ -91,8 +91,8 @@ export default function HeroSection() {
               MYTHOS HQ is the all-in-one founder OS — with an AI Chief of Operations handling what doesn't need you, and surfacing everything that does.
             </p>
             <div className="flex gap-3">
-              <Link to="/onboarding" className="inline-flex items-center gap-1 text-sm font-medium bg-primary text-primary-foreground px-6 py-3 rounded-md hover:bg-primary/90 transition-colors duration-150">
-                Start Free →
+              <Link to="/beta" className="inline-flex items-center gap-1 text-sm font-medium bg-primary text-primary-foreground px-6 py-3 rounded-md hover:bg-primary/90 transition-colors duration-150">
+                Join the Waitlist →
               </Link>
               <a href="#features" className="inline-flex items-center text-sm font-medium text-foreground border border-border px-6 py-3 rounded-md hover:bg-muted/50 transition-colors duration-150">
                 See How It Works

@@ -17,7 +17,7 @@ export default function LandingNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const links = ["Features", "Social", "Sales", "Pricing", "Beta", "Docs"];
+  const links = ["Features", "Social", "Sales", "Pricing", "Docs"];
 
   return (
     <>
@@ -28,17 +28,11 @@ export default function LandingNav() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            {links.map((l) =>
-              l === "Beta" ? (
-                <Link key={l} to="/beta" className="text-sm font-medium transition-colors duration-150" style={{ color: "#5D9992" }}>
-                  {l}
-                </Link>
-              ) : (
-                <a key={l} href={`#${l.toLowerCase()}`} className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
-                  {l}
-                </a>
-              )
-            )}
+            {links.map((l) => (
+              <a key={l} href={`#${l.toLowerCase()}`} className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
+                {l}
+              </a>
+            ))}
           </div>
 
           <div className="flex items-center gap-3">
@@ -56,8 +50,8 @@ export default function LandingNav() {
             <Link to="/login" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
               Log in
             </Link>
-            <Link to="/onboarding" className="text-sm font-medium bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors duration-150">
-              Get Started
+            <Link to="/beta" className="text-sm font-medium bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors duration-150">
+              Join Waitlist
             </Link>
             {isMobile && (
               <button onClick={() => setMobileMenu(!mobileMenu)} className="text-muted-foreground hover:text-foreground md:hidden">
@@ -68,21 +62,14 @@ export default function LandingNav() {
         </div>
       </nav>
 
-      {/* Mobile nav menu */}
       {mobileMenu && (
         <div className="fixed inset-0 z-40 pt-16 bg-background/95 backdrop-blur-sm md:hidden">
           <div className="flex flex-col items-center gap-6 pt-8">
-            {links.map((l) =>
-              l === "Beta" ? (
-                <Link key={l} to="/beta" onClick={() => setMobileMenu(false)} className="text-lg font-medium" style={{ color: "#5D9992" }}>
-                  {l}
-                </Link>
-              ) : (
-                <a key={l} href={`#${l.toLowerCase()}`} onClick={() => setMobileMenu(false)} className="text-lg text-foreground font-medium">
-                  {l}
-                </a>
-              )
-            )}
+            {links.map((l) => (
+              <a key={l} href={`#${l.toLowerCase()}`} onClick={() => setMobileMenu(false)} className="text-lg text-foreground font-medium">
+                {l}
+              </a>
+            ))}
             <Link to="/login" onClick={() => setMobileMenu(false)} className="text-lg text-muted-foreground">Log in</Link>
           </div>
         </div>

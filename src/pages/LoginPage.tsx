@@ -82,8 +82,8 @@ export default function LoginPage() {
 
         <p className="text-center text-xs text-muted-foreground mt-6">
           Don't have an account?{" "}
-          <Link to="/onboarding" className="text-primary hover:underline">
-            Get Started
+          <Link to="/beta" className="text-primary hover:underline">
+            Join the Waitlist
           </Link>
         </p>
       </div>
