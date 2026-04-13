@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -24,6 +25,7 @@ const PLAN_DEFAULTS: Partial<Subscription> = {
 
 export function useSubscription() {
   const { user } = useAuth();
+  const verifiedRef = useRef(false);
 
   const query = useQuery({
     queryKey: ["subscription", user?.id],
@@ -40,6 +42,33 @@ export function useSubscription() {
       return data as unknown as Subscription;
     },
   });
+
+  // When ?subscription=success is in the URL, call verify-subscription
+  useEffect(() => {
+    if (!user?.id || verifiedRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("subscription") !== "success") return;
+
+    verifiedRef.current = true;
+
+    const verify = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("verify-subscription");
+        console.log("verify-subscription result:", data, error);
+        if (data?.verified) {
+          // Remove query param and refetch
+          const url = new URL(window.location.href);
+          url.searchParams.delete("subscription");
+          window.history.replaceState({}, "", url.pathname);
+          query.refetch();
+        }
+      } catch (err) {
+        console.error("verify-subscription error:", err);
+      }
+    };
+
+    verify();
+  }, [user?.id]);
 
   return {
     subscription: query.data,
