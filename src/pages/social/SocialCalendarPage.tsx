@@ -253,7 +253,7 @@ export default function SocialCalendarPage() {
   const renderChip = (post: SocialPost, compact = false) => {
     const si = STATUS_ICON[post.status] || STATUS_ICON.draft;
     const Icon = si.icon;
-    const isFailed = post.status === "failed";
+    const isFailed = (post.status as string) === "failed";
 
     return (
       <div
