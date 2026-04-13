@@ -85,6 +85,7 @@ export default function SocialLibraryPage() {
               <th className="px-3 py-2.5 cursor-pointer hover:text-foreground" onClick={() => toggleSort("scheduledDate")}><span className="flex items-center gap-1">Scheduled <ArrowUpDown className="w-3 h-3" /></span></th>
               <th className="px-3 py-2.5">Pillar</th>
               <th className="px-3 py-2.5 cursor-pointer hover:text-foreground" onClick={() => toggleSort("createdAt")}><span className="flex items-center gap-1">Created <ArrowUpDown className="w-3 h-3" /></span></th>
+              <th className="px-3 py-2.5">Actions</th>
             </tr>
           </thead>
           <tbody>
