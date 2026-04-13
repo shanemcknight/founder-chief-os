@@ -46,7 +46,7 @@ serve(async (req) => {
 
     const nangoBody = {
       end_user: { id: user.id, email: user.email },
-      allowed_integrations: ["microsoft-outlook"],
+      allowed_integrations: ["microsoft"],
     };
     console.log("Nango request body:", JSON.stringify(nangoBody));
 
