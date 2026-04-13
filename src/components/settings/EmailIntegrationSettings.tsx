@@ -69,8 +69,7 @@ export default function EmailIntegrationSettings() {
 
       // 2. Init Nango with connect session token and open UI
       console.log("[Outlook] Importing @nangohq/frontend...");
-      const nangoModule = await import("@nangohq/frontend");
-      const Nango = nangoModule.default || nangoModule.Nango;
+      const { default: Nango } = await import("@nangohq/frontend");
       console.log("[Outlook] Nango SDK loaded, initializing with connectSessionToken...");
 
       const nango = new Nango({ connectSessionToken });
