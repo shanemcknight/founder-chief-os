@@ -210,12 +210,7 @@ export default function PricingPage() {
                     ))}
                   </ul>
 
-                  {plan.byok && (
-                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/30 rounded-md px-2.5 py-1.5 mb-4">
-                      <Key size={11} className="text-primary shrink-0" />
-                      <span>Connect your own Anthropic key for unlimited</span>
-                    </div>
-                  )}
+                  {plan.byok && <ByokLine />}
 
                   <button
                     onClick={() => handleSubscribe(plan.key)}
