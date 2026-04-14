@@ -1,5 +1,51 @@
 import { Link } from "react-router-dom";
-import { Check, Zap, Key } from "lucide-react";
+import { Check, Zap, Key, HelpCircle } from "lucide-react";
+import { useState } from "react";
+
+function ByokLine() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mb-4">
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/30 rounded-md px-2.5 py-1.5">
+        <Key size={11} className="text-primary shrink-0" />
+        <a
+          href="https://console.anthropic.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:underline"
+          style={{ color: "#5D9992" }}
+        >
+          Connect your own Anthropic API key for unlimited tokens
+        </a>
+        <button
+          onClick={(e) => { e.preventDefault(); setOpen(!open); }}
+          className="ml-auto shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="What is an Anthropic API key?"
+        >
+          <HelpCircle size={12} />
+        </button>
+      </div>
+      {open && (
+        <div className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground bg-muted/20 border border-border/50 rounded-md px-2.5 py-2">
+          <strong className="text-foreground">What is an Anthropic API key?</strong>{" "}
+          Your Claude subscription (Claude.ai) and an Anthropic API key are two different things.
+          An API key is a separate account at console.anthropic.com — you'll pay Anthropic directly
+          for tokens you use, with no monthly fee. Takes about 5 minutes to set up.
+          <br />
+          <a
+            href="https://console.anthropic.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block mt-1 hover:underline"
+            style={{ color: "#5D9992" }}
+          >
+            → Create your free API account at console.anthropic.com
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const plans = [
   {
@@ -104,12 +150,7 @@ export default function PricingSection() {
                   </li>
                 ))}
               </ul>
-              {plan.byok && (
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/30 rounded-md px-2.5 py-1.5 mb-4">
-                  <Key size={11} className="text-primary shrink-0" />
-                  <span>BYOK Anthropic for unlimited</span>
-                </div>
-              )}
+              {plan.byok && <ByokLine />}
               <Link
                 to="/pricing"
                 className={`text-sm font-medium text-center py-2.5 rounded-md transition-opacity duration-150 ${
