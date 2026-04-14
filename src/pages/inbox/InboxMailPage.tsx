@@ -598,15 +598,41 @@ export default function InboxMailPage() {
       {/* Column 3 — Email Detail + CHIEF Panel */}
       {selected && (
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-5">
-            <div className="flex items-start justify-between mb-1">
-              <div>
+          <div className="sticky top-0 z-10 bg-background border-b border-border px-5 py-3">
+            <div className="flex items-start justify-between">
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-foreground">{selected.from_name}</p>
                 <p className="text-[11px] text-muted-foreground">{selected.from_email}</p>
+                <p className="text-sm font-bold text-foreground mt-2">{selected.subject}</p>
               </div>
-              <span className="text-[10px] text-muted-foreground">{formatTime(selected.received_at || selected.created_at)}</span>
+              <div className="flex items-center gap-1 shrink-0 ml-3">
+                <button
+                  onClick={() => openReply("reply")}
+                  className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground border border-border px-2 py-1 rounded hover:bg-muted/30 hover:text-foreground transition-colors"
+                  title="Reply"
+                >
+                  <Reply size={12} /> Reply
+                </button>
+                <button
+                  onClick={() => openReply("replyAll")}
+                  className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground border border-border px-2 py-1 rounded hover:bg-muted/30 hover:text-foreground transition-colors"
+                  title="Reply All"
+                >
+                  <ReplyAll size={12} /> Reply All
+                </button>
+                <button
+                  onClick={openForward}
+                  className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground border border-border px-2 py-1 rounded hover:bg-muted/30 hover:text-foreground transition-colors"
+                  title="Forward"
+                >
+                  <Forward size={12} /> Forward
+                </button>
+              </div>
             </div>
-            <p className="text-sm font-bold text-foreground mt-3 mb-4">{selected.subject}</p>
+            <span className="text-[10px] text-muted-foreground">{formatTime(selected.received_at || selected.created_at)}</span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-5">
 
             {/* Render email body — HTML or plain text */}
             {selected.body_full && isHtml(selected.body_full) ? (
