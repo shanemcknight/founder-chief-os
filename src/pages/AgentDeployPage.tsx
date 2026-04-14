@@ -34,6 +34,7 @@ const channels = [
 ];
 
 export default function AgentDeployPage() {
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [integrations, setIntegrations] = useState<Record<string, boolean>>(
@@ -44,7 +45,20 @@ export default function AgentDeployPage() {
   );
   const [deployed, setDeployed] = useState(false);
   const [confetti, setConfetti] = useState(false);
+  const [hasByokKey, setHasByokKey] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("anthropic_api_key")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.anthropic_api_key) setHasByokKey(true);
+      });
+  }, [user]);
 
   const next = () => setStep((s) => Math.min(s + 1, 3));
   const back = () => setStep((s) => Math.max(s - 1, 0));
