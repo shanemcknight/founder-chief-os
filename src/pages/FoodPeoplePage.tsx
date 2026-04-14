@@ -135,7 +135,7 @@ const FoodPeoplePage = () => (
         </Button>
       </a>
       <p className="text-gray-500 text-sm">
-        Or reach Warren and James directly:{" "}
+        Or reach us directly at{" "}
         <a href={MAILTO} className="text-[#5D9992] hover:underline">hello@mythoshq.io</a>
       </p>
       <p className="text-gray-600 text-xs italic mt-8">
