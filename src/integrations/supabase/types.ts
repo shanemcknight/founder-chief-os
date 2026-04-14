@@ -554,6 +554,7 @@ export type Database = {
           connected_at: string
           created_at: string
           id: string
+          last_synced_at: string | null
           nango_connection_id: string
           provider: string
           user_id: string
@@ -562,6 +563,7 @@ export type Database = {
           connected_at?: string
           created_at?: string
           id?: string
+          last_synced_at?: string | null
           nango_connection_id: string
           provider: string
           user_id: string
@@ -570,6 +572,7 @@ export type Database = {
           connected_at?: string
           created_at?: string
           id?: string
+          last_synced_at?: string | null
           nango_connection_id?: string
           provider?: string
           user_id?: string
