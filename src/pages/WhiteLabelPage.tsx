@@ -297,11 +297,7 @@ export default function WhiteLabelPage() {
                 </DarkCard>
                 {card.featured && (
                   <p className="text-xs text-muted-foreground italic mt-3 leading-relaxed">
-                    About AI token costs: MYTHOS HQ runs on Anthropic's Claude. During your build, we'll set up your organization's own Anthropic API account at{" "}
-                    <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline not-italic">
-                      console.anthropic.com
-                    </a>{" "}
-                    — you pay Anthropic directly for usage at their standard rates. No markup. No surprise bills. Full transparency.
+                    About AI infrastructure: We'll set up your organization's own Anthropic API account during the build — you pay Anthropic directly at standard rates. No markup. Full transparency.
                   </p>
                 )}
               </div>
