@@ -60,7 +60,7 @@ const plans = [
     tokens: "10M tokens",
     seats: "1 seat",
     features: [
-      "Unlimited agents",
+      "Up to 3 agents",
       "All 7 pillars",
       "Full CRM — unlimited contacts",
       "All integrations",
