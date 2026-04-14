@@ -176,6 +176,8 @@ export default function SettingsPage() {
               <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded">8 connected</span>
             </div>
 
+            <AiModelIntegration />
+
             <EmailIntegrationSettings />
 
             <div className="mb-6">
