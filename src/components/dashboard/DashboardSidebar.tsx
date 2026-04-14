@@ -82,12 +82,9 @@ export default function DashboardSidebar() {
 
   return (
     <aside className="w-[220px] shrink-0 border-r border-border bg-card flex flex-col overflow-y-auto">
-      <div className="px-4 py-4 flex items-center gap-2">
-        <span className="text-sm tracking-tight text-foreground">
-          <span className="font-bold">MYTHOS</span>{" "}
-          <span className="font-normal text-xs text-primary">HQ</span>
-        </span>
+      <div className="px-4 py-2 flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+        <span className="text-[10px] text-muted-foreground">Online</span>
       </div>
 
       <nav className="flex-1 py-1 px-2 space-y-0.5">
