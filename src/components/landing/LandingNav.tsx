@@ -88,7 +88,7 @@ export default function LandingNav() {
                   {l.label}
                 </a>
               )
-            ))}
+            )}
             <Link to="/login" onClick={() => setMobileMenu(false)} className="text-lg text-muted-foreground">Log in</Link>
           </div>
         </div>
