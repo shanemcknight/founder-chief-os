@@ -44,6 +44,73 @@ const FoodPeoplePage = () => (
       </div>
     </section>
 
+    {/* ── YOUR OPTIONS ── */}
+    <section className="max-w-6xl mx-auto px-6 pb-24">
+      <div className="text-center mb-12">
+        <p className="text-[#D97706] text-xs font-semibold tracking-[0.2em] uppercase mb-3">Your Options, Clearly Explained</p>
+        <h2 className="text-3xl sm:text-4xl font-bold mb-4">There are two ways to build an Agentic AI system. Here's what each one actually requires.</h2>
+        <p className="text-gray-400 max-w-2xl mx-auto">
+          Agentic AI is real, it's powerful, and it's worth understanding before you decide how to get there. We'll give you the honest picture.
+        </p>
+      </div>
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* LEFT — Assemble It Yourself */}
+        <div className="bg-[#222529] border border-white/[0.06] rounded-xl p-6 md:p-8">
+          <h3 className="text-xl font-bold text-[#D97706] mb-1">Assemble It Yourself</h3>
+          <p className="text-xs text-gray-500 mb-5">Maximum control · Requires technical investment</p>
+          <ul className="space-y-3 mb-6">
+            {[
+              "Dedicated hardware running on-premise (server or Mac Mini)",
+              "Separate subscriptions for each AI tool and integration",
+              "Technical staff to configure, maintain, and update the system",
+              "API token costs that scale with usage across your locations",
+              "A chat or command-line interface your team has to learn",
+              "Ongoing prompt engineering as your business needs change",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2 text-sm text-gray-400">
+                <span className="text-[#D97706] mt-0.5">•</span>{item}
+              </li>
+            ))}
+          </ul>
+          <p className="text-[15px] text-white leading-relaxed">
+            A powerful option for organizations with in-house technical resources and the bandwidth to manage the infrastructure themselves.
+          </p>
+        </div>
+
+        {/* RIGHT — We Build and Run It */}
+        <div className="bg-[#222529] border border-white/[0.06] rounded-xl p-6 md:p-8 relative">
+          <Badge variant="outline" className="absolute top-4 right-4 text-[10px] text-[#5D9992] border-[#5D9992]/40 bg-transparent hover:bg-transparent">
+            Recommended
+          </Badge>
+          <h3 className="text-xl font-bold text-[#5D9992] mb-1">We Build and Run It For You</h3>
+          <p className="text-xs text-gray-500 mb-5">Purpose-built for your operation · No technical overhead</p>
+          <ul className="space-y-3 mb-6">
+            {[
+              "Custom dashboard branded for Food People — no new tools to learn",
+              "Every system your team already uses, connected from day one",
+              "Role-based access: your 5 leaders see everything, each GM sees their location",
+              "Agents trained on your operation, your KPIs, your communication style",
+              "Cloud-hosted — accessible from any device, any restaurant, any time",
+              "All maintenance, updates, and system evolution managed for you",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2 text-sm text-gray-400">
+                <span className="text-[#5D9992] mt-0.5">•</span>{item}
+              </li>
+            ))}
+          </ul>
+          <p className="text-[15px] text-white leading-relaxed">
+            Built for leadership teams who want Agentic AI working for their operation — not a new technology project to manage.
+          </p>
+        </div>
+      </div>
+      <p className="text-center text-sm text-gray-500 italic mt-8">
+        Questions about which approach is right for Food People?{" "}
+        <a href={CALENDLY} target="_blank" rel="noopener noreferrer" className="text-[#5D9992] hover:underline not-italic">
+          Let's talk through it
+        </a>.
+      </p>
+    </section>
+
     {/* ── YOUR STACK CONNECTED ── */}
     <section className="max-w-6xl mx-auto px-6 pb-24">
       <p className="text-[#5D9992] text-xs font-semibold tracking-[0.2em] uppercase mb-3">Your Tools. Connected.</p>
