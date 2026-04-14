@@ -158,6 +158,78 @@ export default function WhiteLabelPage() {
         </div>
       </section>
 
+      {/* ─── SECTION 4B: UNDERSTANDING YOUR OPTIONS ─── */}
+      <section className="pb-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <SectionLabel>Understanding Your Options</SectionLabel>
+            <SectionHeadline>Two paths to Agentic AI. One right fit for your business.</SectionHeadline>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              We want you to make the right decision — even if that means building it yourself. Here's what each path actually looks like.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* LEFT CARD — Build It Yourself */}
+            <DarkCard>
+              <h3 className="text-xl font-bold text-[#D97706] mb-1">Build It Yourself</h3>
+              <p className="text-xs text-muted-foreground mb-5">For technical founders who want full control</p>
+              <ul className="space-y-3 mb-6">
+                {[
+                  "Purchase and configure your own hardware (Mac Mini or server)",
+                  "Select, subscribe to, and integrate your AI tools separately",
+                  "Write and maintain your own agent prompts and workflows",
+                  "Manage API keys, token costs, and model updates ongoing",
+                  "Train your team on a command-line or chat-based interface",
+                  "Hire technical support or dedicate internal resources to maintenance",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <span className="text-[#D97706] mt-0.5">•</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[15px] text-foreground leading-relaxed">
+                <span className="font-semibold">Best for:</span> Solo founders with technical backgrounds who want maximum customization and are comfortable managing the system themselves.
+              </p>
+            </DarkCard>
+
+            {/* RIGHT CARD — We Build It For You */}
+            <DarkCard className="relative">
+              <Badge variant="outline" className="absolute top-4 right-4 text-[10px] text-primary border-primary/40">
+                Recommended
+              </Badge>
+              <h3 className="text-xl font-bold text-primary mb-1">We Build It For You</h3>
+              <p className="text-xs text-muted-foreground mb-5">For operators who want results, not infrastructure</p>
+              <ul className="space-y-3 mb-6">
+                {[
+                  "Custom dashboard built and branded for your organization",
+                  "All integrations connected to your existing tools from day one",
+                  "Agents pre-trained on your business, your voice, your workflows",
+                  "Multi-user access with role-based permissions for your whole team",
+                  "Accessible from any device — no hardware to manage or maintain",
+                  "Ongoing system management, updates, and support included",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <span className="text-primary mt-0.5">•</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[15px] text-foreground leading-relaxed">
+                <span className="font-semibold">Best for:</span> Operators and leadership teams who want the power of Agentic AI running their business — without becoming AI engineers to get it.
+              </p>
+            </DarkCard>
+          </div>
+          <p className="text-center text-sm text-muted-foreground italic mt-8">
+            Not sure which is right for you?{" "}
+            <a href={CALENDLY} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline not-italic">
+              Book a 30-minute call
+            </a>{" "}
+            and we'll tell you honestly.
+          </p>
+        </div>
+      </section>
+
       {/* ─── SECTION 5: HOW WE WORK (TIMELINE) ─── */}
       <section className="pb-20 px-6">
         <div className="max-w-6xl mx-auto">
