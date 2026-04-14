@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { X, Sparkles } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { X, Sparkles, Info, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const stepLabels = ["Choose Model", "Configure", "Connect Integrations", "Choose Channels"];
 
@@ -32,6 +34,7 @@ const channels = [
 ];
 
 export default function AgentDeployPage() {
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [integrations, setIntegrations] = useState<Record<string, boolean>>(
@@ -42,7 +45,20 @@ export default function AgentDeployPage() {
   );
   const [deployed, setDeployed] = useState(false);
   const [confetti, setConfetti] = useState(false);
+  const [hasByokKey, setHasByokKey] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("anthropic_api_key")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.anthropic_api_key) setHasByokKey(true);
+      });
+  }, [user]);
 
   const next = () => setStep((s) => Math.min(s + 1, 3));
   const back = () => setStep((s) => Math.max(s - 1, 0));
@@ -152,6 +168,23 @@ export default function AgentDeployPage() {
                       </button>
                     ))}
                   </div>
+                  {hasByokKey ? (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                      <span className="text-[11px] text-emerald-400 font-medium">✓ Using your Anthropic API key — all models unlocked</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border" style={{ borderColor: "#5D9992", backgroundColor: "rgba(93,153,146,0.06)" }}>
+                      <Info size={14} className="shrink-0 mt-0.5" style={{ color: "#5D9992" }} />
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        <span className="font-semibold text-foreground">Unlock all models</span> — Connect your Anthropic API key in{" "}
+                        <Link to="/settings" className="font-medium underline underline-offset-2" style={{ color: "#5D9992" }}>
+                          Settings → Integrations
+                        </Link>{" "}
+                        to bypass token limits and use any model regardless of your plan.
+                      </p>
+                    </div>
+                  )}
                   <button onClick={next} disabled={!selectedModel} className="w-full bg-primary text-primary-foreground text-sm font-semibold py-3 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40">
                     Continue →
                   </button>
