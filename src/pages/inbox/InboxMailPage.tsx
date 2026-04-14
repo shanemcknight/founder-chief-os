@@ -172,12 +172,23 @@ function SanitizedHtml({ html }: { html: string }) {
   });
   return (
     <div
-      className="text-xs text-foreground/90 leading-relaxed prose prose-sm prose-invert max-w-none
-        [&_a]:text-primary [&_a]:underline [&_img]:max-w-full [&_img]:h-auto
-        [&_table]:border-collapse [&_td]:border [&_td]:border-border/30 [&_td]:p-1.5
-        [&_th]:border [&_th]:border-border/30 [&_th]:p-1.5 [&_th]:font-semibold"
-      dangerouslySetInnerHTML={{ __html: clean }}
-    />
+      className="rounded-md overflow-hidden"
+      style={{
+        colorScheme: "light",
+        background: "#ffffff",
+        padding: "16px",
+        borderRadius: "6px",
+      }}
+    >
+      <div
+        className="prose prose-sm max-w-none
+          [&_a]:text-blue-600 [&_a]:underline [&_img]:max-w-full [&_img]:h-auto
+          [&_table]:border-collapse [&_td]:border [&_td]:border-gray-300 [&_td]:p-1.5
+          [&_th]:border [&_th]:border-gray-300 [&_th]:p-1.5 [&_th]:font-semibold"
+        style={{ color: "#1a1a1a", fontSize: "13px", lineHeight: "1.6" }}
+        dangerouslySetInnerHTML={{ __html: clean }}
+      />
+    </div>
   );
 }
 
