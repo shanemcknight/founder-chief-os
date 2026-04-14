@@ -21,6 +21,7 @@ import DataDeletionPage from "./pages/DataDeletionPage";
 import BetaPage from "./pages/BetaPage";
 import PricingPage from "./pages/PricingPage";
 import WhiteLabelPage from "./pages/WhiteLabelPage";
+import FoodPeoplePage from "./pages/FoodPeoplePage";
 
 // Social sub-pages
 import SocialLayout from "./pages/social/SocialLayout";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/beta" element={<BetaPage />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/white-label" element={<WhiteLabelPage />} />
+            <Route path="/for/food-people" element={<FoodPeoplePage />} />
             <Route path="/onboarding" element={<Navigate to="/beta" replace />} />
             <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<CommandPage />} />
