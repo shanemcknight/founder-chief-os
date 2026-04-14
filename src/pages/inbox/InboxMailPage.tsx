@@ -260,70 +260,7 @@ export default function InboxMailPage() {
     }
   }, [user, syncing, fetchEmails]);
 
-  const openReply = useCallback((mode: "reply" | "replyAll") => {
-    if (!selected) return;
-    setComposeMode(mode);
-    setComposeTo(selected.from_email || "");
-    setComposeCc("");
-    setComposeSubject(`Re: ${(selected.subject || "").replace(/^Re:\s*/i, "")}`);
-    // Pre-fill with CHIEF draft if available
-    const chiefDraft = selected.draft_body || selected.email_drafts?.[0]?.draft_body || "";
-    setComposeBody(chiefDraft);
-    setSentConfirm(false);
-  }, [selected]);
 
-  const openCompose = useCallback(() => {
-    setComposeMode("compose");
-    setComposeTo("");
-    setComposeCc("");
-    setComposeSubject("");
-    setComposeBody("");
-    setSentConfirm(false);
-  }, []);
-
-  const closeCompose = useCallback(() => {
-    setComposeMode(null);
-    setComposeTo("");
-    setComposeCc("");
-    setComposeSubject("");
-    setComposeBody("");
-    setSentConfirm(false);
-  }, []);
-
-  const handleSend = useCallback(async () => {
-    if (!user || !composeTo || !composeSubject || !composeBody) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-    setSending(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await supabase.functions.invoke("send-email-reply", {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-        body: {
-          to: composeTo,
-          cc: composeCc || undefined,
-          subject: composeSubject,
-          message: composeBody,
-          in_reply_to: composeMode === "reply" || composeMode === "replyAll" ? selected?.external_id : undefined,
-          email_id: selected?.id?.startsWith("demo-") ? undefined : selected?.id,
-          mode: composeMode === "compose" ? "new" : "reply",
-        },
-      });
-      if (res.error) throw res.error;
-      setSentConfirm(true);
-      toast.success("✓ Sent");
-      setTimeout(() => {
-        closeCompose();
-        fetchEmails();
-      }, 1500);
-    } catch (err: any) {
-      console.error("Send error:", err);
-      toast.error(err.message || "Failed to send");
-    } finally {
-      setSending(false);
-    }
-  }, [user, composeTo, composeCc, composeSubject, composeBody, composeMode, selected, closeCompose, fetchEmails]);
 
   useEffect(() => {
     if (!user) return;
