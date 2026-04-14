@@ -20,12 +20,8 @@ serve(async (req) => {
     const NANGO_SECRET_KEY = Deno.env.get("NANGO_SECRET_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!NANGO_SECRET_KEY) {
-      throw new Error("NANGO_SECRET_KEY is not configured");
-    }
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    if (!NANGO_SECRET_KEY) throw new Error("NANGO_SECRET_KEY is not configured");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -62,17 +58,34 @@ serve(async (req) => {
       });
     }
 
-    // Fetch emails via Nango proxy
-    const nangoRes = await fetch(
-      `${NANGO_API_URL}/proxy/v1.0/me/messages?$top=20&$orderby=receivedDateTime%20desc&$select=id,from,subject,bodyPreview,body,receivedDateTime`,
-      {
-        headers: {
-          Authorization: `Bearer ${NANGO_SECRET_KEY}`,
-          "Connection-Id": integration.nango_connection_id,
-          "Provider-Config-Key": "microsoft",
-        },
-      }
-    );
+    // Find the most recent email we already have to do incremental sync
+    const { data: latestEmail } = await supabase
+      .from("emails")
+      .select("received_at")
+      .eq("user_id", user.id)
+      .eq("provider", "outlook")
+      .order("received_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Build the Graph API query with incremental filter
+    let graphUrl = `${NANGO_API_URL}/proxy/v1.0/me/messages?$top=50&$orderby=receivedDateTime%20desc&$select=id,from,subject,bodyPreview,body,receivedDateTime`;
+
+    if (latestEmail?.received_at) {
+      const filterDate = new Date(latestEmail.received_at).toISOString();
+      graphUrl += `&$filter=receivedDateTime%20gt%20${encodeURIComponent(filterDate)}`;
+      console.log(`[sync-emails] Incremental sync: fetching emails after ${filterDate}`);
+    } else {
+      console.log("[sync-emails] Full initial sync (no existing emails)");
+    }
+
+    const nangoRes = await fetch(graphUrl, {
+      headers: {
+        Authorization: `Bearer ${NANGO_SECRET_KEY}`,
+        "Connection-Id": integration.nango_connection_id,
+        "Provider-Config-Key": "microsoft",
+      },
+    });
 
     if (!nangoRes.ok) {
       const errText = await nangoRes.text();
@@ -81,8 +94,16 @@ serve(async (req) => {
 
     const emailData = await nangoRes.json();
     const messages = emailData.value || [];
+    console.log(`[sync-emails] Fetched ${messages.length} new emails from Graph API`);
 
     if (messages.length === 0) {
+      // Update last_synced_at even if no new emails
+      await supabase
+        .from("user_integrations")
+        .update({ last_synced_at: new Date().toISOString() })
+        .eq("user_id", user.id)
+        .eq("provider", "outlook");
+
       return new Response(JSON.stringify({ synced: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -97,7 +118,7 @@ serve(async (req) => {
       preview: (m.bodyPreview || "").substring(0, 300),
     }));
 
-    // Call AI for categorization via Lovable AI Gateway
+    // Call AI for categorization
     let categorizations: any[] = [];
     try {
       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -119,10 +140,7 @@ serve(async (req) => {
 
 Return ONLY valid JSON array, no markdown.`,
             },
-            {
-              role: "user",
-              content: JSON.stringify(emailSummaries),
-            },
+            { role: "user", content: JSON.stringify(emailSummaries) },
           ],
           response_format: { type: "json_object" },
         }),
@@ -172,9 +190,7 @@ Return ONLY valid JSON array, no markdown.`,
         continue;
       }
 
-      // Create draft reply if AI provided one
       if (cat?.draft_reply) {
-        // Get the email ID we just upserted
         const { data: emailRow } = await supabase
           .from("emails")
           .select("id")
@@ -197,6 +213,13 @@ Return ONLY valid JSON array, no markdown.`,
 
       synced++;
     }
+
+    // Update last_synced_at
+    await supabase
+      .from("user_integrations")
+      .update({ last_synced_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .eq("provider", "outlook");
 
     return new Response(JSON.stringify({ synced }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

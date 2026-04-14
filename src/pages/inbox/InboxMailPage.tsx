@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 import {
   Archive,
   Star,
@@ -24,6 +25,8 @@ import {
   StarIcon,
   SendHorizonal,
   Inbox,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 
 // Demo data for empty DB
@@ -137,6 +140,17 @@ function formatTime(dateStr: string) {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
+function formatSyncAge(dateStr: string | null) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  const diffMin = Math.floor((Date.now() - d.getTime()) / (1000 * 60));
+  if (diffMin < 1) return "Just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `${diffH}h ago`;
+  return `${Math.floor(diffH / 24)}d ago`;
+}
+
 function getInitials(name: string) {
   return name
     .split(" ")
@@ -146,6 +160,33 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
+function SanitizedHtml({ html }: { html: string }) {
+  const clean = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      "p", "br", "b", "i", "em", "strong", "a", "ul", "ol", "li",
+      "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "code",
+      "table", "thead", "tbody", "tr", "td", "th", "div", "span", "img", "hr",
+    ],
+    ALLOWED_ATTR: ["href", "src", "alt", "style", "class", "target", "width", "height"],
+    ALLOW_DATA_ATTR: false,
+  });
+  return (
+    <div
+      className="text-xs text-foreground/90 leading-relaxed prose prose-sm prose-invert max-w-none
+        [&_a]:text-primary [&_a]:underline [&_img]:max-w-full [&_img]:h-auto
+        [&_table]:border-collapse [&_td]:border [&_td]:border-border/30 [&_td]:p-1.5
+        [&_th]:border [&_th]:border-border/30 [&_th]:p-1.5 [&_th]:font-semibold"
+      dangerouslySetInnerHTML={{ __html: clean }}
+    />
+  );
+}
+
+function isHtml(text: string) {
+  return /<[a-z][\s\S]*>/i.test(text);
+}
+
+const AUTO_SYNC_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+
 export default function InboxMailPage() {
   const { user } = useAuth();
   const [emails, setEmails] = useState<any[]>([]);
@@ -154,27 +195,77 @@ export default function InboxMailPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [chiefOpen, setChiefOpen] = useState(true);
   const [draftText, setDraftText] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const hasSyncedRef = useRef(false);
 
+  const fetchEmails = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("emails")
+      .select("*, email_drafts(*)")
+      .eq("user_id", user.id)
+      .eq("archived", false)
+      .order("received_at", { ascending: false });
+
+    if (data && data.length > 0) {
+      setEmails(data);
+    } else {
+      setEmails(demoEmails as any);
+    }
+  }, [user]);
+
+  const triggerSync = useCallback(async () => {
+    if (!user || syncing) return;
+    setSyncing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("sync-emails", {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.error) throw res.error;
+      const now = new Date().toISOString();
+      setLastSyncedAt(now);
+      await fetchEmails();
+      const count = res.data?.synced ?? 0;
+      if (count > 0) toast.success(`Synced ${count} new emails`);
+    } catch (err: any) {
+      console.error("Sync error:", err);
+      // Don't toast on auto-sync failures
+    } finally {
+      setSyncing(false);
+    }
+  }, [user, syncing, fetchEmails]);
+
+  // Initial load: fetch emails + check last sync
   useEffect(() => {
     if (!user) return;
-    const fetch = async () => {
+    const init = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("emails")
-        .select("*, email_drafts(*)")
-        .eq("user_id", user.id)
-        .eq("archived", false)
-        .order("received_at", { ascending: false });
+      await fetchEmails();
 
-      if (data && data.length > 0) {
-        setEmails(data);
-      } else {
-        // Use demo data
-        setEmails(demoEmails as any);
-      }
+      // Get last_synced_at from user_integrations
+      const { data: integration } = await supabase
+        .from("user_integrations")
+        .select("last_synced_at")
+        .eq("user_id", user.id)
+        .eq("provider", "outlook")
+        .maybeSingle();
+
+      const syncTime = (integration as any)?.last_synced_at || null;
+      setLastSyncedAt(syncTime);
       setLoading(false);
+
+      // Auto-sync if stale (>15 min) or never synced
+      if (!hasSyncedRef.current) {
+        hasSyncedRef.current = true;
+        const isStale = !syncTime || (Date.now() - new Date(syncTime).getTime()) > AUTO_SYNC_INTERVAL_MS;
+        if (isStale) {
+          triggerSync();
+        }
+      }
     };
-    fetch();
+    init();
   }, [user]);
 
   const filtered =
@@ -302,10 +393,25 @@ export default function InboxMailPage() {
 
       {/* Column 2 — Email List */}
       <div className="w-[340px] shrink-0 border-r border-border flex flex-col overflow-hidden">
-        <div className="p-3 border-b border-border">
-          <h2 className="text-sm font-bold text-foreground">
-            {categories.find((c) => c.key === selectedCategory)?.label || "All Mail"}
-          </h2>
+        <div className="p-3 border-b border-border flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-foreground">
+              {categories.find((c) => c.key === selectedCategory)?.label || "All Mail"}
+            </h2>
+            {lastSyncedAt && (
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Last synced {formatSyncAge(lastSyncedAt)}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => triggerSync()}
+            disabled={syncing}
+            className="flex items-center gap-1 text-[10px] font-semibold text-primary border border-primary/30 px-2 py-1 rounded hover:bg-primary/10 transition-colors disabled:opacity-50"
+          >
+            {syncing ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
+            Sync
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto">
           {filtered.map((email: any) => {
@@ -324,7 +430,6 @@ export default function InboxMailPage() {
                 )}
               >
                 <div className="flex items-start gap-2.5">
-                  {/* Avatar */}
                   <div
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0",
@@ -354,7 +459,6 @@ export default function InboxMailPage() {
                     )}
                   </div>
                 </div>
-                {/* Hover quick actions */}
                 <div className="hidden group-hover:flex items-center gap-1 mt-1.5 ml-10">
                   <button
                     onClick={(e) => { e.stopPropagation(); toast.success("Archived"); }}
@@ -384,7 +488,6 @@ export default function InboxMailPage() {
       {/* Column 3 — Email Detail + CHIEF Panel */}
       {selected && (
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Top: email body */}
           <div className="flex-1 overflow-y-auto p-5">
             <div className="flex items-start justify-between mb-1">
               <div>
@@ -394,7 +497,13 @@ export default function InboxMailPage() {
               <span className="text-[10px] text-muted-foreground">{formatTime(selected.received_at || selected.created_at)}</span>
             </div>
             <p className="text-sm font-bold text-foreground mt-3 mb-4">{selected.subject}</p>
-            <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-line">{selected.body_full}</p>
+
+            {/* Render email body — HTML or plain text */}
+            {selected.body_full && isHtml(selected.body_full) ? (
+              <SanitizedHtml html={selected.body_full} />
+            ) : (
+              <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-line">{selected.body_full}</p>
+            )}
           </div>
 
           {/* Bottom: CHIEF Panel */}
