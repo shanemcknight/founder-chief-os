@@ -14,6 +14,7 @@ import BuildPage from "./pages/BuildPage";
 import SettingsPage from "./pages/SettingsPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import AgentDeployPage from "./pages/AgentDeployPage";
+import CalendarPage from "./pages/CalendarPage";
 import LoginPage from "./pages/LoginPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import TermsPage from "./pages/TermsPage";
@@ -81,6 +82,7 @@ const App = () => (
               <Route path="/publish" element={<PublishPage />} />
               <Route path="/chief" element={<ChiefPage />} />
               <Route path="/build" element={<BuildPage />} />
+              <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/agents/new" element={<AgentDeployPage />} />
             </Route>

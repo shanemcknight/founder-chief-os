@@ -51,6 +51,7 @@ const mainNavAfterInbox = [
   { label: "PUBLISH", path: "/publish", icon: FileText },
   { label: "CHIEF", path: "/chief", icon: Brain },
   { label: "BUILD", path: "/build", icon: Wrench },
+  { label: "CALENDAR", path: "/calendar", icon: Calendar },
 ];
 
 const linkClass = (isActive: boolean) =>
