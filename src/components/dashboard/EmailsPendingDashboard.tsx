@@ -59,6 +59,18 @@ import { format } from "date-fns";
 type Priority = "HIGH" | "MEDIUM" | "LOW";
 type EmailStatus = "NEEDS_RESPONSE" | "DRAFTED" | "SCHEDULED" | "QUEUED";
 
+interface InboxSource {
+  id: string;
+  email: string;
+  label: string;
+}
+
+const INBOX_SOURCES: InboxSource[] = [
+  { id: "tophat", email: "shane@tophatprovisions.com", label: "Top Hat" },
+  { id: "culture", email: "shane@culturecocktails.co", label: "Culture" },
+  { id: "personal", email: "shane@gmail.com", label: "Personal" },
+];
+
 interface PendingEmail {
   id: string;
   from_name: string;
@@ -67,8 +79,11 @@ interface PendingEmail {
   subject: string;
   body: string;
   priority: Priority;
+  priority_score: number;
   status: EmailStatus;
   received_at: string;
+  inbox_source: string; // inbox id
+  folder: string;
   segment?: string;
   segment_size?: number;
   previous_emails?: number;
@@ -90,8 +105,11 @@ const MOCK_EMAILS: PendingEmail[] = [
     subject: "Re: Wholesale Partnership — Spring 2026 Order",
     body: "Hey Shane,\n\nFollowing up on our conversation last week. We'd love to place an initial order of 200 units across 4 SKUs for our spring launch. Can you send over the wholesale price sheet and lead times?\n\nAlso — do you offer co-branded packaging? That would be huge for our retail locations.\n\nLooking forward to hearing from you.\n\nBest,\nAustin",
     priority: "HIGH",
+    priority_score: 9,
     status: "DRAFTED",
     received_at: "2026-04-15T08:30:00Z",
+    inbox_source: "tophat",
+    folder: "Leads",
     segment: "Wholesale Leads",
     segment_size: 340,
     previous_emails: 3,
@@ -112,8 +130,11 @@ const MOCK_EMAILS: PendingEmail[] = [
     subject: "Urgent: Amazon Listing Issue — Ginger Beer BIB",
     body: "Shane,\n\nJust a heads up — your Ginger Beer BIB listing on Amazon was suppressed this morning due to a compliance flag. It looks like the ingredient label image doesn't meet their new requirements.\n\nYou'll need to re-upload with the updated template by EOD tomorrow or the listing stays down.\n\nLet me know if you need the spec sheet.\n\nSarah",
     priority: "HIGH",
+    priority_score: 10,
     status: "NEEDS_RESPONSE",
     received_at: "2026-04-15T07:15:00Z",
+    inbox_source: "tophat",
+    folder: "Urgent",
     segment: "Distributors",
     segment_size: 85,
     previous_emails: 12,
@@ -130,8 +151,11 @@ const MOCK_EMAILS: PendingEmail[] = [
     subject: "Campaign Ready: Weekend Flash Sale — 2,400 recipients",
     body: "Your campaign 'Weekend Flash Sale — 20% Off Ginger Collection' is ready to send.\n\nSegment: Active Buyers (last 90 days)\nRecipients: 2,412\nEstimated open rate: 42%\nEstimated revenue: $3,200\n\nReview and approve to send.",
     priority: "HIGH",
+    priority_score: 8,
     status: "DRAFTED",
     received_at: "2026-04-15T06:00:00Z",
+    inbox_source: "culture",
+    folder: "Inbox",
     segment: "Active Buyers (90d)",
     segment_size: 2412,
     previous_emails: 0,
@@ -152,8 +176,11 @@ const MOCK_EMAILS: PendingEmail[] = [
     subject: "Rate increase notification — effective May 1",
     body: "Hi Shane,\n\nThis is to inform you that our shipping rates will increase by 4.2% effective May 1, 2026. This affects USPS Priority and UPS Ground tiers.\n\nPlease review the updated rate card attached and reach out if you'd like to discuss volume discounts.\n\nThanks,\nMike",
     priority: "MEDIUM",
+    priority_score: 5,
     status: "NEEDS_RESPONSE",
     received_at: "2026-04-14T16:00:00Z",
+    inbox_source: "tophat",
+    folder: "Vendors",
     segment: "Vendors",
     segment_size: 0,
     previous_emails: 5,
@@ -170,8 +197,11 @@ const MOCK_EMAILS: PendingEmail[] = [
     subject: "Weekly digest — 14 Apr 2026",
     body: "Here's your weekly summary:\n\n• 342 orders processed\n• Revenue: $28,400\n• 3 support tickets open\n• Social reach: +18% WoW",
     priority: "LOW",
+    priority_score: 2,
     status: "QUEUED",
     received_at: "2026-04-14T12:00:00Z",
+    inbox_source: "personal",
+    folder: "Noise",
     segment: "Internal",
     segment_size: 5,
     previous_emails: 52,
@@ -285,6 +315,14 @@ function EmailRow({ email, selected, onClick }: { email: PendingEmail; selected:
       <div className="flex items-center gap-2">
         <Badge className={cn("text-[9px] px-1.5 py-0", sCfg.className)}>{sCfg.label}</Badge>
         <span className="text-[10px] text-muted-foreground truncate">{email.from_company}</span>
+        {(() => {
+          const inbox = INBOX_SOURCES.find(i => i.id === email.inbox_source);
+          return inbox ? (
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-muted/50 text-muted-foreground border-border shrink-0 ml-auto">
+              {inbox.label}
+            </Badge>
+          ) : null;
+        })()}
       </div>
     </button>
   );
@@ -514,14 +552,24 @@ export default function EmailsPendingDashboard() {
   const [emails, setEmails] = useState(MOCK_EMAILS);
   const emailsRefresh = useAutoRefresh({ intervalMs: 2 * 60 * 1000 });
   const [selectedId, setSelectedId] = useState<string | null>(MOCK_EMAILS[0]?.id ?? null);
+  const [selectedInbox, setSelectedInbox] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<"ALL" | Priority>("HIGH");
   const [statusFilter, setStatusFilter] = useState<"ALL" | EmailStatus>("ALL");
   const [sortBy, setSortBy] = useState<"priority" | "date" | "status">("priority");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [expanded, setExpanded] = useState(true);
 
+  const inboxCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: emails.filter(e => e.priority === "HIGH" || e.priority_score >= 7).length };
+    INBOX_SOURCES.forEach(inbox => {
+      counts[inbox.id] = emails.filter(e => e.inbox_source === inbox.id && (e.priority === "HIGH" || e.priority_score >= 7)).length;
+    });
+    return counts;
+  }, [emails]);
+
   const filteredEmails = useMemo(() => {
     let list = emails.filter((e) => {
+      if (selectedInbox !== "all" && e.inbox_source !== selectedInbox) return false;
       if (priorityFilter !== "ALL" && e.priority !== priorityFilter) return false;
       if (statusFilter !== "ALL" && e.status !== statusFilter) return false;
       return true;
@@ -533,7 +581,7 @@ export default function EmailsPendingDashboard() {
     else list.sort((a, b) => a.status.localeCompare(b.status));
 
     return list;
-  }, [emails, priorityFilter, statusFilter, sortBy]);
+  }, [emails, selectedInbox, priorityFilter, statusFilter, sortBy]);
 
   const selectedEmail = emails.find((e) => e.id === selectedId) ?? null;
 
@@ -587,6 +635,37 @@ export default function EmailsPendingDashboard() {
       </div>
 
       {!expanded && <div />}
+
+      {/* Inbox Selector Tabs */}
+      {expanded && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          <button
+            onClick={() => setSelectedInbox("all")}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors",
+              selectedInbox === "all"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            All Inboxes ({inboxCounts.all})
+          </button>
+          {INBOX_SOURCES.map(inbox => (
+            <button
+              key={inbox.id}
+              onClick={() => setSelectedInbox(inbox.id)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors",
+                selectedInbox === inbox.id
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              {inbox.label} ({inboxCounts[inbox.id] ?? 0})
+            </button>
+          ))}
+        </div>
+      )}
 
       {expanded && (
         <>
