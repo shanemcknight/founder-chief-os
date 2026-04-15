@@ -27,23 +27,6 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   );
 }
 
-const toolStatus: Record<string, string> = {
-  Shopify: "bg-success",
-  Amazon: "bg-destructive",
-  Klaviyo: "bg-success",
-  Stripe: "bg-success",
-  QuickBooks: "bg-success",
-  "Google Analytics": "bg-success",
-};
-
-const tools = [
-  { name: "Shopify", icon: ShoppingBag, metrics: ["$4,840 today", "23 orders", "2 flagged"] },
-  { name: "Amazon", icon: Package, metrics: ["$2,210 today", "18 orders", "1 suppressed listing"] },
-  { name: "Klaviyo", icon: MailOpen, metrics: ["38.2% open rate", "1 campaign live", "3,068 subscribers"] },
-  { name: "Stripe", icon: CreditCard, metrics: ["$1,630 today", "0 failed payments", "14 active subscriptions"] },
-  { name: "QuickBooks", icon: Calculator, metrics: ["$4,200 outstanding", "2 invoices due", "Next payroll Friday"] },
-  { name: "Google Analytics", icon: BarChart3, metrics: ["1,842 sessions", "3.4% conversion", "+18% vs last week"] },
-];
 
 const priorityBadgeClass: Record<string, string> = {
   HIGH: "bg-destructive/15 text-destructive",
