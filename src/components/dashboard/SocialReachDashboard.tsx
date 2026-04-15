@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
+import RefreshIndicator from "@/components/dashboard/RefreshIndicator";
 import {
   ChevronDown,
   ChevronRight,
@@ -348,12 +350,15 @@ export default function SocialReachDashboard() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2">
-        {expanded ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
-        <TrendingUp size={16} className="text-[hsl(var(--success))]" />
-        <h2 className="text-sm font-semibold text-foreground">Social Reach</h2>
-        <Badge variant="secondary" className="text-[10px]">12.4K reach</Badge>
-      </button>
+      <div className="flex items-center justify-between">
+        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2">
+          {expanded ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
+          <TrendingUp size={16} className="text-[hsl(var(--success))]" />
+          <h2 className="text-sm font-semibold text-foreground">Social Reach</h2>
+          <Badge variant="secondary" className="text-[10px]">12.4K reach</Badge>
+        </button>
+        <RefreshIndicator agoLabel={socialRefresh.agoLabel} isRefreshing={socialRefresh.isRefreshing} onRefresh={socialRefresh.refresh} intervalLabel="2 min" />
+      </div>
 
       {expanded && (
         <>

@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef } from "react";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
+import RefreshIndicator from "@/components/dashboard/RefreshIndicator";
 import {
   ZoomIn,
   ZoomOut,
@@ -320,6 +322,7 @@ export default function ActiveAgentsOrgChart() {
           <Activity size={16} className="text-primary" />
           <h2 className="text-sm font-semibold text-foreground">Active Agents</h2>
           <Badge variant="secondary" className="text-[10px]">{MOCK_AGENTS.length} agents</Badge>
+          <RefreshIndicator agoLabel={agentsRefresh.agoLabel} isRefreshing={agentsRefresh.isRefreshing} onRefresh={agentsRefresh.refresh} intervalLabel="15 sec" />
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">

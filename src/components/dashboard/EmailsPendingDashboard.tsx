@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
+import RefreshIndicator from "@/components/dashboard/RefreshIndicator";
 import {
   Mail,
   Clock,
@@ -573,12 +575,15 @@ export default function EmailsPendingDashboard() {
   return (
     <div className="space-y-4">
       {/* Section Header */}
-      <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 group">
-        {expanded ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
-        <Mail size={16} className="text-primary" />
-        <h2 className="text-sm font-semibold text-foreground">Emails Pending</h2>
-        <Badge variant="secondary" className="text-[10px]">{stats.pending}</Badge>
-      </button>
+      <div className="flex items-center justify-between">
+        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 group">
+          {expanded ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
+          <Mail size={16} className="text-primary" />
+          <h2 className="text-sm font-semibold text-foreground">Emails Pending</h2>
+          <Badge variant="secondary" className="text-[10px]">{stats.pending}</Badge>
+        </button>
+        <RefreshIndicator agoLabel={emailsRefresh.agoLabel} isRefreshing={emailsRefresh.isRefreshing} onRefresh={emailsRefresh.refresh} intervalLabel="30 sec" />
+      </div>
 
       {!expanded && <div />}
 
