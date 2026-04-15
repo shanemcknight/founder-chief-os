@@ -256,31 +256,40 @@ export type Database = {
       profiles: {
         Row: {
           anthropic_api_key: string | null
+          api_keys_connected: boolean
           approved: boolean
           business_name: string | null
           created_at: string
+          environment: string
           full_name: string | null
           id: string
+          is_admin: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
           anthropic_api_key?: string | null
+          api_keys_connected?: boolean
           approved?: boolean
           business_name?: string | null
           created_at?: string
+          environment?: string
           full_name?: string | null
           id?: string
+          is_admin?: boolean
           updated_at?: string
           user_id: string
         }
         Update: {
           anthropic_api_key?: string | null
+          api_keys_connected?: boolean
           approved?: boolean
           business_name?: string | null
           created_at?: string
+          environment?: string
           full_name?: string | null
           id?: string
+          is_admin?: boolean
           updated_at?: string
           user_id?: string
         }

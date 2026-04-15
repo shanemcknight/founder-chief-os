@@ -24,7 +24,7 @@ export default function DashboardTopbar() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, setEnvironment } = useAuth();
 
   const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
   const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -59,9 +59,16 @@ export default function DashboardTopbar() {
               <Menu size={18} />
             </button>
           )}
-          <Link to="/dashboard" className="text-sm tracking-tight text-foreground hover:opacity-80 transition-opacity">
-            <span className="font-bold">MYTHOS</span>{" "}
-            <span className="font-normal text-xs text-primary">HQ</span>
+          <Link to="/dashboard" className="text-sm tracking-tight text-foreground hover:opacity-80 transition-opacity flex items-center gap-2">
+            <span>
+              <span className="font-bold">MYTHOS</span>{" "}
+              <span className="font-normal text-xs text-primary">HQ</span>
+            </span>
+            {profile?.environment === "sandbox" && (
+              <span className="text-[9px] font-bold bg-warning/20 text-warning border border-warning/40 px-1.5 py-0.5 rounded">
+                SANDBOX
+              </span>
+            )}
           </Link>
         </div>
 
@@ -131,6 +138,30 @@ export default function DashboardTopbar() {
                     </span>
                   </div>
                 </div>
+
+                {/* Environment Toggle (Admin only) */}
+                {profile?.is_admin && (
+                  <div className="px-4 py-2 border-b border-border">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Environment</p>
+                    <div className="flex gap-1">
+                      {(["production", "sandbox"] as const).map((env) => (
+                        <button
+                          key={env}
+                          onClick={() => setEnvironment(env)}
+                          className={`flex-1 text-[10px] font-semibold py-1 rounded transition-colors ${
+                            profile.environment === env
+                              ? env === "production"
+                                ? "bg-success/20 text-success border border-success/40"
+                                : "bg-warning/20 text-warning border border-warning/40"
+                              : "bg-muted/40 text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {env === "production" ? "⚡ Production" : "🧪 Sandbox"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Section 1 — Your Account */}
                 <div className="py-1.5">

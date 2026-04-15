@@ -6,6 +6,8 @@ import {
   X,
 } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useEnvironmentData } from "@/hooks/useEnvironmentData";
+import { useAuth } from "@/contexts/AuthContext";
 import CalendarTimeline from "@/components/dashboard/CalendarTimeline";
 import ConnectedToolsGrid from "@/components/dashboard/ConnectedToolsGrid";
 import ActiveAgentsOrgChart from "@/components/dashboard/ActiveAgentsOrgChart";
@@ -66,14 +68,16 @@ const actions = [
 
 export default function CommandPage() {
   const { isVerifying } = useSubscription();
+  const { isSandbox, isProduction, environment } = useEnvironmentData();
+  const { profile } = useAuth();
   const [activeModal, setActiveModal] = useState<ModalKey>(null);
   const location = useLocation();
 
-  // Close modal when navigating (e.g. logo click)
+  const displayName = profile?.full_name || "there";
+
   useEffect(() => {
     setActiveModal(null);
   }, [location.key]);
-  // Lock body scroll when modal is open
   useEffect(() => {
     if (activeModal) {
       document.body.style.overflow = "hidden";
@@ -97,9 +101,23 @@ export default function CommandPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl md:text-[22px] font-bold text-foreground">Good morning, Shane.</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl md:text-[22px] font-bold text-foreground">Good morning, {displayName}.</h1>
+          {isSandbox && (
+            <span className="text-[9px] font-bold bg-warning/20 text-warning border border-warning/40 px-1.5 py-0.5 rounded">
+              SANDBOX
+            </span>
+          )}
+          {isProduction && (
+            <span className="text-[9px] font-bold bg-success/20 text-success border border-success/40 px-1.5 py-0.5 rounded">
+              LIVE
+            </span>
+          )}
+        </div>
         <p className="text-[13px] text-muted-foreground mt-1">
-          7 agents active · 3 items need your attention · Last action 12 min ago
+          {isSandbox
+            ? "7 agents active · 3 items need your attention · Mock data mode"
+            : "7 agents active · 3 items need your attention · Last action 12 min ago"}
         </p>
       </div>
 

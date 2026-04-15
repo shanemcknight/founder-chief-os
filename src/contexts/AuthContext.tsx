@@ -2,14 +2,24 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface UserProfile {
+  full_name: string | null;
+  business_name: string | null;
+  approved: boolean;
+  environment: "production" | "sandbox";
+  is_admin: boolean;
+  api_keys_connected: boolean;
+}
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  profile: { full_name: string | null; business_name: string | null; approved: boolean } | null;
+  profile: UserProfile | null;
   loading: boolean;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  setEnvironment: (env: "production" | "sandbox") => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,16 +27,22 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<{ full_name: string | null; business_name: string | null; approved: boolean } | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("full_name, business_name, approved")
+      .select("full_name, business_name, approved, environment, is_admin, api_keys_connected")
       .eq("user_id", userId)
       .single();
-    setProfile(data);
+    setProfile(data as UserProfile | null);
+  };
+
+  const setEnvironment = async (env: "production" | "sandbox") => {
+    if (!user) return;
+    await supabase.from("profiles").update({ environment: env }).eq("user_id", user.id);
+    setProfile((prev) => prev ? { ...prev, environment: env } : prev);
   };
 
   useEffect(() => {
@@ -77,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, signUp, signIn, signOut, setEnvironment }}>
       {children}
     </AuthContext.Provider>
   );
