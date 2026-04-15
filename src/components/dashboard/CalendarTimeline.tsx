@@ -343,7 +343,7 @@ export default function CalendarTimeline() {
             <span className="text-[11px] text-muted-foreground">Social Posts</span>
           </label>
 
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => toast.info("Task creation coming soon")}>
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setCreateOpen(true)}>
             <Plus size={12} /> Task
           </Button>
         </div>
