@@ -12,6 +12,7 @@ import { toggleTheme } from "@/lib/theme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardSidebar from "./DashboardSidebar";
+import { InviteBetaTesterButton, BetaTesterAdminPanel } from "./BetaTesterAdmin";
 
 export default function DashboardTopbar() {
   const [dark, setDark] = useState(document.documentElement.classList.contains("dark"));
