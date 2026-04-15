@@ -547,12 +547,11 @@ export default function EmailsPendingDashboard() {
     fetchEmails();
   }, []);
 
-  // Re-fetch on refresh tick
+  // Re-fetch on auto-refresh
   useEffect(() => {
-    if (emailsRefresh.tick > 0) {
-      fetchEmails();
-    }
-  }, [emailsRefresh.tick, fetchEmails]);
+    const interval = setInterval(fetchEmails, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchEmails]);
 
   /* ── Inbox counts ────────────────────────────── */
   const inboxCounts = useMemo(() => {

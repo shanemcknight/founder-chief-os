@@ -39,7 +39,7 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
 const MODAL_TITLES: Record<NonNullable<ModalKey>, string> = {
   revenue: "Revenue Dashboard",
   agents: "Active Agents",
-  emails: "AGENTIC EMAIL",
+  emails: "AGENTIC EMAIL INBOX",
   social: "Social Reach",
 };
 
