@@ -20,6 +20,7 @@ import PrivacyPage from "./pages/PrivacyPage";
 import TermsPage from "./pages/TermsPage";
 import DataDeletionPage from "./pages/DataDeletionPage";
 import BetaPage from "./pages/BetaPage";
+import BetaInvitePage from "./pages/BetaInvitePage";
 import PricingPage from "./pages/PricingPage";
 import WhiteLabelPage from "./pages/WhiteLabelPage";
 import FoodPeoplePage from "./pages/FoodPeoplePage";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/data-deletion" element={<DataDeletionPage />} />
             <Route path="/beta" element={<BetaPage />} />
+            <Route path="/beta/:code" element={<BetaInvitePage />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/white-label" element={<WhiteLabelPage />} />
             <Route path="/for/food-people" element={<FoodPeoplePage />} />
