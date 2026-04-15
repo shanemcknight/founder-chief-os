@@ -314,6 +314,7 @@ function ChannelCard({ ch, onDrill }: { ch: ChannelData; onDrill: () => void }) 
 export default function RevenueDashboard() {
   const [expanded, setExpanded] = useState(true);
   const [drillChannel, setDrillChannel] = useState<string | null>(null);
+  const revenueRefresh = useAutoRefresh({ intervalMs: 5 * 60 * 1000 });
 
   const totalRevenue = CHANNELS.reduce((s, c) => s + c.revenueMTD, 0);
   const grossMargin = 51;

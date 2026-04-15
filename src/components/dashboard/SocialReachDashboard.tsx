@@ -344,6 +344,7 @@ function ContentROIView() {
 export default function SocialReachDashboard() {
   const [expanded, setExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState<"funnel" | "roi">("funnel");
+  const socialRefresh = useAutoRefresh({ intervalMs: 2 * 60 * 1000 });
 
   const bestPlatformIdx = PLATFORMS.reduce((best, p, i) => (p.revenue / p.reach > PLATFORMS[best].revenue / PLATFORMS[best].reach ? i : best), 0);
 

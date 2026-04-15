@@ -309,6 +309,7 @@ export default function ActiveAgentsOrgChart() {
   const [showTeam, setShowTeam] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const agentsRefresh = useAutoRefresh({ intervalMs: 15 * 1000 });
 
   const handleZoomIn = useCallback(() => setZoom((z) => Math.min(z + 0.15, 2)), []);
   const handleZoomOut = useCallback(() => setZoom((z) => Math.max(z - 0.15, 0.4)), []);
