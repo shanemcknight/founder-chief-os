@@ -57,7 +57,7 @@ export default function DashboardTopbar() {
               <Menu size={18} />
             </button>
           )}
-          <Link to="/" className="text-sm tracking-tight text-foreground hover:opacity-80 transition-opacity">
+          <Link to="/dashboard" className="text-sm tracking-tight text-foreground hover:opacity-80 transition-opacity">
             <span className="font-bold">MYTHOS</span>{" "}
             <span className="font-normal text-xs text-primary">HQ</span>
           </Link>

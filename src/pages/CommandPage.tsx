@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
   ArrowUpRight,
   Minus,
@@ -66,7 +67,12 @@ const actions = [
 export default function CommandPage() {
   const { isVerifying } = useSubscription();
   const [activeModal, setActiveModal] = useState<ModalKey>(null);
+  const location = useLocation();
 
+  // Close modal when navigating (e.g. logo click)
+  useEffect(() => {
+    setActiveModal(null);
+  }, [location.key]);
   // Lock body scroll when modal is open
   useEffect(() => {
     if (activeModal) {
