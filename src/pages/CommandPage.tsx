@@ -81,6 +81,8 @@ export default function CommandPage() {
 
       <CalendarTimeline />
 
+      <ActiveAgentsOrgChart />
+
       <ConnectedToolsGrid />
 
       <div>
