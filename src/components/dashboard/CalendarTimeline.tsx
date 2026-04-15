@@ -256,6 +256,37 @@ export default function CalendarTimeline() {
     setPanelOpen(false);
   };
 
+  // Social panel handlers
+  const handleSocialClick = (post: TimelineSocialPost) => {
+    setSelectedSocialPost({
+      id: post.id,
+      title: post.title,
+      platform: post.platforms[0] || "twitter",
+      scheduled_time: post.start_time,
+      content: `Sample content for "${post.title}". This is a preview of the social post that will be published.`,
+      hashtags: "#mythos #content #social",
+      notes: "",
+      status: "scheduled",
+    });
+    setSocialPanelOpen(true);
+  };
+
+  const handleSocialReschedule = (postId: string, newTime: Date) => {
+    setSocialPosts((prev) =>
+      prev.map((p) => (p.id === postId ? { ...p, start_time: newTime } : p))
+    );
+    setSocialPanelOpen(false);
+  };
+
+  const handleSocialUpdate = (updated: SocialPostDetail) => {
+    setSocialPanelOpen(false);
+  };
+
+  const handleSocialDelete = (postId: string) => {
+    setSocialPosts((prev) => prev.filter((p) => p.id !== postId));
+    setSocialPanelOpen(false);
+  };
+
   const nowOffset = isToday(selectedDate) ? timeToOffset(new Date(), effectiveStart) : null;
   const hasItems = tasks.length > 0 || (showSocial && socialPosts.length > 0);
 
