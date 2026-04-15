@@ -512,7 +512,7 @@ function ContextPanel({ email }: { email: PendingEmail }) {
 
 export default function EmailsPendingDashboard() {
   const [emails, setEmails] = useState(MOCK_EMAILS);
-  const emailsRefresh = useAutoRefresh({ intervalMs: 30 * 1000 });
+  const emailsRefresh = useAutoRefresh({ intervalMs: 2 * 60 * 1000 });
   const [selectedId, setSelectedId] = useState<string | null>(MOCK_EMAILS[0]?.id ?? null);
   const [priorityFilter, setPriorityFilter] = useState<"ALL" | Priority>("HIGH");
   const [statusFilter, setStatusFilter] = useState<"ALL" | EmailStatus>("ALL");
