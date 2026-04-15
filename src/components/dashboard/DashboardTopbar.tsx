@@ -234,6 +234,9 @@ export default function DashboardTopbar() {
         </div>
       )}
 
+      {/* Beta Tester Admin Panel */}
+      {showBetaAdmin && <BetaTesterAdminPanel onClose={() => setShowBetaAdmin(false)} />}
+
       {/* Mobile sidebar drawer */}
       {isMobile && showDrawer && (
         <div className="fixed inset-0 z-50 flex">
