@@ -421,7 +421,7 @@ export default function CalendarTimeline() {
                         key={post.id}
                         className="absolute top-0 h-8 rounded-md border border-primary/20 bg-primary/[0.08] flex items-center gap-1 px-2 cursor-pointer select-none hover:bg-primary/15 transition-colors"
                         style={{ left, width }}
-                        onClick={() => toast.info(`Social post: ${post.title}`)}
+                        onClick={() => handleSocialClick(post)}
                         title={post.title}
                       >
                         <Smartphone size={10} className="shrink-0 text-primary/60" />
@@ -447,6 +447,16 @@ export default function CalendarTimeline() {
         onSave={handleTaskSave}
         onDelete={handleTaskDelete}
         onComplete={handleTaskComplete}
+      />
+
+      {/* Social Detail Panel */}
+      <SocialDetailPanel
+        post={selectedSocialPost}
+        open={socialPanelOpen}
+        onClose={() => setSocialPanelOpen(false)}
+        onReschedule={handleSocialReschedule}
+        onUpdate={handleSocialUpdate}
+        onDelete={handleSocialDelete}
       />
     </>
   );
