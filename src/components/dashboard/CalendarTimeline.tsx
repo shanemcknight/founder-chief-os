@@ -291,6 +291,17 @@ export default function CalendarTimeline() {
     setSocialPanelOpen(false);
   };
 
+  const handleCreateTask = (newTask: TaskDetail) => {
+    const timelineTask: TimelineTask = {
+      id: newTask.id,
+      title: newTask.title,
+      start_time: newTask.start_time,
+      due_time: newTask.due_time,
+      status: newTask.status,
+    };
+    setTasks((prev) => [...prev, timelineTask]);
+  };
+
   const nowOffset = isToday(selectedDate) ? timeToOffset(new Date(), effectiveStart) : null;
   const hasItems = tasks.length > 0 || (showSocial && socialPosts.length > 0);
 
