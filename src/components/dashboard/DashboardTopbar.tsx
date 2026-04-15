@@ -19,6 +19,7 @@ export default function DashboardTopbar() {
   const [showDrawer, setShowDrawer] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showBetaAdmin, setShowBetaAdmin] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -146,7 +147,8 @@ export default function DashboardTopbar() {
                 <div className="py-1.5">
                   <p className="px-4 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Your Workspace</p>
                   <MenuItem icon={Rocket} label="Deploy New Agent" onClick={() => closeAndNavigate("/agents/new")} />
-                  <MenuItem icon={UserPlus} label="Invite Teammate" onClick={() => { setShowUserMenu(false); /* TODO: open invite modal */ }} />
+                  <MenuItem icon={UserPlus} label="Invite Beta Tester" onClick={() => { setShowUserMenu(false); /* handled by button */ }} />
+                  <MenuItem icon={Users} label="Manage Beta Testers" onClick={() => { setShowUserMenu(false); setShowBetaAdmin(true); }} />
                   <MenuItem icon={Key} label="API Keys & Webhooks" onClick={() => closeAndNavigate("/settings")} />
                 </div>
 
@@ -186,6 +188,8 @@ export default function DashboardTopbar() {
               </div>
             )}
           </div>
+
+          {!isMobile && <InviteBetaTesterButton />}
 
           {!isMobile && (
             <button
