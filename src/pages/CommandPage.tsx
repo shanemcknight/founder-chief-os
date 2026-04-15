@@ -9,6 +9,7 @@ import {
   Minus,
 } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
+import CalendarTimeline from "@/components/dashboard/CalendarTimeline";
 
 const kpis = [
   { label: "Revenue Today", value: "$4,840", barColor: "bg-accent", trend: "+12%", up: true, sparkline: [30, 45, 38, 55, 48, 62, 58] },
@@ -98,6 +99,8 @@ export default function CommandPage() {
           </div>
         ))}
       </div>
+
+      <CalendarTimeline />
 
       <div>
         <h2 className="text-sm font-semibold text-foreground mb-3">Connected Tools</h2>
