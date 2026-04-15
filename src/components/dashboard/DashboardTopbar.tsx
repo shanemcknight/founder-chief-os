@@ -132,6 +132,30 @@ export default function DashboardTopbar() {
                   </div>
                 </div>
 
+                {/* Environment Toggle (Admin only) */}
+                {profile?.is_admin && (
+                  <div className="px-4 py-2 border-b border-border">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Environment</p>
+                    <div className="flex gap-1">
+                      {(["production", "sandbox"] as const).map((env) => (
+                        <button
+                          key={env}
+                          onClick={() => setEnvironment(env)}
+                          className={`flex-1 text-[10px] font-semibold py-1 rounded transition-colors ${
+                            profile.environment === env
+                              ? env === "production"
+                                ? "bg-success/20 text-success border border-success/40"
+                                : "bg-warning/20 text-warning border border-warning/40"
+                              : "bg-muted/40 text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {env === "production" ? "⚡ Production" : "🧪 Sandbox"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Section 1 — Your Account */}
                 <div className="py-1.5">
                   <p className="px-4 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Your Account</p>
