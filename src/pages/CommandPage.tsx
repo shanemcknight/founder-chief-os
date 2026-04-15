@@ -80,28 +80,7 @@ export default function CommandPage() {
 
       <CalendarTimeline />
 
-      <div>
-        <h2 className="text-sm font-semibold text-foreground mb-3">Connected Tools</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          {tools.map((tool) => {
-            const Icon = tool.icon;
-            return (
-              <div key={tool.name} className="bg-card border border-border rounded-xl p-4 hover:border-primary/50 transition-colors duration-150">
-                <div className="flex items-center gap-2 mb-2">
-                  <Icon size={16} className="text-muted-foreground" />
-                  <p className="text-sm font-semibold text-foreground">{tool.name}</p>
-                  <span className={`w-2 h-2 rounded-full ml-auto ${toolStatus[tool.name]}`} />
-                </div>
-                <div className="space-y-0.5">
-                  {tool.metrics.map((m, i) => (
-                    <p key={i} className={`text-xs ${i === 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>{m}</p>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <ConnectedToolsGrid />
 
       <div>
         <h2 className="text-sm font-semibold text-foreground mb-3">Needs Your Attention</h2>
