@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import RefreshIndicator from "@/components/dashboard/RefreshIndicator";
 import {
@@ -16,13 +16,11 @@ import {
   Plus,
   ChevronDown,
   ChevronRight,
-  X,
+  Filter,
   Sparkles,
   TrendingUp,
-  Users,
-  BarChart3,
   Heart,
-  Filter,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +51,8 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /* ── Types ─────────────────────────────────────── */
 
@@ -82,8 +82,9 @@ interface PendingEmail {
   priority_score: number;
   status: EmailStatus;
   received_at: string;
-  inbox_source: string; // inbox id
+  inbox_source: string;
   folder: string;
+  category: string;
   segment?: string;
   segment_size?: number;
   previous_emails?: number;
@@ -94,123 +95,34 @@ interface PendingEmail {
   related_campaigns?: { name: string; status: string }[];
 }
 
-/* ── Mock Data ─────────────────────────────────── */
+/* ── Category → Priority mapping ──────────────── */
 
-const MOCK_EMAILS: PendingEmail[] = [
-  {
-    id: "e1",
-    from_name: "Austin Reed",
-    from_email: "austin@barreloak.com",
-    from_company: "Barrel & Oak",
-    subject: "Re: Wholesale Partnership — Spring 2026 Order",
-    body: "Hey Shane,\n\nFollowing up on our conversation last week. We'd love to place an initial order of 200 units across 4 SKUs for our spring launch. Can you send over the wholesale price sheet and lead times?\n\nAlso — do you offer co-branded packaging? That would be huge for our retail locations.\n\nLooking forward to hearing from you.\n\nBest,\nAustin",
-    priority: "HIGH",
-    priority_score: 9,
-    status: "DRAFTED",
-    received_at: "2026-04-15T08:30:00Z",
-    inbox_source: "tophat",
-    folder: "Leads",
-    segment: "Wholesale Leads",
-    segment_size: 340,
-    previous_emails: 3,
-    draft_response: "Hi Austin,\n\nGreat to hear from you! I'm excited about the partnership opportunity with Barrel & Oak.\n\nHere's what I can confirm:\n• Wholesale pricing: I've attached our Q2 2026 price sheet with tiered discounts for orders of 200+ units\n• Lead times: Currently 2-3 weeks from PO confirmation\n• Co-branded packaging: Yes, we offer this for orders of 500+ units — happy to discuss a phased approach\n\nI'd love to jump on a quick call this week to finalize details. Would Thursday at 2pm CT work?\n\nBest,\nShane",
-    predicted_open_rate: 94,
-    predicted_revenue: "$12,400",
-    suggested_send_time: "Today, 10:30 AM CT",
-    related_campaigns: [
-      { name: "Wholesale Welcome Sequence", status: "Active" },
-      { name: "Q2 Product Launch", status: "Scheduled" },
-    ],
-  },
-  {
-    id: "e2",
-    from_name: "Sarah Chen",
-    from_email: "sarah@gourmetdistro.com",
-    from_company: "Gourmet Distribution Co.",
-    subject: "Urgent: Amazon Listing Issue — Ginger Beer BIB",
-    body: "Shane,\n\nJust a heads up — your Ginger Beer BIB listing on Amazon was suppressed this morning due to a compliance flag. It looks like the ingredient label image doesn't meet their new requirements.\n\nYou'll need to re-upload with the updated template by EOD tomorrow or the listing stays down.\n\nLet me know if you need the spec sheet.\n\nSarah",
-    priority: "HIGH",
-    priority_score: 10,
-    status: "NEEDS_RESPONSE",
-    received_at: "2026-04-15T07:15:00Z",
-    inbox_source: "tophat",
-    folder: "Urgent",
-    segment: "Distributors",
-    segment_size: 85,
-    previous_emails: 12,
-    predicted_open_rate: 98,
-    predicted_revenue: "$0",
-    suggested_send_time: "ASAP",
-    related_campaigns: [],
-  },
-  {
-    id: "e3",
-    from_name: "Klaviyo System",
-    from_email: "noreply@klaviyo.com",
-    from_company: "Klaviyo",
-    subject: "Campaign Ready: Weekend Flash Sale — 2,400 recipients",
-    body: "Your campaign 'Weekend Flash Sale — 20% Off Ginger Collection' is ready to send.\n\nSegment: Active Buyers (last 90 days)\nRecipients: 2,412\nEstimated open rate: 42%\nEstimated revenue: $3,200\n\nReview and approve to send.",
-    priority: "HIGH",
-    priority_score: 8,
-    status: "DRAFTED",
-    received_at: "2026-04-15T06:00:00Z",
-    inbox_source: "culture",
-    folder: "Inbox",
-    segment: "Active Buyers (90d)",
-    segment_size: 2412,
-    previous_emails: 0,
-    draft_response: "Campaign content is pre-built in Klaviyo. Ready for one-click approval to send to 2,412 recipients with 20% discount on Ginger Collection products.",
-    predicted_open_rate: 42,
-    predicted_revenue: "$3,200",
-    suggested_send_time: "Friday, 11:00 AM CT",
-    related_campaigns: [
-      { name: "Abandoned Cart Flow", status: "Active" },
-      { name: "Post-Purchase Upsell", status: "Active" },
-    ],
-  },
-  {
-    id: "e4",
-    from_name: "Mike Torres",
-    from_email: "mike@shipstation.com",
-    from_company: "ShipStation",
-    subject: "Rate increase notification — effective May 1",
-    body: "Hi Shane,\n\nThis is to inform you that our shipping rates will increase by 4.2% effective May 1, 2026. This affects USPS Priority and UPS Ground tiers.\n\nPlease review the updated rate card attached and reach out if you'd like to discuss volume discounts.\n\nThanks,\nMike",
-    priority: "MEDIUM",
-    priority_score: 5,
-    status: "NEEDS_RESPONSE",
-    received_at: "2026-04-14T16:00:00Z",
-    inbox_source: "tophat",
-    folder: "Vendors",
-    segment: "Vendors",
-    segment_size: 0,
-    previous_emails: 5,
-    predicted_open_rate: 100,
-    predicted_revenue: "-$840/mo impact",
-    suggested_send_time: "Tomorrow, 9:00 AM CT",
-    related_campaigns: [],
-  },
-  {
-    id: "e5",
-    from_name: "Newsletter Bot",
-    from_email: "digest@company.com",
-    from_company: "Internal",
-    subject: "Weekly digest — 14 Apr 2026",
-    body: "Here's your weekly summary:\n\n• 342 orders processed\n• Revenue: $28,400\n• 3 support tickets open\n• Social reach: +18% WoW",
-    priority: "LOW",
-    priority_score: 2,
-    status: "QUEUED",
-    received_at: "2026-04-14T12:00:00Z",
-    inbox_source: "personal",
-    folder: "Noise",
-    segment: "Internal",
-    segment_size: 5,
-    previous_emails: 52,
-    predicted_open_rate: 80,
-    predicted_revenue: "$0",
-    suggested_send_time: "Monday, 8:00 AM CT",
-    related_campaigns: [],
-  },
-];
+const URGENT_KEYWORDS = ["urgent", "asap", "help", "issue", "payment", "invoice", "suppressed", "overdue"];
+
+function categoryToPriority(category: string, subject: string, bodyPreview: string): { priority: Priority; score: number } {
+  const text = `${subject} ${bodyPreview}`.toLowerCase();
+  const hasUrgentKeyword = URGENT_KEYWORDS.some((kw) => text.includes(kw));
+
+  if (category === "urgent" || hasUrgentKeyword) return { priority: "HIGH", score: 9 };
+  if (category === "lead") return { priority: "HIGH", score: 8 };
+  if (category === "customer") return { priority: "HIGH", score: 7 };
+  if (category === "vendor") return { priority: "MEDIUM", score: 5 };
+  if (category === "admin") return { priority: "MEDIUM", score: 4 };
+  return { priority: "LOW", score: 2 };
+}
+
+function inferInboxSource(fromEmail: string): string {
+  // This is a heuristic — in production, emails table would have a mailbox column
+  // For now, distribute based on the user's connected account
+  return "tophat";
+}
+
+function extractCompany(email: string, name: string): string {
+  if (!email) return name || "Unknown";
+  const domain = email.split("@")[1] || "";
+  if (domain.includes("gmail") || domain.includes("outlook") || domain.includes("yahoo")) return name || "Personal";
+  return domain.split(".")[0].charAt(0).toUpperCase() + domain.split(".")[0].slice(1);
+}
 
 /* ── Helpers ───────────────────────────────────── */
 
@@ -342,6 +254,11 @@ function EmailDetail({ email, onApprove, onSchedule, onReject, onFlag }: {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduleDate, setScheduleDate] = useState<Date | undefined>();
 
+  useEffect(() => {
+    setDraftText(email.draft_response || "");
+    setEditing(false);
+  }, [email.id, email.draft_response]);
+
   return (
     <ScrollArea className="h-full">
       <div className="p-4 space-y-4">
@@ -452,7 +369,7 @@ function ContextPanel({ email }: { email: PendingEmail }) {
           <div className="bg-background rounded-lg p-3 border border-border space-y-2">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
-                {email.from_name.charAt(0)}
+                {email.from_name?.charAt(0) || "?"}
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">{email.from_name}</p>
@@ -465,8 +382,8 @@ function ContextPanel({ email }: { email: PendingEmail }) {
                 <p className="text-sm font-medium text-foreground">{email.previous_emails ?? 0}</p>
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground">Segment</p>
-                <p className="text-sm font-medium text-foreground">{email.segment || "—"}</p>
+                <p className="text-[10px] text-muted-foreground">Category</p>
+                <p className="text-sm font-medium text-foreground capitalize">{email.category || "—"}</p>
               </div>
             </div>
           </div>
@@ -474,29 +391,13 @@ function ContextPanel({ email }: { email: PendingEmail }) {
 
         {/* Email Stats */}
         <div>
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Predictions</h4>
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">AI Analysis</h4>
           <div className="bg-background rounded-lg p-3 border border-border space-y-3">
-            {email.segment_size != null && email.segment_size > 0 && (
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">Segment Size</span>
-                <span className="text-xs font-medium text-foreground">{email.segment_size.toLocaleString()}</span>
-              </div>
-            )}
-            {email.segment_size != null && email.segment_size > 0 && email.segment_size < 100 && (
-              <div className="flex items-center gap-1.5 p-2 rounded bg-[hsl(var(--warning))]/10 border border-[hsl(var(--warning))]/20">
-                <AlertTriangle size={12} className="text-[hsl(var(--warning))]" />
-                <span className="text-[10px] text-[hsl(var(--warning))]">Small segment — verify targeting</span>
-              </div>
-            )}
-            {email.predicted_open_rate != null && (
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-muted-foreground">Predicted Open Rate</span>
-                  <span className="text-xs font-medium text-foreground">{email.predicted_open_rate}%</span>
-                </div>
-                <Progress value={email.predicted_open_rate} className="h-1.5" />
-              </div>
-            )}
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">Priority Score</span>
+              <span className="text-xs font-medium text-foreground">{email.priority_score}/10</span>
+            </div>
+            <Progress value={email.priority_score * 10} className="h-1.5" />
             {email.predicted_revenue && (
               <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">Revenue Impact</span>
@@ -506,28 +407,12 @@ function ContextPanel({ email }: { email: PendingEmail }) {
           </div>
         </div>
 
-        {/* Suggested Send Time */}
-        {email.suggested_send_time && (
+        {/* Chief Summary */}
+        {email.segment && (
           <div>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Best Send Time</h4>
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-center gap-2">
-              <Clock size={14} className="text-primary shrink-0" />
-              <span className="text-sm font-medium text-foreground">{email.suggested_send_time}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Related Campaigns */}
-        {email.related_campaigns && email.related_campaigns.length > 0 && (
-          <div>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Related Campaigns</h4>
-            <div className="space-y-1.5">
-              {email.related_campaigns.map((c, i) => (
-                <div key={i} className="flex items-center justify-between bg-background border border-border rounded-lg px-3 py-2">
-                  <span className="text-xs text-foreground">{c.name}</span>
-                  <Badge variant="secondary" className="text-[9px]">{c.status}</Badge>
-                </div>
-              ))}
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Chief Summary</h4>
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+              <p className="text-xs text-foreground">{email.segment}</p>
             </div>
           </div>
         )}
@@ -546,37 +431,155 @@ function ContextPanel({ email }: { email: PendingEmail }) {
   );
 }
 
+/* ── Loading skeleton ──────────────────────────── */
+
+function EmailQueueSkeleton() {
+  return (
+    <div className="p-2 space-y-2">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="p-3 rounded-lg border border-border space-y-2">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-10" />
+          </div>
+          <Skeleton className="h-3 w-48" />
+          <div className="flex gap-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ── Main Component ────────────────────────────── */
 
 export default function EmailsPendingDashboard() {
-  const [emails, setEmails] = useState(MOCK_EMAILS);
+  const [emails, setEmails] = useState<PendingEmail[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const emailsRefresh = useAutoRefresh({ intervalMs: 2 * 60 * 1000 });
-  const [selectedId, setSelectedId] = useState<string | null>(MOCK_EMAILS[0]?.id ?? null);
-  const [selectedInbox, setSelectedInbox] = useState<string>("all");
-  const [priorityFilter, setPriorityFilter] = useState<"ALL" | Priority>("HIGH");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedInbox, setSelectedInbox] = useState<string>("agentic");
+  const [priorityFilter, setPriorityFilter] = useState<"ALL" | Priority>("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | EmailStatus>("ALL");
   const [sortBy, setSortBy] = useState<"priority" | "date" | "status">("priority");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [expanded, setExpanded] = useState(true);
 
+  /* ── Fetch real emails from DB ───────────────── */
+  const fetchEmails = useCallback(async () => {
+    try {
+      setError(null);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError("Not authenticated");
+        setLoading(false);
+        return;
+      }
+
+      // Fetch emails
+      const { data: dbEmails, error: emailErr } = await supabase
+        .from("emails")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("archived", false)
+        .order("received_at", { ascending: false })
+        .limit(100);
+
+      if (emailErr) throw emailErr;
+
+      if (!dbEmails || dbEmails.length === 0) {
+        setEmails([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch drafts for these emails
+      const emailIds = dbEmails.map((e) => e.id);
+      const { data: drafts } = await supabase
+        .from("email_drafts")
+        .select("*")
+        .eq("user_id", user.id)
+        .in("email_id", emailIds);
+
+      const draftMap = new Map((drafts || []).map((d) => [d.email_id, d]));
+
+      // Map DB rows to PendingEmail
+      const mapped: PendingEmail[] = dbEmails.map((e) => {
+        const { priority, score } = categoryToPriority(e.category, e.subject || "", e.body_preview || "");
+        const draft = draftMap.get(e.id);
+        const hasDraft = draft && draft.status === "pending";
+
+        return {
+          id: e.id,
+          from_name: e.from_name || "Unknown",
+          from_email: e.from_email || "",
+          from_company: extractCompany(e.from_email || "", e.from_name || ""),
+          subject: e.subject || "(No subject)",
+          body: e.body_full || e.body_preview || "",
+          priority,
+          priority_score: score,
+          status: hasDraft ? "DRAFTED" : "NEEDS_RESPONSE",
+          received_at: e.received_at || e.created_at,
+          inbox_source: inferInboxSource(e.from_email || ""),
+          folder: e.category || "admin",
+          category: e.category,
+          segment: e.chief_summary || undefined,
+          draft_response: hasDraft ? (draft.draft_body || undefined) : undefined,
+        };
+      });
+
+      setEmails(mapped);
+      if (mapped.length > 0 && !selectedId) {
+        setSelectedId(mapped[0].id);
+      }
+    } catch (err: any) {
+      console.error("Failed to fetch emails:", err);
+      setError(err.message || "Failed to load emails");
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedId]);
+
+  useEffect(() => {
+    fetchEmails();
+  }, []);
+
+  // Re-fetch on auto-refresh
+  useEffect(() => {
+    const interval = setInterval(fetchEmails, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchEmails]);
+
+  /* ── Inbox counts ────────────────────────────── */
   const inboxCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: emails.filter(e => e.priority === "HIGH" || e.priority_score >= 7).length };
-    INBOX_SOURCES.forEach(inbox => {
-      counts[inbox.id] = emails.filter(e => e.inbox_source === inbox.id && (e.priority === "HIGH" || e.priority_score >= 7)).length;
+    const highPriority = emails.filter((e) => e.priority === "HIGH" || e.priority_score >= 7);
+    const counts: Record<string, number> = {
+      agentic: highPriority.length,
+      all: emails.length,
+    };
+    INBOX_SOURCES.forEach((inbox) => {
+      counts[inbox.id] = emails.filter((e) => e.inbox_source === inbox.id).length;
     });
     return counts;
   }, [emails]);
 
+  /* ── Filtered emails ─────────────────────────── */
   const filteredEmails = useMemo(() => {
     let list = emails.filter((e) => {
-      if (selectedInbox !== "all" && e.inbox_source !== selectedInbox) return false;
+      // AGENTIC INBOX: only high-priority
+      if (selectedInbox === "agentic" && e.priority_score < 7) return false;
+      // Specific inbox filter
+      if (selectedInbox !== "agentic" && selectedInbox !== "all" && e.inbox_source !== selectedInbox) return false;
       if (priorityFilter !== "ALL" && e.priority !== priorityFilter) return false;
       if (statusFilter !== "ALL" && e.status !== statusFilter) return false;
       return true;
     });
 
     const priorityOrder: Record<Priority, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-    if (sortBy === "priority") list.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+    if (sortBy === "priority") list.sort((a, b) => b.priority_score - a.priority_score);
     else if (sortBy === "date") list.sort((a, b) => new Date(b.received_at).getTime() - new Date(a.received_at).getTime());
     else list.sort((a, b) => a.status.localeCompare(b.status));
 
@@ -597,11 +600,21 @@ export default function EmailsPendingDashboard() {
     return { pending, high, awaiting, dueSoon };
   }, [emails]);
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (!selectedEmail) return;
-    setEmails((prev) => prev.filter((e) => e.id !== selectedEmail.id));
-    setSelectedId(null);
-    toast.success(`Email sent to ${selectedEmail.from_name}`);
+    // Call send-email-reply edge function
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("send-email-reply", {
+        body: { emailId: selectedEmail.id },
+      });
+      if (res.error) throw res.error;
+      setEmails((prev) => prev.filter((e) => e.id !== selectedEmail.id));
+      setSelectedId(null);
+      toast.success(`Email sent to ${selectedEmail.from_name}`);
+    } catch (err: any) {
+      toast.error("Failed to send email: " + (err.message || "Unknown error"));
+    }
   };
 
   const handleSchedule = (date: Date) => {
@@ -621,6 +634,12 @@ export default function EmailsPendingDashboard() {
     toast("Flagged for later", { icon: "🚩" });
   };
 
+  const inboxTabs = [
+    { id: "agentic", label: "AGENTIC INBOX" },
+    { id: "all", label: "All Inboxes" },
+    ...INBOX_SOURCES.map((s) => ({ id: s.id, label: s.label })),
+  ];
+
   return (
     <div className="space-y-4">
       {/* Section Header */}
@@ -628,10 +647,10 @@ export default function EmailsPendingDashboard() {
         <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 group">
           {expanded ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
           <Mail size={16} className="text-primary" />
-          <h2 className="text-sm font-semibold text-foreground">Emails Pending</h2>
+          <h2 className="text-sm font-semibold text-foreground">AGENTIC EMAIL INBOX</h2>
           <Badge variant="secondary" className="text-[10px]">{stats.pending}</Badge>
         </button>
-        <RefreshIndicator agoLabel={emailsRefresh.agoLabel} isRefreshing={emailsRefresh.isRefreshing} onRefresh={emailsRefresh.refresh} intervalLabel="30 sec" />
+        <RefreshIndicator agoLabel={emailsRefresh.agoLabel} isRefreshing={emailsRefresh.isRefreshing} onRefresh={() => { emailsRefresh.refresh(); fetchEmails(); }} intervalLabel="2 min" />
       </div>
 
       {!expanded && <div />}
@@ -639,29 +658,18 @@ export default function EmailsPendingDashboard() {
       {/* Inbox Selector Tabs */}
       {expanded && (
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-          <button
-            onClick={() => setSelectedInbox("all")}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors",
-              selectedInbox === "all"
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            All Inboxes ({inboxCounts.all})
-          </button>
-          {INBOX_SOURCES.map(inbox => (
+          {inboxTabs.map((tab) => (
             <button
-              key={inbox.id}
-              onClick={() => setSelectedInbox(inbox.id)}
+              key={tab.id}
+              onClick={() => setSelectedInbox(tab.id)}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors",
-                selectedInbox === inbox.id
+                selectedInbox === tab.id
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              {inbox.label} ({inboxCounts[inbox.id] ?? 0})
+              {tab.label} ({inboxCounts[tab.id] ?? 0})
             </button>
           ))}
         </div>
@@ -671,93 +679,124 @@ export default function EmailsPendingDashboard() {
         <>
           {/* Stat Tiles */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-            <StatTile label="Total Pending" value={stats.pending} icon={Mail} />
+            <StatTile label="Total Emails" value={stats.pending} icon={Mail} />
             <StatTile label="High Priority" value={stats.high} icon={AlertTriangle} accent="bg-destructive" />
             <StatTile label="Awaiting Approval" value={stats.awaiting} icon={CheckCircle2} />
             <StatTile label="Due Soon (<24h)" value={stats.dueSoon} icon={Clock} accent="bg-[hsl(var(--warning))]" />
-            <StatTile label="Avg Open Rate" value="38%" icon={TrendingUp} />
-            <StatTile label="List Health" value="94" icon={Heart} />
+            <StatTile label="Agentic Queue" value={inboxCounts.agentic} icon={Sparkles} />
+            <StatTile label="Drafts Ready" value={stats.awaiting} icon={Edit3} />
           </div>
+
+          {/* Error state */}
+          {error && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-center">
+              <p className="text-sm text-destructive">{error}</p>
+              <Button size="sm" variant="outline" className="mt-2" onClick={fetchEmails}>Retry</Button>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!loading && !error && emails.length === 0 && (
+            <div className="bg-card border border-border rounded-xl p-12 text-center">
+              <Mail size={32} className="text-muted-foreground mx-auto mb-3" />
+              <h3 className="text-sm font-semibold text-foreground mb-1">No emails synced yet</h3>
+              <p className="text-xs text-muted-foreground mb-3">Connect your Outlook account and sync emails to see them here.</p>
+              <Button size="sm" variant="outline" onClick={fetchEmails}>
+                <Loader2 size={12} className="mr-1.5" /> Check Again
+              </Button>
+            </div>
+          )}
 
           {/* 3-Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr_280px] gap-3 min-h-[500px]">
-            {/* LEFT: Queue */}
-            <div className="bg-card border border-border rounded-xl flex flex-col">
-              <div className="p-3 border-b border-border space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <Filter size={12} className="text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Filters</span>
+          {(loading || filteredEmails.length > 0) && (
+            <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr_280px] gap-3 min-h-[500px]">
+              {/* LEFT: Queue */}
+              <div className="bg-card border border-border rounded-xl flex flex-col">
+                <div className="p-3 border-b border-border space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <Filter size={12} className="text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Filters</span>
+                  </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as typeof priorityFilter)}>
+                      <SelectTrigger className="h-7 text-[11px] w-[90px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">All Priority</SelectItem>
+                        <SelectItem value="HIGH">High</SelectItem>
+                        <SelectItem value="MEDIUM">Medium</SelectItem>
+                        <SelectItem value="LOW">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+                      <SelectTrigger className="h-7 text-[11px] w-[100px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">All Status</SelectItem>
+                        <SelectItem value="NEEDS_RESPONSE">Needs Response</SelectItem>
+                        <SelectItem value="DRAFTED">Drafted</SelectItem>
+                        <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                        <SelectItem value="QUEUED">Queued</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+                      <SelectTrigger className="h-7 text-[11px] w-[80px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="priority">Priority</SelectItem>
+                        <SelectItem value="date">Date</SelectItem>
+                        <SelectItem value="status">Status</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="flex gap-1.5 flex-wrap">
-                  <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as typeof priorityFilter)}>
-                    <SelectTrigger className="h-7 text-[11px] w-[90px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">All Priority</SelectItem>
-                      <SelectItem value="HIGH">High</SelectItem>
-                      <SelectItem value="MEDIUM">Medium</SelectItem>
-                      <SelectItem value="LOW">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-                    <SelectTrigger className="h-7 text-[11px] w-[100px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">All Status</SelectItem>
-                      <SelectItem value="NEEDS_RESPONSE">Needs Response</SelectItem>
-                      <SelectItem value="DRAFTED">Drafted</SelectItem>
-                      <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                      <SelectItem value="QUEUED">Queued</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-                    <SelectTrigger className="h-7 text-[11px] w-[80px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="priority">Priority</SelectItem>
-                      <SelectItem value="date">Date</SelectItem>
-                      <SelectItem value="status">Status</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <ScrollArea className="flex-1">
-                <div className="p-2 space-y-1.5">
-                  {filteredEmails.length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-8">No emails match filters</p>
+                <ScrollArea className="flex-1">
+                  {loading ? (
+                    <EmailQueueSkeleton />
+                  ) : (
+                    <div className="p-2 space-y-1.5">
+                      {filteredEmails.length === 0 && (
+                        <div className="text-center py-8">
+                          <Sparkles size={20} className="text-primary mx-auto mb-2" />
+                          <p className="text-xs text-muted-foreground">
+                            {selectedInbox === "agentic" ? "All caught up! No urgent emails." : "No emails match filters"}
+                          </p>
+                        </div>
+                      )}
+                      {filteredEmails.map((e) => (
+                        <EmailRow key={e.id} email={e} selected={e.id === selectedId} onClick={() => setSelectedId(e.id)} />
+                      ))}
+                    </div>
                   )}
-                  {filteredEmails.map((e) => (
-                    <EmailRow key={e.id} email={e} selected={e.id === selectedId} onClick={() => setSelectedId(e.id)} />
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
+                </ScrollArea>
+              </div>
 
-            {/* CENTER: Detail */}
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              {selectedEmail ? (
-                <EmailDetail
-                  email={selectedEmail}
-                  onApprove={handleApprove}
-                  onSchedule={handleSchedule}
-                  onReject={() => setRejectOpen(true)}
-                  onFlag={handleFlag}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                  Select an email to view details
-                </div>
-              )}
-            </div>
+              {/* CENTER: Detail */}
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                {selectedEmail ? (
+                  <EmailDetail
+                    email={selectedEmail}
+                    onApprove={handleApprove}
+                    onSchedule={handleSchedule}
+                    onReject={() => setRejectOpen(true)}
+                    onFlag={handleFlag}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                    Select an email to view details
+                  </div>
+                )}
+              </div>
 
-            {/* RIGHT: Context */}
-            <div className="bg-card border border-border rounded-xl overflow-hidden hidden lg:block">
-              {selectedEmail ? (
-                <ContextPanel email={selectedEmail} />
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
-                  No email selected
-                </div>
-              )}
+              {/* RIGHT: Context */}
+              <div className="bg-card border border-border rounded-xl overflow-hidden hidden lg:block">
+                {selectedEmail ? (
+                  <ContextPanel email={selectedEmail} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
+                    No email selected
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
 

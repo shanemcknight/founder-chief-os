@@ -18,7 +18,7 @@ type ModalKey = "revenue" | "agents" | "emails" | "social" | null;
 const kpis: { key: ModalKey; label: string; value: string; barColor: string; trend: string; up: boolean; sparkline: number[] }[] = [
   { key: "revenue", label: "Revenue Today", value: "$4,840", barColor: "bg-accent", trend: "+12%", up: true, sparkline: [30, 45, 38, 55, 48, 62, 58] },
   { key: "agents", label: "Active Agents", value: "7", barColor: "bg-primary", trend: "Stable", up: false, sparkline: [7, 7, 7, 6, 7, 7, 7] },
-  { key: "emails", label: "AGENTIC EMAIL", value: "3", barColor: "bg-primary", trend: "+2 new", up: true, sparkline: [5, 3, 8, 2, 4, 6, 3] },
+  { key: "emails", label: "AGENTIC EMAIL INBOX", value: "3", barColor: "bg-primary", trend: "+2 new", up: true, sparkline: [5, 3, 8, 2, 4, 6, 3] },
   { key: "social", label: "Social Reach", value: "12.4K", barColor: "bg-success", trend: "+18%", up: true, sparkline: [8, 10, 9, 11, 10, 12, 12.4] },
 ];
 
@@ -39,7 +39,7 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
 const MODAL_TITLES: Record<NonNullable<ModalKey>, string> = {
   revenue: "Revenue Dashboard",
   agents: "Active Agents",
-  emails: "AGENTIC EMAIL",
+  emails: "AGENTIC EMAIL INBOX",
   social: "Social Reach",
 };
 
