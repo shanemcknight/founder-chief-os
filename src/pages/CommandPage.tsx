@@ -84,6 +84,8 @@ export default function CommandPage() {
 
       <ActiveAgentsOrgChart />
 
+      <EmailsPendingDashboard />
+
       <ConnectedToolsGrid />
 
       <div>
