@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import TaskDetailPanel, { type TaskDetail, type TaskStatus } from "@/components/dashboard/TaskDetailPanel";
+import SocialDetailPanel, { type SocialPostDetail } from "@/components/dashboard/SocialDetailPanel";
 
 // --- Types ---
 
@@ -117,6 +118,10 @@ export default function CalendarTimeline() {
   // Task detail panel state
   const [selectedTask, setSelectedTask] = useState<TaskDetail | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+
+  // Social detail panel state
+  const [selectedSocialPost, setSelectedSocialPost] = useState<SocialPostDetail | null>(null);
+  const [socialPanelOpen, setSocialPanelOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("timeline-show-social", String(showSocial));
@@ -249,6 +254,37 @@ export default function CalendarTimeline() {
       prev.map((t) => (t.id === taskId ? { ...t, status: "completed" as TaskStatus } : t))
     );
     setPanelOpen(false);
+  };
+
+  // Social panel handlers
+  const handleSocialClick = (post: TimelineSocialPost) => {
+    setSelectedSocialPost({
+      id: post.id,
+      title: post.title,
+      platform: post.platforms[0] || "twitter",
+      scheduled_time: post.start_time,
+      content: `Sample content for "${post.title}". This is a preview of the social post that will be published.`,
+      hashtags: "#mythos #content #social",
+      notes: "",
+      status: "scheduled",
+    });
+    setSocialPanelOpen(true);
+  };
+
+  const handleSocialReschedule = (postId: string, newTime: Date) => {
+    setSocialPosts((prev) =>
+      prev.map((p) => (p.id === postId ? { ...p, start_time: newTime } : p))
+    );
+    setSocialPanelOpen(false);
+  };
+
+  const handleSocialUpdate = (updated: SocialPostDetail) => {
+    setSocialPanelOpen(false);
+  };
+
+  const handleSocialDelete = (postId: string) => {
+    setSocialPosts((prev) => prev.filter((p) => p.id !== postId));
+    setSocialPanelOpen(false);
   };
 
   const nowOffset = isToday(selectedDate) ? timeToOffset(new Date(), effectiveStart) : null;
@@ -385,7 +421,7 @@ export default function CalendarTimeline() {
                         key={post.id}
                         className="absolute top-0 h-8 rounded-md border border-primary/20 bg-primary/[0.08] flex items-center gap-1 px-2 cursor-pointer select-none hover:bg-primary/15 transition-colors"
                         style={{ left, width }}
-                        onClick={() => toast.info(`Social post: ${post.title}`)}
+                        onClick={() => handleSocialClick(post)}
                         title={post.title}
                       >
                         <Smartphone size={10} className="shrink-0 text-primary/60" />
@@ -411,6 +447,16 @@ export default function CalendarTimeline() {
         onSave={handleTaskSave}
         onDelete={handleTaskDelete}
         onComplete={handleTaskComplete}
+      />
+
+      {/* Social Detail Panel */}
+      <SocialDetailPanel
+        post={selectedSocialPost}
+        open={socialPanelOpen}
+        onClose={() => setSocialPanelOpen(false)}
+        onReschedule={handleSocialReschedule}
+        onUpdate={handleSocialUpdate}
+        onDelete={handleSocialDelete}
       />
     </>
   );
