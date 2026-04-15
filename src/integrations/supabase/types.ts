@@ -41,6 +41,33 @@ export type Database = {
         }
         Relationships: []
       }
+      beta_testers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          invited_at: string
+          invited_by: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          invited_at?: string
+          invited_by?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string
+          status?: string
+        }
+        Relationships: []
+      }
       beta_waitlist: {
         Row: {
           business_type: string
