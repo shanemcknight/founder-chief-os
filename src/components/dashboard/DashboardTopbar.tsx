@@ -59,9 +59,16 @@ export default function DashboardTopbar() {
               <Menu size={18} />
             </button>
           )}
-          <Link to="/dashboard" className="text-sm tracking-tight text-foreground hover:opacity-80 transition-opacity">
-            <span className="font-bold">MYTHOS</span>{" "}
-            <span className="font-normal text-xs text-primary">HQ</span>
+          <Link to="/dashboard" className="text-sm tracking-tight text-foreground hover:opacity-80 transition-opacity flex items-center gap-2">
+            <span>
+              <span className="font-bold">MYTHOS</span>{" "}
+              <span className="font-normal text-xs text-primary">HQ</span>
+            </span>
+            {profile?.environment === "sandbox" && (
+              <span className="text-[9px] font-bold bg-warning/20 text-warning border border-warning/40 px-1.5 py-0.5 rounded">
+                SANDBOX
+              </span>
+            )}
           </Link>
         </div>
 
