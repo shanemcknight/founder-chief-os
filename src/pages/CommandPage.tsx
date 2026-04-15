@@ -6,6 +6,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import CalendarTimeline from "@/components/dashboard/CalendarTimeline";
 import ConnectedToolsGrid from "@/components/dashboard/ConnectedToolsGrid";
 import ActiveAgentsOrgChart from "@/components/dashboard/ActiveAgentsOrgChart";
+import EmailsPendingDashboard from "@/components/dashboard/EmailsPendingDashboard";
 
 const kpis = [
   { label: "Revenue Today", value: "$4,840", barColor: "bg-accent", trend: "+12%", up: true, sparkline: [30, 45, 38, 55, 48, 62, 58] },
