@@ -88,6 +88,10 @@ export default function CommandPage() {
 
       <EmailsPendingDashboard />
 
+      <SocialReachDashboard />
+
+      <RevenueDashboard />
+
       <ConnectedToolsGrid />
 
       <div>
