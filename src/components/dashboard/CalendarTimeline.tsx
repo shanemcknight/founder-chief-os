@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import TaskDetailPanel, { type TaskDetail, type TaskStatus } from "@/components/dashboard/TaskDetailPanel";
 import SocialDetailPanel, { type SocialPostDetail } from "@/components/dashboard/SocialDetailPanel";
+import TaskCreateForm from "@/components/dashboard/TaskCreateForm";
 
 // --- Types ---
 
@@ -122,6 +123,9 @@ export default function CalendarTimeline() {
   // Social detail panel state
   const [selectedSocialPost, setSelectedSocialPost] = useState<SocialPostDetail | null>(null);
   const [socialPanelOpen, setSocialPanelOpen] = useState(false);
+
+  // Create form state
+  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("timeline-show-social", String(showSocial));
