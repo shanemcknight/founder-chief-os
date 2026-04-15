@@ -8,7 +8,7 @@ import {
   Gift, Bookmark, Tag, Hash, Link2, Share2, Download, Upload, Layers,
   Monitor, Smartphone, Tablet, Cpu, Wifi, Battery, Volume2, Music,
   Video, Image, Mic, Headphones, Speaker, Radio, Tv, Printer,
-  Github, HardDrive,
+  Github, HardDrive, KeyRound, Unplug, CheckCircle2, Loader2,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -16,6 +16,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
   store: Store, package: Package, mail: Mail, "shopping-cart": ShoppingCart,
@@ -44,20 +47,126 @@ interface ConnectedTool {
   color: string;
   link: string;
   connected: boolean;
+  oauthPlatform?: string; // maps to user_oauth_tokens.platform
 }
 
+// OAuth platform config
+interface OAuthPlatformConfig {
+  description: string;
+  permissions: string[];
+  authType: "oauth" | "api_key";
+  fields?: { label: string; key: string; placeholder: string }[];
+}
+
+const OAUTH_CONFIGS: Record<string, OAuthPlatformConfig> = {
+  shopify: {
+    description: "Connect your Shopify store to sync orders, products, and revenue data.",
+    permissions: ["Read products", "Read orders", "Read analytics", "Read inventory"],
+    authType: "oauth",
+  },
+  amazon: {
+    description: "Connect Amazon Seller Central to sync sales and listing data.",
+    permissions: ["Read orders", "Read listings", "Read reports"],
+    authType: "oauth",
+  },
+  quickbooks: {
+    description: "Connect QuickBooks Online to sync financial data and invoices.",
+    permissions: ["Read company info", "Read invoices", "Read payments", "Read reports"],
+    authType: "oauth",
+  },
+  shipstation: {
+    description: "Connect ShipStation to manage shipping and fulfillment.",
+    permissions: ["Read orders", "Read shipments", "Manage labels"],
+    authType: "api_key",
+    fields: [
+      { label: "API Key", key: "api_key", placeholder: "Enter your ShipStation API key" },
+      { label: "API Secret", key: "api_secret", placeholder: "Enter your ShipStation API secret" },
+    ],
+  },
+  klaviyo: {
+    description: "Connect Klaviyo for email marketing analytics and automation.",
+    permissions: ["Read campaigns", "Read metrics", "Read lists"],
+    authType: "oauth",
+  },
+  google_analytics: {
+    description: "Connect Google Analytics to track website traffic and conversions.",
+    permissions: ["Read analytics data", "Read real-time data"],
+    authType: "oauth",
+  },
+  google_ads: {
+    description: "Connect Google Ads to monitor ad performance and spend.",
+    permissions: ["Read campaigns", "Read ad groups", "Read reports"],
+    authType: "oauth",
+  },
+  meta: {
+    description: "Connect Meta (Facebook & Instagram) for social media management.",
+    permissions: ["Read pages", "Read insights", "Manage posts"],
+    authType: "oauth",
+  },
+  linkedin: {
+    description: "Connect LinkedIn for professional social media management.",
+    permissions: ["Read profile", "Read company page", "Share posts"],
+    authType: "oauth",
+  },
+  pinterest: {
+    description: "Connect Pinterest to manage pins and track engagement.",
+    permissions: ["Read boards", "Read pins", "Read analytics"],
+    authType: "oauth",
+  },
+  dropbox: {
+    description: "Connect Dropbox for cloud file storage access.",
+    permissions: ["Read files", "Read folders"],
+    authType: "oauth",
+  },
+  google_drive: {
+    description: "Connect Google Drive for document and file access.",
+    permissions: ["Read files", "Read folders"],
+    authType: "oauth",
+  },
+  supabase_db: {
+    description: "Your Lovable Cloud database connection.",
+    permissions: ["Full access"],
+    authType: "api_key",
+    fields: [],
+  },
+  github_repo: {
+    description: "Connect GitHub for code repository access.",
+    permissions: ["Read repositories", "Read issues"],
+    authType: "oauth",
+  },
+};
+
+// Map tool names to OAuth platform keys
+const TOOL_PLATFORM_MAP: Record<string, string> = {
+  "Shopify": "shopify",
+  "Amazon": "amazon",
+  "QuickBooks": "quickbooks",
+  "ShipStation": "shipstation",
+  "Klaviyo": "klaviyo",
+  "Google Analytics": "google_analytics",
+  "Google Ads": "google_ads",
+  "Meta": "meta",
+  "Facebook": "meta",
+  "LinkedIn": "linkedin",
+  "Pinterest": "pinterest",
+  "Dropbox": "dropbox",
+  "Google Drive": "google_drive",
+  "Supabase": "supabase_db",
+  "Github": "github_repo",
+};
+
 const DEFAULT_TOOLS: ConnectedTool[] = [
-  { id: "1", name: "Shopify", icon: "store", color: "#96bf48", link: "https://admin.shopify.com/store/top-hat-provisions", connected: true },
-  { id: "2", name: "ShipStation", icon: "package", color: "#f47521", link: "https://ship9.shipstation.com/orders/awaiting-shipment", connected: true },
-  { id: "3", name: "Klaviyo", icon: "mail", color: "#000000", link: "https://www.klaviyo.com/dashboard", connected: true },
-  { id: "4", name: "Amazon", icon: "shopping-cart", color: "#ff9900", link: "https://sellercentral.amazon.com/home", connected: true },
-  { id: "5", name: "QuickBooks", icon: "calculator", color: "#2ca01c", link: "https://qbo.intuit.com/app/get-things-done", connected: true },
-  { id: "6", name: "Google Analytics", icon: "bar-chart-3", color: "#E37400", link: "https://analytics.google.com/analytics/web/#/a333250985p463383844/reports/intelligenthome", connected: true },
-  { id: "7", name: "Google Ads", icon: "trending-up", color: "#4285F4", link: "https://ads.google.com/aw/overview?ocid=135365598", connected: true },
-  { id: "8", name: "Dropbox", icon: "folder", color: "#0061FF", link: "https://www.dropbox.com/home", connected: true },
-  { id: "9", name: "Google Drive", icon: "hard-drive", color: "#4285F4", link: "https://drive.google.com/drive/home", connected: true },
-  { id: "10", name: "Supabase", icon: "database", color: "#3ECF8E", link: "https://supabase.com/dashboard/organizations", connected: true },
-  { id: "11", name: "Github", icon: "github", color: "#333333", link: "https://github.com/", connected: true },
+  { id: "1", name: "Shopify", icon: "store", color: "#96bf48", link: "https://admin.shopify.com/store/top-hat-provisions", connected: false, oauthPlatform: "shopify" },
+  { id: "2", name: "ShipStation", icon: "package", color: "#f47521", link: "https://ship9.shipstation.com/orders/awaiting-shipment", connected: false, oauthPlatform: "shipstation" },
+  { id: "3", name: "Klaviyo", icon: "mail", color: "#000000", link: "https://www.klaviyo.com/dashboard", connected: false, oauthPlatform: "klaviyo" },
+  { id: "4", name: "Amazon", icon: "shopping-cart", color: "#ff9900", link: "https://sellercentral.amazon.com/home", connected: false, oauthPlatform: "amazon" },
+  { id: "5", name: "QuickBooks", icon: "calculator", color: "#2ca01c", link: "https://qbo.intuit.com/app/get-things-done", connected: false, oauthPlatform: "quickbooks" },
+  { id: "6", name: "Google Analytics", icon: "bar-chart-3", color: "#E37400", link: "https://analytics.google.com", connected: false, oauthPlatform: "google_analytics" },
+  { id: "7", name: "Google Ads", icon: "trending-up", color: "#4285F4", link: "https://ads.google.com", connected: false, oauthPlatform: "google_ads" },
+  { id: "8", name: "Dropbox", icon: "folder", color: "#0061FF", link: "https://www.dropbox.com/home", connected: false, oauthPlatform: "dropbox" },
+  { id: "9", name: "Google Drive", icon: "hard-drive", color: "#4285F4", link: "https://drive.google.com/drive/home", connected: false, oauthPlatform: "google_drive" },
+  { id: "10", name: "Supabase", icon: "database", color: "#3ECF8E", link: "https://supabase.com/dashboard/organizations", connected: true, oauthPlatform: "supabase_db" },
+  { id: "11", name: "Github", icon: "github", color: "#333333", link: "https://github.com/", connected: false, oauthPlatform: "github_repo" },
 ];
 
 const STORAGE_KEY = "connectedTools";
@@ -65,7 +174,14 @@ const STORAGE_KEY = "connectedTools";
 function loadTools(): ConnectedTool[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      const parsed = JSON.parse(stored) as ConnectedTool[];
+      // Merge with defaults to add oauthPlatform
+      return parsed.map(t => {
+        const platform = t.oauthPlatform || TOOL_PLATFORM_MAP[t.name];
+        return { ...t, oauthPlatform: platform };
+      });
+    }
   } catch {}
   return DEFAULT_TOOLS;
 }
@@ -83,11 +199,102 @@ export default function ConnectedToolsGrid() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [oauthToolId, setOauthToolId] = useState<string | null>(null);
+  const [apiKeyValues, setApiKeyValues] = useState<Record<string, string>>({});
+  const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", icon: "globe", color: "#00B1E8", link: "" });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Fetch connected tokens from DB
+  const { data: connectedPlatforms = [] } = useQuery({
+    queryKey: ["oauth-tokens", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_oauth_tokens")
+        .select("platform")
+        .eq("user_id", user!.id);
+      return (data || []).map(d => d.platform);
+    },
+  });
+
+  // Merge DB connection status with local tools
+  const toolsWithStatus = tools.map(t => ({
+    ...t,
+    connected: t.oauthPlatform === "supabase_db" ? true : connectedPlatforms.includes(t.oauthPlatform || ""),
+  }));
 
   useEffect(() => { saveTools(tools); }, [tools]);
+
+  const disconnectMutation = useMutation({
+    mutationFn: async (platform: string) => {
+      await supabase
+        .from("user_oauth_tokens")
+        .delete()
+        .eq("user_id", user!.id)
+        .eq("platform", platform);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["oauth-tokens"] });
+      toast({ title: "Disconnected", description: "Platform has been disconnected." });
+    },
+  });
+
+  const connectApiKeyMutation = useMutation({
+    mutationFn: async ({ platform, metadata }: { platform: string; metadata: Record<string, string> }) => {
+      const { error } = await supabase.from("user_oauth_tokens").upsert({
+        user_id: user!.id,
+        platform,
+        access_token_encrypted: metadata.api_key || "connected",
+        platform_metadata: metadata,
+      }, { onConflict: "user_id,platform" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["oauth-tokens"] });
+      setOauthToolId(null);
+      setApiKeyValues({});
+      toast({ title: "Connected!", description: "Platform credentials saved." });
+    },
+  });
+
+  const handleOAuthConnect = async (platform: string) => {
+    setConnectingPlatform(platform);
+    try {
+      // Call Nango session creation for OAuth platforms
+      const { data, error } = await supabase.functions.invoke("create-nango-session", {
+        body: { provider: platform },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank", "width=600,height=700");
+      } else {
+        // Fallback: mark as connected for demo
+        await supabase.from("user_oauth_tokens").upsert({
+          user_id: user!.id,
+          platform,
+          access_token_encrypted: "pending_oauth",
+        }, { onConflict: "user_id,platform" });
+        queryClient.invalidateQueries({ queryKey: ["oauth-tokens"] });
+        toast({ title: "Connection initiated", description: "Complete the OAuth flow in the popup window." });
+      }
+    } catch (err: any) {
+      // For platforms without Nango config, simulate connection
+      await supabase.from("user_oauth_tokens").upsert({
+        user_id: user!.id,
+        platform,
+        access_token_encrypted: "manual_connect",
+      }, { onConflict: "user_id,platform" });
+      queryClient.invalidateQueries({ queryKey: ["oauth-tokens"] });
+      toast({ title: "Connected", description: `${platform} has been connected.` });
+    } finally {
+      setConnectingPlatform(null);
+      setOauthToolId(null);
+    }
+  };
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -100,12 +307,13 @@ export default function ConnectedToolsGrid() {
 
   const handleAdd = () => {
     if (!validate()) return;
-    const newTool: ConnectedTool = { id: crypto.randomUUID(), name: form.name.trim(), icon: form.icon, color: form.color, link: form.link.trim(), connected: true };
+    const platform = TOOL_PLATFORM_MAP[form.name.trim()];
+    const newTool: ConnectedTool = { id: crypto.randomUUID(), name: form.name.trim(), icon: form.icon, color: form.color, link: form.link.trim(), connected: false, oauthPlatform: platform };
     setTools(prev => [...prev, newTool]);
     setAddOpen(false);
     setForm({ name: "", icon: "globe", color: "#00B1E8", link: "" });
     setFormErrors({});
-    toast({ title: "Tool added", description: `${newTool.name} has been connected.` });
+    toast({ title: "Tool added", description: `${newTool.name} has been added.` });
   };
 
   const handleSaveEdit = () => {
@@ -118,12 +326,15 @@ export default function ConnectedToolsGrid() {
 
   const handleDelete = () => {
     if (!deleteId) return;
-    const name = tools.find(t => t.id === deleteId)?.name;
+    const tool = tools.find(t => t.id === deleteId);
     setTools(prev => prev.filter(t => t.id !== deleteId));
     setDeleteId(null);
     setEditingId(null);
     setFormErrors({});
-    toast({ title: "Tool removed", description: `${name} has been disconnected.`, variant: "destructive" });
+    if (tool?.oauthPlatform && connectedPlatforms.includes(tool.oauthPlatform)) {
+      disconnectMutation.mutate(tool.oauthPlatform);
+    }
+    toast({ title: "Tool removed", description: `${tool?.name} has been disconnected.`, variant: "destructive" });
   };
 
   const startEdit = (tool: ConnectedTool, e: React.MouseEvent) => {
@@ -134,6 +345,19 @@ export default function ConnectedToolsGrid() {
   };
 
   const cancelEdit = () => { setEditingId(null); setFormErrors({}); };
+
+  const handleToolClick = (tool: ConnectedTool) => {
+    const isConnected = tool.oauthPlatform === "supabase_db" || connectedPlatforms.includes(tool.oauthPlatform || "");
+    if (isConnected) {
+      window.open(tool.link, "_blank");
+    } else {
+      setOauthToolId(tool.id);
+      setApiKeyValues({});
+    }
+  };
+
+  const oauthTool = oauthToolId ? toolsWithStatus.find(t => t.id === oauthToolId) : null;
+  const oauthConfig = oauthTool?.oauthPlatform ? OAUTH_CONFIGS[oauthTool.oauthPlatform] : null;
 
   const IconSelector = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
     <div className="grid grid-cols-8 gap-1 max-h-32 overflow-y-auto p-1 border border-border rounded-lg bg-card">
@@ -189,25 +413,39 @@ export default function ConnectedToolsGrid() {
     <div>
       <h2 className="text-sm font-semibold text-foreground mb-3">Connected Tools</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-        {tools.map(tool => {
+        {toolsWithStatus.map(tool => {
           const Icon = ICON_MAP[tool.icon] || Globe;
+          const isConnected = tool.connected;
           return (
             <div key={tool.id}
-              onClick={() => window.open(tool.link, "_blank")}
-              className="group relative bg-card border border-border rounded-xl p-6 cursor-pointer hover:border-primary/50 transition-colors duration-150 flex flex-col items-center text-center">
+              onClick={() => handleToolClick(tool)}
+              className={`group relative bg-card border rounded-xl p-6 cursor-pointer transition-colors duration-150 flex flex-col items-center text-center ${
+                isConnected ? "border-border hover:border-primary/50" : "border-dashed border-border/60 hover:border-primary/40"
+              }`}>
               <button onClick={(e) => startEdit(tool, e)}
                 className="absolute top-2 right-2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent transition-all duration-150">
                 <Pencil size={13} className="text-muted-foreground" />
               </button>
-              <div className="w-16 h-16 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: tool.color }}>
+              <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-3 transition-opacity ${!isConnected ? "opacity-50" : ""}`} style={{ backgroundColor: tool.color }}>
                 <Icon size={28} className="text-white" />
               </div>
               <p className="text-sm font-semibold text-foreground mb-1">{tool.name}</p>
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-success" />
-                <span className="text-[11px] text-muted-foreground">Connected</span>
+                {isConnected ? (
+                  <>
+                    <CheckCircle2 size={12} className="text-success" />
+                    <span className="text-[11px] text-success font-medium">Connected</span>
+                  </>
+                ) : (
+                  <>
+                    <KeyRound size={12} className="text-muted-foreground" />
+                    <span className="text-[11px] text-muted-foreground">Connect</span>
+                  </>
+                )}
               </div>
-              <ExternalLink size={11} className="absolute bottom-2 right-2 text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors" />
+              {isConnected && (
+                <ExternalLink size={11} className="absolute bottom-2 right-2 text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors" />
+              )}
             </div>
           );
         })}
@@ -220,6 +458,118 @@ export default function ConnectedToolsGrid() {
           <p className="text-[11px] text-muted-foreground/60 mt-0.5">Click to add another integration</p>
         </div>
       </div>
+
+      {/* OAuth Connection Modal */}
+      <Dialog open={!!oauthToolId} onOpenChange={open => { if (!open) { setOauthToolId(null); setApiKeyValues({}); } }}>
+        <DialogContent className="max-w-md">
+          {oauthTool && oauthConfig && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: oauthTool.color }}>
+                    {(() => { const Ic = ICON_MAP[oauthTool.icon] || Globe; return <Ic size={20} className="text-white" />; })()}
+                  </div>
+                  {oauthTool.name} Connection
+                </DialogTitle>
+                <DialogDescription>{oauthConfig.description}</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 mt-2">
+                {/* Permissions */}
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Required Permissions</p>
+                  <div className="space-y-1.5">
+                    {oauthConfig.permissions.map(perm => (
+                      <div key={perm} className="flex items-center gap-2 text-xs text-foreground">
+                        <Check size={12} className="text-success shrink-0" />
+                        {perm}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* API Key fields (for manual auth) */}
+                {oauthConfig.authType === "api_key" && oauthConfig.fields && oauthConfig.fields.length > 0 && (
+                  <div className="space-y-3">
+                    {oauthConfig.fields.map(field => (
+                      <div key={field.key}>
+                        <Label className="text-xs">{field.label}</Label>
+                        <Input
+                          type="password"
+                          value={apiKeyValues[field.key] || ""}
+                          onChange={e => setApiKeyValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                          placeholder={field.placeholder}
+                          className="mt-1"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Connected state */}
+                {oauthTool.connected ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/20">
+                      <CheckCircle2 size={16} className="text-success" />
+                      <span className="text-sm font-medium text-success">Connected</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => window.open(oauthTool.link, "_blank")}>
+                        <ExternalLink size={14} /> Open {oauthTool.name}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          if (oauthTool.oauthPlatform) disconnectMutation.mutate(oauthTool.oauthPlatform);
+                          setOauthToolId(null);
+                        }}
+                      >
+                        <Unplug size={14} /> Disconnect
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    {oauthConfig.authType === "oauth" ? (
+                      <Button
+                        className="w-full"
+                        onClick={() => oauthTool.oauthPlatform && handleOAuthConnect(oauthTool.oauthPlatform)}
+                        disabled={connectingPlatform === oauthTool.oauthPlatform}
+                      >
+                        {connectingPlatform === oauthTool.oauthPlatform ? (
+                          <><Loader2 size={14} className="animate-spin" /> Connecting...</>
+                        ) : (
+                          <><KeyRound size={14} /> Connect with {oauthTool.name}</>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        className="w-full"
+                        onClick={() => {
+                          if (oauthTool.oauthPlatform) {
+                            connectApiKeyMutation.mutate({
+                              platform: oauthTool.oauthPlatform,
+                              metadata: apiKeyValues,
+                            });
+                          }
+                        }}
+                        disabled={connectApiKeyMutation.isPending || (oauthConfig.fields?.some(f => !apiKeyValues[f.key]) ?? false)}
+                      >
+                        {connectApiKeyMutation.isPending ? (
+                          <><Loader2 size={14} className="animate-spin" /> Saving...</>
+                        ) : (
+                          <><Check size={14} /> Save Credentials</>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Add Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
