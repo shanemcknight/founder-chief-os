@@ -8,6 +8,7 @@ import {
   Gift, Bookmark, Tag, Hash, Link2, Share2, Download, Upload, Layers,
   Monitor, Smartphone, Tablet, Cpu, Wifi, Battery, Volume2, Music,
   Video, Image, Mic, Headphones, Speaker, Radio, Tv, Printer,
+  Github, HardDrive,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -31,6 +32,7 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
   wifi: Wifi, battery: Battery, volume: Volume2, music: Music,
   video: Video, image: Image, mic: Mic, headphones: Headphones,
   speaker: Speaker, radio: Radio, tv: Tv, printer: Printer, plus: Plus,
+  github: Github, "hard-drive": HardDrive,
 };
 
 const ICON_OPTIONS = Object.keys(ICON_MAP);
@@ -52,6 +54,10 @@ const DEFAULT_TOOLS: ConnectedTool[] = [
   { id: "5", name: "QuickBooks", icon: "calculator", color: "#2ca01c", link: "https://qbo.intuit.com/app/get-things-done", connected: true },
   { id: "6", name: "Google Analytics", icon: "bar-chart-3", color: "#E37400", link: "https://analytics.google.com/analytics/web/#/a333250985p463383844/reports/intelligenthome", connected: true },
   { id: "7", name: "Google Ads", icon: "trending-up", color: "#4285F4", link: "https://ads.google.com/aw/overview?ocid=135365598", connected: true },
+  { id: "8", name: "Dropbox", icon: "folder", color: "#0061FF", link: "https://www.dropbox.com/home", connected: true },
+  { id: "9", name: "Google Drive", icon: "hard-drive", color: "#4285F4", link: "https://drive.google.com/drive/home", connected: true },
+  { id: "10", name: "Supabase", icon: "database", color: "#3ECF8E", link: "https://supabase.com/dashboard/organizations", connected: true },
+  { id: "11", name: "Github", icon: "github", color: "#333333", link: "https://github.com/", connected: true },
 ];
 
 const STORAGE_KEY = "connectedTools";
