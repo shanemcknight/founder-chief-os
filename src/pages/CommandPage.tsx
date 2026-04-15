@@ -100,6 +100,8 @@ export default function CommandPage() {
         ))}
       </div>
 
+      <CalendarTimeline />
+
       <div>
         <h2 className="text-sm font-semibold text-foreground mb-3">Connected Tools</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
