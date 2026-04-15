@@ -651,6 +651,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_oauth_tokens: {
+        Row: {
+          access_token_encrypted: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          platform: string
+          platform_metadata: Json | null
+          refresh_token_encrypted: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token_encrypted?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          platform: string
+          platform_metadata?: Json | null
+          refresh_token_encrypted?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token_encrypted?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          platform?: string
+          platform_metadata?: Json | null
+          refresh_token_encrypted?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
