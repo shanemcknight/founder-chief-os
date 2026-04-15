@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import {
   ArrowUpRight,
   Minus,
+  X,
 } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import CalendarTimeline from "@/components/dashboard/CalendarTimeline";
@@ -10,11 +12,13 @@ import EmailsPendingDashboard from "@/components/dashboard/EmailsPendingDashboar
 import SocialReachDashboard from "@/components/dashboard/SocialReachDashboard";
 import RevenueDashboard from "@/components/dashboard/RevenueDashboard";
 
-const kpis = [
-  { label: "Revenue Today", value: "$4,840", barColor: "bg-accent", trend: "+12%", up: true, sparkline: [30, 45, 38, 55, 48, 62, 58] },
-  { label: "Active Agents", value: "7", barColor: "bg-primary", trend: "Stable", up: false, sparkline: [7, 7, 7, 6, 7, 7, 7] },
-  { label: "Emails Pending", value: "3", barColor: "bg-primary", trend: "+2 new", up: true, sparkline: [5, 3, 8, 2, 4, 6, 3] },
-  { label: "Social Reach", value: "12.4K", barColor: "bg-success", trend: "+18%", up: true, sparkline: [8, 10, 9, 11, 10, 12, 12.4] },
+type ModalKey = "revenue" | "agents" | "emails" | "social" | null;
+
+const kpis: { key: ModalKey; label: string; value: string; barColor: string; trend: string; up: boolean; sparkline: number[] }[] = [
+  { key: "revenue", label: "Revenue Today", value: "$4,840", barColor: "bg-accent", trend: "+12%", up: true, sparkline: [30, 45, 38, 55, 48, 62, 58] },
+  { key: "agents", label: "Active Agents", value: "7", barColor: "bg-primary", trend: "Stable", up: false, sparkline: [7, 7, 7, 6, 7, 7, 7] },
+  { key: "emails", label: "Emails Pending", value: "3", barColor: "bg-primary", trend: "+2 new", up: true, sparkline: [5, 3, 8, 2, 4, 6, 3] },
+  { key: "social", label: "Social Reach", value: "12.4K", barColor: "bg-success", trend: "+18%", up: true, sparkline: [8, 10, 9, 11, 10, 12, 12.4] },
 ];
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
@@ -31,6 +35,19 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   );
 }
 
+const MODAL_TITLES: Record<NonNullable<ModalKey>, string> = {
+  revenue: "Revenue Dashboard",
+  agents: "Active Agents",
+  emails: "Emails Pending",
+  social: "Social Reach",
+};
+
+const MODAL_COMPONENTS: Record<NonNullable<ModalKey>, React.FC> = {
+  revenue: RevenueDashboard,
+  agents: ActiveAgentsOrgChart,
+  emails: EmailsPendingDashboard,
+  social: SocialReachDashboard,
+};
 
 const priorityBadgeClass: Record<string, string> = {
   HIGH: "bg-destructive/15 text-destructive",
@@ -48,6 +65,17 @@ const actions = [
 
 export default function CommandPage() {
   const { isVerifying } = useSubscription();
+  const [activeModal, setActiveModal] = useState<ModalKey>(null);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (activeModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [activeModal]);
 
   if (isVerifying) {
     return (
@@ -58,6 +86,8 @@ export default function CommandPage() {
     );
   }
 
+  const ModalContent = activeModal ? MODAL_COMPONENTS[activeModal] : null;
+
   return (
     <div className="space-y-6">
       <div>
@@ -67,9 +97,14 @@ export default function CommandPage() {
         </p>
       </div>
 
+      {/* KPI Cards — clickable to open modals */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className="bg-card border border-border rounded-xl p-4 relative overflow-hidden">
+          <button
+            key={kpi.label}
+            onClick={() => setActiveModal(kpi.key)}
+            className="bg-card border border-border rounded-xl p-4 relative overflow-hidden text-left cursor-pointer hover:border-primary/50 transition-colors duration-150"
+          >
             <div className={`absolute top-0 left-0 right-0 h-[3px] ${kpi.barColor}`} />
             <p className="text-[11px] text-muted-foreground mb-1">{kpi.label}</p>
             <p className="text-xl md:text-[22px] font-bold text-foreground">{kpi.value}</p>
@@ -78,19 +113,11 @@ export default function CommandPage() {
               <span className={`text-[10px] ${kpi.up ? "text-success" : "text-muted-foreground"}`}>{kpi.trend}</span>
             </div>
             <Sparkline data={kpi.sparkline} color={kpi.up ? "hsl(142 71% 45%)" : "hsl(220 4% 57%)"} />
-          </div>
+          </button>
         ))}
       </div>
 
       <CalendarTimeline />
-
-      <ActiveAgentsOrgChart />
-
-      <EmailsPendingDashboard />
-
-      <SocialReachDashboard />
-
-      <RevenueDashboard />
 
       <ConnectedToolsGrid />
 
@@ -110,6 +137,37 @@ export default function CommandPage() {
           ))}
         </div>
       </div>
+
+      {/* Dashboard Modal Overlay */}
+      {activeModal && ModalContent && (
+        <div className="fixed inset-0 z-50 flex flex-col">
+          {/* Dimmed backdrop */}
+          <div
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm animate-fade-in"
+            onClick={() => setActiveModal(null)}
+          />
+          {/* Modal panel — slides up from bottom */}
+          <div
+            className="relative mt-auto w-full bg-card border-t border-border rounded-t-xl overflow-auto animate-fade-in"
+            style={{ height: "90vh" }}
+          >
+            {/* Header bar */}
+            <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-card border-b border-border">
+              <h2 className="text-base font-semibold text-foreground">{MODAL_TITLES[activeModal]}</h2>
+              <button
+                onClick={() => setActiveModal(null)}
+                className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            {/* Dashboard content */}
+            <div className="p-6">
+              <ModalContent />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
