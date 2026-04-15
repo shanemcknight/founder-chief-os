@@ -344,7 +344,7 @@ function ContentROIView() {
 export default function SocialReachDashboard() {
   const [expanded, setExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState<"funnel" | "roi">("funnel");
-  const socialRefresh = useAutoRefresh({ intervalMs: 2 * 60 * 1000 });
+  const socialRefresh = useAutoRefresh({ intervalMs: 60 * 60 * 1000 });
 
   const bestPlatformIdx = PLATFORMS.reduce((best, p, i) => (p.revenue / p.reach > PLATFORMS[best].revenue / PLATFORMS[best].reach ? i : best), 0);
 
@@ -358,7 +358,7 @@ export default function SocialReachDashboard() {
           <h2 className="text-sm font-semibold text-foreground">Social Reach</h2>
           <Badge variant="secondary" className="text-[10px]">12.4K reach</Badge>
         </button>
-        <RefreshIndicator agoLabel={socialRefresh.agoLabel} isRefreshing={socialRefresh.isRefreshing} onRefresh={socialRefresh.refresh} intervalLabel="2 min" />
+        <RefreshIndicator agoLabel={socialRefresh.agoLabel} isRefreshing={socialRefresh.isRefreshing} onRefresh={socialRefresh.refresh} intervalLabel="1 hour" />
       </div>
 
       {expanded && (
