@@ -59,6 +59,18 @@ import { format } from "date-fns";
 type Priority = "HIGH" | "MEDIUM" | "LOW";
 type EmailStatus = "NEEDS_RESPONSE" | "DRAFTED" | "SCHEDULED" | "QUEUED";
 
+interface InboxSource {
+  id: string;
+  email: string;
+  label: string;
+}
+
+const INBOX_SOURCES: InboxSource[] = [
+  { id: "tophat", email: "shane@tophatprovisions.com", label: "Top Hat" },
+  { id: "culture", email: "shane@culturecocktails.co", label: "Culture" },
+  { id: "personal", email: "shane@gmail.com", label: "Personal" },
+];
+
 interface PendingEmail {
   id: string;
   from_name: string;
@@ -67,8 +79,11 @@ interface PendingEmail {
   subject: string;
   body: string;
   priority: Priority;
+  priority_score: number;
   status: EmailStatus;
   received_at: string;
+  inbox_source: string; // inbox id
+  folder: string;
   segment?: string;
   segment_size?: number;
   previous_emails?: number;
