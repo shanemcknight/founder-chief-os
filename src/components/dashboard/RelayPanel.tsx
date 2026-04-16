@@ -1,14 +1,25 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Check, Settings } from "lucide-react";
+import { Check, Settings, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Tab = "approvals" | "chat" | "activity";
 
-const seedPriorities = [
-  { summary: "Wholesale inquiry — Austin bar owner. Response drafted.", primary: "Approve", secondary: "Edit" },
-  { summary: "LinkedIn post ready — scheduled 2pm", primary: "Approve", secondary: "Edit" },
-  { summary: "Invoice #1042 overdue — $840 outstanding", primary: "View", secondary: "Dismiss" },
+type Priority = {
+  id: string;
+  summary: string;
+  priority: "HIGH" | "MED" | "FYI";
+  actionType: string;
+  createdAt: string;
+  isReal?: boolean;
+};
+
+const seedPriorities: Priority[] = [
+  { id: "seed-1", summary: "Wholesale inquiry — Austin bar owner. Response drafted.", priority: "HIGH", actionType: "Email", createdAt: new Date(Date.now() - 2 * 60_000).toISOString() },
+  { id: "seed-2", summary: "LinkedIn post ready — scheduled 2pm", priority: "MED", actionType: "Social", createdAt: new Date(Date.now() - 25 * 60_000).toISOString() },
+  { id: "seed-3", summary: "Invoice #1042 overdue — $840 outstanding", priority: "MED", actionType: "Invoice", createdAt: new Date(Date.now() - 3 * 3600_000).toISOString() },
 ];
 
 const recentChats = [
@@ -39,13 +50,45 @@ const rotatingLogs = [
   { agent: "CHIEF", text: "Revenue snapshot captured", ms: "320ms", type: "info" as const },
 ];
 
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60_000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} hr ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
+function actionTypeLabel(t: string): string {
+  const map: Record<string, string> = {
+    send_email: "Email",
+    post_social: "Social",
+    update_crm: "CRM",
+    invoice: "Invoice",
+    amazon: "Amazon",
+  };
+  return map[t] || t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function priorityDotClass(p: Priority["priority"]): string {
+  if (p === "HIGH") return "bg-destructive";
+  if (p === "MED") return "bg-warning";
+  return "bg-muted-foreground";
+}
+
 export default function RelayPanel() {
+  const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("approvals");
-  const [approved, setApproved] = useState<number[]>([]);
+  const [approved, setApproved] = useState<string[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>(initialLogs);
   const [input, setInput] = useState("");
+  const [priorities, setPriorities] = useState<Priority[]>(seedPriorities);
+  const [urgentCount, setUrgentCount] = useState(0);
   const rotateIdx = useRef(0);
 
+  // Rotating activity logs
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
@@ -57,18 +100,73 @@ export default function RelayPanel() {
     return () => clearInterval(interval);
   }, []);
 
+  // Load real pending approvals + urgent count
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    const loadData = async () => {
+      // Pending proposed_actions joined for context
+      const { data: actions } = await supabase
+        .from("proposed_actions")
+        .select("id, action_type, draft_content, status, created_at")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      // Urgent unread emails count
+      const { count: emailCount } = await supabase
+        .from("emails")
+        .select("id", { count: "exact", head: true })
+        .eq("category", "urgent")
+        .eq("read", false);
+
+      if (cancelled) return;
+
+      const realPriorities: Priority[] = (actions || []).map((a: any) => {
+        const content = a.draft_content || {};
+        const summary = content.summary || content.draft?.slice(0, 80) || `${actionTypeLabel(a.action_type)} action`;
+        return {
+          id: a.id,
+          summary: String(summary).slice(0, 120),
+          priority: "HIGH",
+          actionType: actionTypeLabel(a.action_type),
+          createdAt: a.created_at,
+          isReal: true,
+        };
+      });
+
+      setPriorities(realPriorities.length > 0 ? realPriorities : seedPriorities);
+      setUrgentCount((actions?.length || 0) + (emailCount || 0));
+    };
+
+    loadData();
+    const interval = setInterval(loadData, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [user]);
+
   const logColor = (type: string) => {
     if (type === "success") return "text-emerald-400";
     if (type === "error") return "text-destructive";
     return "text-muted-foreground";
   };
 
+  const visiblePriorities = priorities.filter((p) => !approved.includes(p.id));
+
   return (
     <aside className="w-full md:w-[300px] shrink-0 md:border-l border-border bg-card flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
-        <span className="text-sm font-bold text-foreground tracking-wide">CHIEF</span>
+        <span className="text-sm font-bold text-foreground tracking-wide">AGENTIC HQ</span>
         <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+        {urgentCount > 0 && (
+          <span className="bg-destructive text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+            {urgentCount}
+          </span>
+        )}
         <Link to="/agents/deployed" className="ml-auto text-muted-foreground hover:text-foreground transition-colors duration-150">
           <Settings size={14} />
         </Link>
@@ -87,7 +185,7 @@ export default function RelayPanel() {
                 : "text-muted-foreground text-xs px-3 py-1.5 hover:text-foreground"
             )}
           >
-            {t === "approvals" ? "Approvals" : t === "chat" ? "Chat" : "Activity"}
+            {t === "approvals" ? "Actions" : t === "chat" ? "Chat" : "Live Feed"}
           </button>
         ))}
       </div>
@@ -96,35 +194,46 @@ export default function RelayPanel() {
       {tab === "approvals" && (
         <div className="flex-1 overflow-y-auto px-4 pb-4">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Today's Priorities</p>
-          <div className="space-y-2">
-            {seedPriorities.map((item, i) => {
-              const isApproved = approved.includes(i);
-              if (isApproved) {
-                return (
-                  <div key={i} className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2.5 flex items-center gap-2">
-                    <Check size={14} className="text-emerald-400" />
-                    <span className="text-xs text-emerald-400 font-medium">Approved</span>
+
+          {visiblePriorities.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-2">
+              <CheckCircle2 size={20} className="text-emerald-400" />
+              <p className="text-[11px] text-muted-foreground text-center">✓ All clear — nothing needs your attention</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {visiblePriorities.map((item) => (
+                <div key={item.id} className="bg-background/50 border border-border rounded-lg p-2.5 relative">
+                  <span className="absolute top-2 right-2 text-[9px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                    {item.actionType}
+                  </span>
+                  <div className="flex gap-2 pr-14">
+                    <span className={cn("w-2 h-2 rounded-full shrink-0 mt-1", priorityDotClass(item.priority))} />
+                    <p className="text-xs text-foreground leading-relaxed">{item.summary}</p>
                   </div>
-                );
-              }
-              return (
-                <div key={i} className="bg-background/50 border border-border rounded-lg p-2.5">
-                  <p className="text-xs text-foreground leading-relaxed mb-2">{item.summary}</p>
-                  <div className="flex gap-1.5">
+                  <p className="text-[10px] text-muted-foreground mt-1.5 ml-4">{relativeTime(item.createdAt)}</p>
+                  <div className="flex gap-1.5 mt-2 ml-4">
                     <button
-                      onClick={() => setApproved((p) => [...p, i])}
+                      onClick={() => setApproved((p) => [...p, item.id])}
                       className="bg-primary text-primary-foreground text-[10px] font-medium px-2 py-1 rounded hover:bg-primary/90 transition-colors duration-150"
                     >
-                      {item.primary}
+                      Approve
                     </button>
                     <button className="text-muted-foreground border border-border text-[10px] px-2 py-1 rounded hover:text-foreground transition-colors duration-150">
-                      {item.secondary}
+                      Edit
                     </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+              {approved.length > 0 && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2.5 flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400" />
+                  <span className="text-xs text-emerald-400 font-medium">{approved.length} approved</span>
+                </div>
+              )}
+            </div>
+          )}
+
           <Link to="/agents/approvals" className="block text-[10px] text-primary hover:underline mt-3">
             View all approvals →
           </Link>
