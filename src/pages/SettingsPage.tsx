@@ -8,7 +8,7 @@ import EmailIntegrationSettings from "@/components/settings/EmailIntegrationSett
 import AiModelIntegration from "@/components/settings/AiModelIntegration";
 import BillingSettings from "@/components/settings/BillingSettings";
 
-const navItems = ["Account", "Team", "Integrations", "Chief Settings", "Billing", "API & Webhooks", "Notifications"];
+const navItems = ["Account", "Team", "Integrations", "Agent Settings", "Billing", "API & Webhooks", "Notifications"];
 
 const connected = ["Gmail", "Shopify", "Amazon", "Klaviyo", "Stripe", "QuickBooks", "LinkedIn", "Apollo"];
 
