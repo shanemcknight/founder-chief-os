@@ -41,6 +41,71 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_context: {
+        Row: {
+          agent_id: string
+          content: Json
+          context_type: string
+          id: string
+          last_updated: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          content: Json
+          context_type: string
+          id?: string
+          last_updated?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          content?: Json
+          context_type?: string
+          id?: string
+          last_updated?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      approvals_log: {
+        Row: {
+          action_id: string
+          decision: string
+          edited_content: Json | null
+          id: string
+          notes: string | null
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          action_id: string
+          decision: string
+          edited_content?: Json | null
+          id?: string
+          notes?: string | null
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          action_id?: string
+          decision?: string
+          edited_content?: Json | null
+          id?: string
+          notes?: string | null
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approvals_log_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "proposed_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beta_invite_codes: {
         Row: {
           code: string
@@ -125,6 +190,36 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+        }
+        Relationships: []
+      }
+      conversations: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -223,6 +318,44 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          sender: string
+          type: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          sender: string
+          type?: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          sender?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -294,6 +427,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      proposed_actions: {
+        Row: {
+          action_type: string
+          approval_timestamp: string | null
+          created_at: string
+          draft_content: Json
+          executed_at: string | null
+          id: string
+          message_id: string
+          status: string
+        }
+        Insert: {
+          action_type: string
+          approval_timestamp?: string | null
+          created_at?: string
+          draft_content: Json
+          executed_at?: string | null
+          id?: string
+          message_id: string
+          status?: string
+        }
+        Update: {
+          action_type?: string
+          approval_timestamp?: string | null
+          created_at?: string
+          draft_content?: Json
+          executed_at?: string | null
+          id?: string
+          message_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposed_actions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       social_brand_voice_rules: {
         Row: {

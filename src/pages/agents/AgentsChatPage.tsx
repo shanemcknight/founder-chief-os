@@ -1,184 +1,283 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import {
-  Search,
-  Download,
-  Send,
-  Paperclip,
-  PlusCircle,
-  ChevronRight,
-  ChevronDown,
-  X,
-  Check,
+  Search, Download, Send, Paperclip, PlusCircle, ChevronRight, ChevronDown, X,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { AGENTS, type AgentName } from "@/lib/agents";
+import { streamAgentChat } from "@/lib/agentChat";
+import { toast } from "sonner";
 
-type AgentId = "CHIEF" | "ORACLE" | "FORGE";
-
-const agents = [
-  { id: "CHIEF" as AgentId, name: "CHIEF", status: "online" as const, preview: "Approve the Austin draft...", unread: 2 },
-  { id: "ORACLE" as AgentId, name: "ORACLE", status: "online" as const, preview: "Inbox scanned, 3 flagged", unread: 0 },
-  { id: "FORGE" as AgentId, name: "FORGE", status: "offline" as const, preview: "Last active yesterday", unread: 0 },
-];
-
-type Conversation = {
+type ConversationListItem = {
   id: string;
   title: string;
-  preview: string;
-  time: string;
-  archived?: boolean;
+  status: string;
+  agentId: string;
+  lastMessage: string;
+  updatedAt: string;
 };
 
-const conversationsByAgent: Record<AgentId, Conversation[]> = {
-  CHIEF: [
-    { id: "c1", title: "Wholesale Outreach — Whole Foods", preview: "Approve the Austin draft...", time: "2m ago" },
-    { id: "c2", title: "Q2 Content Strategy", preview: "Here's the editorial calendar...", time: "Yesterday" },
-    { id: "c3", title: "Invoice Follow-ups", preview: "I've drafted reminder emails...", time: "3 days ago", archived: true },
-  ],
-  ORACLE: [
-    { id: "o1", title: "Inbox Triage", preview: "3 high-priority emails flagged", time: "5m ago" },
-  ],
-  FORGE: [
-    { id: "f1", title: "Shopify Sync", preview: "Last sync: 18 hours ago", time: "Yesterday", archived: true },
-  ],
+type ProposedAction = {
+  id: string;
+  action_type: string;
+  draft_content: { summary?: string; draft?: string; agentName?: string };
+  status: "pending" | "approved" | "rejected" | "executed";
 };
 
-type Msg =
-  | { kind: "user"; text: string; time: string }
-  | { kind: "agent"; agent: AgentId; text: string; time: string }
-  | { kind: "system"; text: string }
-  | {
-      kind: "approval";
-      agent: AgentId;
-      actionType: string;
-      summary: string;
-      draft: string;
-      state: "pending" | "approved" | "rejected";
-    };
+type ThreadMessage = {
+  id: string;
+  sender: "user" | "agent" | "system";
+  type: "text" | "proposal" | "system" | "thinking";
+  content: string;
+  metadata?: { proposalType?: string; summary?: string } | null;
+  created_at: string;
+  proposedAction?: ProposedAction | null;
+};
 
-const seedThread: Msg[] = [
-  { kind: "user", text: "What's the status on the Whole Foods Austin lead?", time: "10:32" },
-  {
-    kind: "agent",
-    agent: "CHIEF",
-    text: "Mike Brennan from Bar & Spirits Co. asked about BIB pricing for their cocktail program. I've drafted a reply — covers pricing, lead time, and offers a free Tonic sample. Ready for your approval.",
-    time: "10:33",
-  },
-  {
-    kind: "approval",
-    agent: "CHIEF",
-    actionType: "Send Email",
-    summary: "Reply to Mike Brennan re: 3-gal BIB pricing for Bar & Spirits Co.",
-    draft:
-      "Hey Mike — thanks for reaching out, and glad to hear the Ginger Beer has been working well in your Mules.\n\nFor the 3-gallon BIB format, we're at $135 per unit with a 6-unit minimum on first orders. Lead time is typically 5–7 business days from order confirmation.\n\nI'd love to send you a free sample of our Tonic Water BIB as well — it pairs great with the gin programs most Austin bars are running right now. Let me know where to ship and I'll get it out this week.\n\nHave the best day of your life,\nShane McKnight · Top Hat Provisions",
-    state: "pending",
-  },
-];
+function formatTime(iso: string) {
+  const d = new Date(iso);
+  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+function relativeTime(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
 
 function StatusDot({ status }: { status: "online" | "offline" }) {
   return (
-    <span
-      className={cn(
-        "w-2 h-2 rounded-full shrink-0",
-        status === "online" ? "bg-success animate-pulse" : "bg-muted-foreground/40"
-      )}
-    />
+    <span className={cn("w-2 h-2 rounded-full shrink-0", status === "online" ? "bg-success animate-pulse" : "bg-muted-foreground/40")} />
   );
 }
 
 export default function AgentsChatPage() {
-  const [activeAgent, setActiveAgent] = useState<AgentId>("CHIEF");
-  const [activeConvId, setActiveConvId] = useState<string | null>("c1");
-  const [thread, setThread] = useState<Msg[]>(seedThread);
+  const [activeAgentName, setActiveAgentName] = useState<AgentName>("CHIEF");
+  const activeAgent = AGENTS.find((a) => a.name === activeAgentName)!;
+
+  const [conversations, setConversations] = useState<ConversationListItem[]>([]);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const [thread, setThread] = useState<ThreadMessage[]>([]);
+  const [loadingThread, setLoadingThread] = useState(false);
+
   const [input, setInput] = useState("");
-  const [editingApprovalIdx, setEditingApprovalIdx] = useState<number | null>(null);
+  const [streaming, setStreaming] = useState(false);
+  const [streamBuffer, setStreamBuffer] = useState("");
+
+  const [editingActionId, setEditingActionId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
-  const [rejectingIdx, setRejectingIdx] = useState<number | null>(null);
+  const [rejectingActionId, setRejectingActionId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
-  const [showReasoning, setShowReasoning] = useState(false);
+
   const [openSections, setOpenSections] = useState({ data: true, reasoning: false, confidence: true });
   const [search, setSearch] = useState("");
 
   const threadRef = useRef<HTMLDivElement>(null);
-  const conversations = conversationsByAgent[activeAgent] || [];
-  const activeConv = conversations.find((c) => c.id === activeConvId);
+
+  const fetchConversations = useCallback(async () => {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess?.session?.access_token;
+    if (!token) return;
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-conversations?agentId=${activeAgent.id}`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!resp.ok) {
+      console.error("conversations load failed", await resp.text());
+      return;
+    }
+    const list: ConversationListItem[] = await resp.json();
+    setConversations(list);
+    if (!activeConvId && list.length > 0) setActiveConvId(list[0].id);
+  }, [activeAgent.id, activeConvId]);
+
+  const fetchThread = useCallback(async (convId: string) => {
+    setLoadingThread(true);
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess?.session?.access_token;
+    if (!token) {
+      setLoadingThread(false);
+      return;
+    }
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-conversation?id=${convId}`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!resp.ok) {
+      console.error("thread load failed", await resp.text());
+      setLoadingThread(false);
+      return;
+    }
+    const data = await resp.json();
+    setThread(data.messages || []);
+    setLoadingThread(false);
+  }, []);
+
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
+
+  useEffect(() => {
+    if (activeConvId) fetchThread(activeConvId);
+    else setThread([]);
+  }, [activeConvId, fetchThread]);
 
   useEffect(() => {
     if (threadRef.current) threadRef.current.scrollTop = threadRef.current.scrollHeight;
-  }, [thread]);
+  }, [thread, streamBuffer]);
 
-  const handleApprove = (idx: number) => {
-    setThread((prev) => {
-      const next = [...prev];
-      const m = next[idx];
-      if (m.kind === "approval") (next[idx] as any) = { ...m, state: "approved" };
-      next.splice(idx + 1, 0, { kind: "system", text: "✓ Email sent to mike@barandspiritco.com" });
-      return next;
-    });
-    setEditingApprovalIdx(null);
+  const handleNewChat = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) {
+      toast.error("Please sign in first");
+      return;
+    }
+    const { data, error } = await supabase
+      .from("conversations")
+      .insert({ user_id: userData.user.id, agent_id: activeAgent.id, title: "New Conversation" })
+      .select("id, title, status, agent_id, updated_at")
+      .single();
+    if (error || !data) {
+      toast.error("Could not start conversation");
+      return;
+    }
+    setConversations((prev) => [
+      { id: data.id, title: data.title, status: data.status, agentId: data.agent_id, lastMessage: "", updatedAt: data.updated_at },
+      ...prev,
+    ]);
+    setActiveConvId(data.id);
+    setThread([]);
   };
 
-  const handleReject = (idx: number) => {
-    setThread((prev) => {
-      const next = [...prev];
-      const m = next[idx];
-      if (m.kind === "approval") (next[idx] as any) = { ...m, state: "rejected" };
-      return next;
-    });
-    setRejectingIdx(null);
-    setRejectReason("");
-  };
+  const handleSend = async () => {
+    if (!input.trim() || streaming) return;
+    let convId = activeConvId;
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    const now = new Date();
-    const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")}`;
-    setThread((prev) => [...prev, { kind: "user", text: input, time }]);
+    // Auto-create conversation on first message
+    if (!convId) {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) {
+        toast.error("Please sign in first");
+        return;
+      }
+      const title = input.trim().slice(0, 60);
+      const { data, error } = await supabase
+        .from("conversations")
+        .insert({ user_id: userData.user.id, agent_id: activeAgent.id, title })
+        .select("id, title, status, agent_id, updated_at")
+        .single();
+      if (error || !data) {
+        toast.error("Could not start conversation");
+        return;
+      }
+      convId = data.id;
+      setActiveConvId(data.id);
+      setConversations((prev) => [
+        { id: data.id, title: data.title, status: data.status, agentId: data.agent_id, lastMessage: "", updatedAt: data.updated_at },
+        ...prev,
+      ]);
+    }
+
+    const userMsgText = input.trim();
     setInput("");
+    const tempId = `temp-${Date.now()}`;
+    const nowIso = new Date().toISOString();
+    setThread((prev) => [
+      ...prev,
+      { id: tempId, sender: "user", type: "text", content: userMsgText, created_at: nowIso },
+    ]);
+    setStreaming(true);
+    setStreamBuffer("");
+
+    await streamAgentChat(
+      { conversationId: convId!, agentId: activeAgent.id, agentName: activeAgent.name, message: userMsgText },
+      {
+        onDelta: (chunk) => setStreamBuffer((prev) => prev + chunk),
+        onError: (err) => {
+          toast.error(err.message);
+          setStreaming(false);
+          setStreamBuffer("");
+        },
+        onDone: async () => {
+          setStreaming(false);
+          setStreamBuffer("");
+          if (convId) await fetchThread(convId);
+          fetchConversations();
+        },
+      },
+    );
   };
 
-  const filteredConvs = conversations.filter((c) =>
-    c.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleApprove = async (actionId: string, edited?: string) => {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess?.session?.access_token;
+    if (!token) return;
+    const decision = edited ? "edited_and_approved" : "approved";
+    const editedContent = edited ? { draft: edited } : undefined;
+    const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ actionId, decision, editedContent }),
+    });
+    if (!resp.ok) {
+      toast.error("Approval failed");
+      return;
+    }
+    toast.success("Approved");
+    setEditingActionId(null);
+    if (activeConvId) fetchThread(activeConvId);
+  };
+
+  const handleReject = async (actionId: string) => {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess?.session?.access_token;
+    if (!token) return;
+    const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ actionId, decision: "rejected", notes: rejectReason || undefined }),
+    });
+    if (!resp.ok) {
+      toast.error("Reject failed");
+      return;
+    }
+    toast.success("Rejected");
+    setRejectingActionId(null);
+    setRejectReason("");
+    if (activeConvId) fetchThread(activeConvId);
+  };
+
+  const filteredConvs = conversations.filter((c) => c.title.toLowerCase().includes(search.toLowerCase()));
+  const activeConv = conversations.find((c) => c.id === activeConvId);
 
   return (
     <div className="flex h-full min-h-0 -m-4 md:-m-6">
-      {/* COL 1 — Agent + Conversation selector */}
+      {/* COL 1 — Agents + Conversations */}
       <div className="w-[240px] shrink-0 border-r border-border flex flex-col bg-background">
-        {/* Agents */}
         <div className="px-3 pt-3 pb-2">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-0">
-            Your Agents
-          </p>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Your Agents</p>
         </div>
         <div className="px-2 space-y-0.5">
-          {agents.map((a) => {
-            const isActive = activeAgent === a.id;
+          {AGENTS.map((a) => {
+            const isActive = activeAgentName === a.name;
             return (
               <button
                 key={a.id}
                 onClick={() => {
-                  setActiveAgent(a.id);
-                  const first = conversationsByAgent[a.id]?.[0];
-                  setActiveConvId(first?.id || null);
+                  setActiveAgentName(a.name);
+                  setActiveConvId(null);
+                  setThread([]);
                 }}
                 className={cn(
                   "w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md transition-colors duration-150 cursor-pointer text-left",
-                  isActive
-                    ? "bg-primary/10 border-l-2 border-primary text-primary -ml-[2px] pl-[10px]"
-                    : "hover:bg-muted/30"
+                  isActive ? "bg-primary/10 border-l-2 border-primary text-primary -ml-[2px] pl-[10px]" : "hover:bg-muted/30",
                 )}
               >
                 <StatusDot status={a.status} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className={cn("text-sm font-semibold", isActive ? "text-primary" : "text-foreground")}>
-                      {a.name}
-                    </span>
-                    {a.unread > 0 && (
-                      <span className="bg-primary/15 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded-full ml-auto">
-                        {a.unread}
-                      </span>
-                    )}
+                    <span className={cn("text-sm font-semibold", isActive ? "text-primary" : "text-foreground")}>{a.name}</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground truncate mt-0.5">{a.preview}</p>
                 </div>
@@ -193,11 +292,8 @@ export default function AgentsChatPage() {
 
         <div className="border-t border-border my-2" />
 
-        {/* Conversations */}
         <div className="px-3 pb-2">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-            Conversations
-          </p>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Conversations</p>
           <div className="relative mb-2">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -207,12 +303,18 @@ export default function AgentsChatPage() {
               className="w-full bg-background border border-border rounded-md pl-7 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
-          <button className="w-full text-[11px] font-semibold bg-primary text-primary-foreground py-2 rounded-md hover:bg-primary/90 transition-colors duration-150 mb-2">
+          <button
+            onClick={handleNewChat}
+            className="w-full text-[11px] font-semibold bg-primary text-primary-foreground py-2 rounded-md hover:bg-primary/90 transition-colors duration-150 mb-2"
+          >
             + New Chat
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 space-y-0.5">
+          {filteredConvs.length === 0 && (
+            <p className="text-[11px] text-muted-foreground px-3 py-2">No conversations yet. Start one →</p>
+          )}
           {filteredConvs.map((c) => {
             const isActive = activeConvId === c.id;
             return (
@@ -221,219 +323,212 @@ export default function AgentsChatPage() {
                 onClick={() => setActiveConvId(c.id)}
                 className={cn(
                   "w-full text-left px-2.5 py-2.5 rounded-md transition-colors duration-150",
-                  isActive
-                    ? "bg-primary/10 border-l-2 border-primary -ml-[2px] pl-[10px]"
-                    : "hover:bg-muted/30"
+                  isActive ? "bg-primary/10 border-l-2 border-primary -ml-[2px] pl-[10px]" : "hover:bg-muted/30",
                 )}
               >
                 <div className="flex items-center gap-1.5">
                   <p className="text-xs font-semibold text-foreground truncate flex-1">{c.title}</p>
-                  {c.archived && (
-                    <span className="text-[9px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                      Archived
-                    </span>
+                  {c.status === "archived" && (
+                    <span className="text-[9px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Archived</span>
                   )}
                 </div>
-                <p className="text-[11px] text-muted-foreground truncate mt-0.5">{c.preview}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">{c.time}</p>
+                <p className="text-[11px] text-muted-foreground truncate mt-0.5">{c.lastMessage || "No messages yet"}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{relativeTime(c.updatedAt)}</p>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* COL 2 — Message Thread */}
+      {/* COL 2 — Thread */}
       <div className="flex-1 flex flex-col border-r border-border min-w-0">
-        {!activeConv ? (
+        {!activeConvId ? (
           <div className="flex-1 flex flex-col items-center justify-center px-6">
             <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center">
-              <span className="text-xl font-bold text-primary">M</span>
+              <span className="text-xl font-bold text-primary">{activeAgent.name[0]}</span>
             </div>
-            <h2 className="text-base font-bold text-foreground mt-4">{activeAgent} is ready.</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Ask anything or start from a recent conversation.
-            </p>
-            <button className="bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-semibold mt-5 hover:bg-primary/90 transition-colors duration-150">
+            <h2 className="text-base font-bold text-foreground mt-4">{activeAgent.name} is ready.</h2>
+            <p className="text-sm text-muted-foreground mt-1">Ask anything or start from a recent conversation.</p>
+            <button
+              onClick={handleNewChat}
+              className="bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-semibold mt-5 hover:bg-primary/90 transition-colors duration-150"
+            >
               + New Conversation
             </button>
-            <p className="text-[10px] text-muted-foreground mt-6 mb-3">── Recent ──</p>
-            <div className="grid grid-cols-1 gap-2 w-full max-w-md">
-              {conversations.slice(0, 3).map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setActiveConvId(c.id)}
-                  className="bg-card border border-border rounded-xl p-3 hover:border-primary/40 transition-colors duration-150 text-left"
-                >
-                  <p className="text-xs font-semibold text-foreground truncate">{c.title}</p>
-                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">{c.preview}</p>
-                </button>
-              ))}
-            </div>
           </div>
         ) : (
           <>
             <div className="sticky top-0 border-b border-border px-4 py-3 flex items-center bg-background z-10">
-              <h2 className="text-sm font-bold text-foreground flex-1 truncate">{activeConv.title}</h2>
+              <h2 className="text-sm font-bold text-foreground flex-1 truncate">{activeConv?.title || "Conversation"}</h2>
               <div className="flex items-center gap-2">
-                <button className="text-muted-foreground hover:text-foreground transition-colors duration-150">
-                  <Search size={15} />
-                </button>
-                <button className="text-muted-foreground hover:text-foreground transition-colors duration-150">
-                  <Download size={15} />
-                </button>
+                <button className="text-muted-foreground hover:text-foreground transition-colors duration-150"><Search size={15} /></button>
+                <button className="text-muted-foreground hover:text-foreground transition-colors duration-150"><Download size={15} /></button>
               </div>
             </div>
 
             <div ref={threadRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-              {thread.map((m, i) => {
-                if (m.kind === "user") {
+              {loadingThread && <p className="text-xs text-muted-foreground italic text-center">Loading...</p>}
+              {!loadingThread && thread.length === 0 && (
+                <p className="text-xs text-muted-foreground italic text-center">No messages yet. Say hi to {activeAgent.name}.</p>
+              )}
+
+              {thread.map((m) => {
+                if (m.sender === "user") {
                   return (
-                    <div key={i} className="flex justify-end">
+                    <div key={m.id} className="flex justify-end">
                       <div>
                         <div className="max-w-[72%] bg-primary/15 border border-primary/30 rounded-xl rounded-tr-sm px-3 py-2.5">
-                          <p className="text-xs text-foreground leading-relaxed">{m.text}</p>
+                          <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">{m.content}</p>
                         </div>
-                        <p className="text-[10px] text-muted-foreground text-right mt-1">{m.time}</p>
+                        <p className="text-[10px] text-muted-foreground text-right mt-1">{formatTime(m.created_at)}</p>
                       </div>
                     </div>
                   );
                 }
-                if (m.kind === "agent") {
-                  return (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
-                        <span className="text-[10px] font-bold text-primary">{m.agent[0]}</span>
-                      </div>
-                      <div>
-                        <div className="max-w-[78%] bg-card border border-border rounded-xl rounded-tl-sm px-3 py-2.5">
-                          <p className="text-[10px] font-semibold text-primary mb-1">{m.agent}</p>
-                          <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">{m.text}</p>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-1">{m.time}</p>
-                      </div>
-                    </div>
-                  );
+                if (m.sender === "system") {
+                  return <p key={m.id} className="text-center py-1 text-[10px] text-muted-foreground italic">{m.content}</p>;
                 }
-                if (m.kind === "system") {
-                  return (
-                    <p key={i} className="text-center py-1 text-[10px] text-muted-foreground italic">
-                      {m.text}
-                    </p>
-                  );
-                }
-                // approval
-                const isEditing = editingApprovalIdx === i;
-                const isRejecting = rejectingIdx === i;
-                const borderClass =
-                  m.state === "approved"
+                // agent
+                if (m.type === "proposal" && m.proposedAction) {
+                  const action = m.proposedAction;
+                  const draftText = (action.draft_content?.draft as string) || "";
+                  const summary = (action.draft_content?.summary as string) || m.content;
+                  const isEditing = editingActionId === action.id;
+                  const isRejecting = rejectingActionId === action.id;
+                  const isApproved = action.status === "approved" || action.status === "executed";
+                  const isRejected = action.status === "rejected";
+                  const borderClass = isApproved
                     ? "border-l-4 border-l-success"
-                    : m.state === "rejected"
+                    : isRejected
                     ? "border-l-4 border-l-destructive"
                     : "border-l-4 border-l-warning";
-                const headerLabel =
-                  m.state === "approved"
+                  const headerLabel = isApproved
                     ? { text: "✓ APPROVED", color: "text-success" }
-                    : m.state === "rejected"
+                    : isRejected
                     ? { text: "✗ REJECTED", color: "text-destructive" }
                     : { text: "⚡ ACTION REQUIRED", color: "text-warning" };
+                  const actionTypeLabel = action.action_type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-                return (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="text-[10px] font-bold text-primary">{m.agent[0]}</span>
+                  return (
+                    <div key={m.id} className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold text-primary">{activeAgent.name[0]}</span>
+                      </div>
+                      <div className={cn("max-w-[85%] bg-card border border-border rounded-xl p-3", borderClass)}>
+                        <div className="flex items-center">
+                          <span className={cn("text-[10px] font-bold uppercase tracking-wider", headerLabel.color)}>{headerLabel.text}</span>
+                          <span className="bg-muted text-muted-foreground text-[9px] px-1.5 py-0.5 rounded ml-2">{actionTypeLabel}</span>
+                        </div>
+                        <p className="text-xs text-foreground leading-relaxed mt-1.5">{summary}</p>
+                        <div className="bg-background border border-border rounded-lg p-3 mt-2 max-h-[160px] overflow-y-auto text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+                          {draftText}
+                        </div>
+
+                        {!isApproved && !isRejected && !isEditing && !isRejecting && (
+                          <div className="mt-2.5 flex gap-2">
+                            <button
+                              onClick={() => handleApprove(action.id)}
+                              className="bg-[#B54165] text-white text-[11px] font-semibold px-3 py-1.5 rounded-md hover:bg-[#B54165]/90 transition-colors duration-150"
+                            >Approve</button>
+                            <button
+                              onClick={() => { setEditingActionId(action.id); setEditDraft(draftText); }}
+                              className="border border-border text-[11px] font-medium px-3 py-1.5 rounded-md hover:bg-muted/30 text-foreground transition-colors duration-150"
+                            >Edit</button>
+                            <button
+                              onClick={() => setRejectingActionId(action.id)}
+                              className="text-destructive text-[11px] font-medium px-3 py-1.5 rounded-md hover:bg-destructive/10 transition-colors duration-150"
+                            >Reject</button>
+                          </div>
+                        )}
+
+                        {isEditing && (
+                          <div className="animate-fade-in">
+                            <textarea
+                              value={editDraft}
+                              onChange={(e) => setEditDraft(e.target.value)}
+                              className="w-full bg-background border border-primary/40 rounded-lg p-3 text-xs min-h-[100px] resize-none focus:outline-none focus:ring-1 focus:ring-primary mt-2 text-foreground"
+                            />
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={() => handleApprove(action.id, editDraft)}
+                                className="bg-[#B54165] text-white text-[11px] px-3 py-1.5 rounded-md hover:bg-[#B54165]/90 transition-colors duration-150"
+                              >Save & Approve</button>
+                              <button
+                                onClick={() => setEditingActionId(null)}
+                                className="text-muted-foreground hover:text-foreground text-[11px] px-3 py-1.5 transition-colors duration-150"
+                              >Cancel</button>
+                            </div>
+                          </div>
+                        )}
+
+                        {isRejecting && (
+                          <div className="animate-fade-in mt-2">
+                            <textarea
+                              value={rejectReason}
+                              onChange={(e) => setRejectReason(e.target.value)}
+                              placeholder="Reason?"
+                              className="w-full bg-background border border-destructive/40 rounded-lg p-3 text-xs min-h-[80px] resize-none focus:outline-none focus:ring-1 focus:ring-destructive text-foreground"
+                            />
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={() => handleReject(action.id)}
+                                className="bg-destructive text-destructive-foreground text-[11px] px-3 py-1.5 rounded-md hover:bg-destructive/90 transition-colors duration-150"
+                              >Confirm</button>
+                              <button
+                                onClick={() => { setRejectingActionId(null); setRejectReason(""); }}
+                                className="text-muted-foreground hover:text-foreground text-[11px] px-3 py-1.5 transition-colors duration-150"
+                              >Cancel</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className={cn("max-w-[85%] bg-card border border-border rounded-xl p-3", borderClass)}>
-                      <div className="flex items-center">
-                        <span className={cn("text-[10px] font-bold uppercase tracking-wider", headerLabel.color)}>
-                          {headerLabel.text}
-                        </span>
-                        <span className="bg-muted text-muted-foreground text-[9px] px-1.5 py-0.5 rounded ml-2">
-                          {m.actionType}
-                        </span>
+                  );
+                }
+
+                // text agent message
+                return (
+                  <div key={m.id} className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-[10px] font-bold text-primary">{activeAgent.name[0]}</span>
+                    </div>
+                    <div>
+                      <div className="max-w-[78%] bg-card border border-border rounded-xl rounded-tl-sm px-3 py-2.5">
+                        <p className="text-[10px] font-semibold text-primary mb-1">{activeAgent.name}</p>
+                        <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">{m.content}</p>
                       </div>
-                      <p className="text-xs text-foreground leading-relaxed mt-1.5">{m.summary}</p>
-                      <div className="bg-background border border-border rounded-lg p-3 mt-2 max-h-[160px] overflow-y-auto text-xs text-foreground leading-relaxed whitespace-pre-wrap">
-                        {m.draft}
-                      </div>
-
-                      {m.state === "pending" && !isEditing && !isRejecting && (
-                        <div className="mt-2.5 flex gap-2">
-                          <button
-                            onClick={() => handleApprove(i)}
-                            className="bg-[#B54165] text-white text-[11px] font-semibold px-3 py-1.5 rounded-md hover:bg-[#B54165]/90 transition-colors duration-150"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditingApprovalIdx(i);
-                              setEditDraft(m.draft);
-                            }}
-                            className="border border-border text-[11px] font-medium px-3 py-1.5 rounded-md hover:bg-muted/30 text-foreground transition-colors duration-150"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => setRejectingIdx(i)}
-                            className="text-destructive text-[11px] font-medium px-3 py-1.5 rounded-md hover:bg-destructive/10 transition-colors duration-150"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      )}
-
-                      {isEditing && (
-                        <div className="animate-fade-in">
-                          <textarea
-                            value={editDraft}
-                            onChange={(e) => setEditDraft(e.target.value)}
-                            className="w-full bg-background border border-primary/40 rounded-lg p-3 text-xs min-h-[100px] resize-none focus:outline-none focus:ring-1 focus:ring-primary mt-2 text-foreground"
-                          />
-                          <div className="flex gap-2 mt-2">
-                            <button
-                              onClick={() => handleApprove(i)}
-                              className="bg-[#B54165] text-white text-[11px] px-3 py-1.5 rounded-md hover:bg-[#B54165]/90 transition-colors duration-150"
-                            >
-                              Save & Approve
-                            </button>
-                            <button
-                              onClick={() => setEditingApprovalIdx(null)}
-                              className="text-muted-foreground hover:text-foreground text-[11px] px-3 py-1.5 transition-colors duration-150"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {isRejecting && (
-                        <div className="animate-fade-in mt-2">
-                          <textarea
-                            value={rejectReason}
-                            onChange={(e) => setRejectReason(e.target.value)}
-                            placeholder="Reason?"
-                            className="w-full bg-background border border-destructive/40 rounded-lg p-3 text-xs min-h-[80px] resize-none focus:outline-none focus:ring-1 focus:ring-destructive text-foreground"
-                          />
-                          <div className="flex gap-2 mt-2">
-                            <button
-                              onClick={() => handleReject(i)}
-                              className="bg-destructive text-destructive-foreground text-[11px] px-3 py-1.5 rounded-md hover:bg-destructive/90 transition-colors duration-150"
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              onClick={() => setRejectingIdx(null)}
-                              className="text-muted-foreground hover:text-foreground text-[11px] px-3 py-1.5 transition-colors duration-150"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                      <p className="text-[10px] text-muted-foreground mt-1">{formatTime(m.created_at)}</p>
                     </div>
                   </div>
                 );
               })}
+
+              {/* Live streaming bubble */}
+              {streaming && (
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-[10px] font-bold text-primary">{activeAgent.name[0]}</span>
+                  </div>
+                  <div>
+                    <div className="max-w-[78%] bg-card border border-border rounded-xl rounded-tl-sm px-3 py-2.5">
+                      <p className="text-[10px] font-semibold text-primary mb-1">{activeAgent.name}</p>
+                      {streamBuffer ? (
+                        <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+                          {streamBuffer}
+                          <span className="inline-block w-[6px] h-[12px] bg-primary ml-0.5 align-middle animate-pulse" />
+                        </p>
+                      ) : (
+                        <div className="flex items-center gap-1.5 py-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse" style={{ animationDelay: "0s" }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse" style={{ animationDelay: "0.2s" }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse" style={{ animationDelay: "0.4s" }} />
+                          <span className="text-xs text-muted-foreground italic ml-1">Thinking...</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Input */}
@@ -448,13 +543,15 @@ export default function AgentsChatPage() {
                       handleSend();
                     }
                   }}
-                  placeholder="Message your agent..."
-                  className="flex-1 bg-background border border-border rounded-xl px-3 py-2.5 text-xs placeholder:text-muted-foreground resize-none min-h-[40px] max-h-[120px] overflow-y-auto focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                  placeholder={`Message ${activeAgent.name}...`}
+                  disabled={streaming}
+                  className="flex-1 bg-background border border-border rounded-xl px-3 py-2.5 text-xs placeholder:text-muted-foreground resize-none min-h-[40px] max-h-[120px] overflow-y-auto focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-60"
                   rows={1}
                 />
                 <button
                   onClick={handleSend}
-                  className="bg-primary text-primary-foreground p-2.5 rounded-xl hover:bg-primary/90 transition-colors duration-150"
+                  disabled={streaming || !input.trim()}
+                  className="bg-primary text-primary-foreground p-2.5 rounded-xl hover:bg-primary/90 transition-colors duration-150 disabled:opacity-40"
                 >
                   <Send size={14} />
                 </button>
@@ -464,23 +561,22 @@ export default function AgentsChatPage() {
                   <Paperclip size={11} />
                   <span className="text-[10px]">Attach context</span>
                 </div>
-                <span className="text-[10px] text-muted-foreground">~2,400 tokens</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {streaming ? "Streaming..." : `${thread.length} message${thread.length === 1 ? "" : "s"}`}
+                </span>
               </div>
             </div>
           </>
         )}
       </div>
 
-      {/* COL 3 — Context Panel */}
+      {/* COL 3 — Context */}
       <div className="w-[240px] shrink-0 hidden lg:flex flex-col overflow-y-auto px-3 py-3 bg-background">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Context</p>
-          <button className="text-muted-foreground hover:text-foreground transition-colors duration-150">
-            <X size={13} />
-          </button>
+          <button className="text-muted-foreground hover:text-foreground transition-colors duration-150"><X size={13} /></button>
         </div>
 
-        {/* Data Sources */}
         <div className="mb-3">
           <button
             onClick={() => setOpenSections((s) => ({ ...s, data: !s.data }))}
@@ -492,20 +588,13 @@ export default function AgentsChatPage() {
           {openSections.data && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {[
-                { name: "Shopify", active: true },
-                { name: "Gmail", active: true },
-                { name: "Klaviyo", active: false },
-                { name: "HubSpot", active: false },
+                { name: "Shopify", active: true }, { name: "Gmail", active: true },
+                { name: "Klaviyo", active: false }, { name: "HubSpot", active: false },
               ].map((s) => (
-                <span
-                  key={s.name}
-                  className={cn(
-                    "flex items-center gap-1 text-[10px] px-2 py-1 rounded-md",
-                    s.active
-                      ? "bg-primary/10 border border-primary/30 text-primary font-medium"
-                      : "bg-muted/30 border border-border text-muted-foreground"
-                  )}
-                >
+                <span key={s.name} className={cn(
+                  "flex items-center gap-1 text-[10px] px-2 py-1 rounded-md",
+                  s.active ? "bg-primary/10 border border-primary/30 text-primary font-medium" : "bg-muted/30 border border-border text-muted-foreground",
+                )}>
                   <span className={cn("w-1.5 h-1.5 rounded-full", s.active ? "bg-success" : "bg-muted-foreground/40")} />
                   {s.name}
                 </span>
@@ -514,7 +603,6 @@ export default function AgentsChatPage() {
           )}
         </div>
 
-        {/* Agent Reasoning */}
         <div className="mb-3">
           <button
             onClick={() => setOpenSections((s) => ({ ...s, reasoning: !s.reasoning }))}
@@ -525,19 +613,15 @@ export default function AgentsChatPage() {
           </button>
           {openSections.reasoning ? (
             <div className="bg-muted/20 rounded-lg p-3 text-[11px] text-muted-foreground leading-relaxed mt-2">
-              Lead identified as high-intent based on prior trade-show contact, specific product mention (3-gal BIB), and explicit pricing question. Drafted in brand voice with sample upsell to maximize conversion probability.
+              The agent uses your conversation history (last 20 messages) and its system instructions to draft replies. High-stakes actions are surfaced for your approval before execution.
             </div>
           ) : (
-            <button
-              onClick={() => setOpenSections((s) => ({ ...s, reasoning: true }))}
-              className="text-[11px] text-primary hover:underline cursor-pointer"
-            >
+            <button onClick={() => setOpenSections((s) => ({ ...s, reasoning: true }))} className="text-[11px] text-primary hover:underline cursor-pointer">
               Why this?
             </button>
           )}
         </div>
 
-        {/* Confidence */}
         <div>
           <button
             onClick={() => setOpenSections((s) => ({ ...s, confidence: !s.confidence }))}
