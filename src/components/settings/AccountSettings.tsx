@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, UserX, Loader2 } from "lucide-react";
+import { Trash2, UserX, Loader2, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -53,6 +53,44 @@ export default function AccountSettings() {
   const [dangerMode, setDangerMode] = useState<DangerMode>(null);
   const [confirmText, setConfirmText] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportData = async () => {
+    setExporting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Not authenticated");
+
+      const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/export-account-data`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(errText || `Request failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `mythoshq-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(downloadUrl);
+      toast.success("Data export downloaded");
+    } catch (err) {
+      console.error("export error:", err);
+      toast.error("Failed to export data. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
   const initials = displayName
@@ -230,6 +268,25 @@ export default function AccountSettings() {
         </p>
 
         <div className="space-y-3">
+          {/* Download My Data */}
+          <div className="bg-card border border-border rounded-lg p-4 flex items-start gap-3">
+            <Download className="w-[14px] h-[14px] text-muted-foreground mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-foreground">Download My Data</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Export a JSON file containing all your profile, emails, conversations, agent activity, and connected account data. GDPR data portability.
+              </p>
+            </div>
+            <button
+              onClick={handleExportData}
+              disabled={exporting}
+              className="text-[10px] font-medium border border-border text-foreground px-3 py-1.5 rounded-md hover:bg-muted/30 transition-colors shrink-0 flex items-center gap-1.5 disabled:opacity-50"
+            >
+              {exporting && <Loader2 className="w-3 h-3 animate-spin" />}
+              {exporting ? "Exporting…" : "Download JSON"}
+            </button>
+          </div>
+
           {/* Clear Data */}
           <div className="bg-card border border-border rounded-lg p-4 flex items-start gap-3">
             <Trash2 className="w-[14px] h-[14px] text-muted-foreground mt-0.5 shrink-0" />
