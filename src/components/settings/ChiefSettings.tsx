@@ -69,7 +69,7 @@ export default function ChiefSettings() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-bold text-foreground">Chief Settings</h2>
+      <h2 className="text-lg font-bold text-foreground">Agent Settings</h2>
 
       {/* BYOK Anthropic Key */}
       <div className="bg-card border border-border rounded-xl p-5">
@@ -186,10 +186,10 @@ export default function ChiefSettings() {
       </div>
 
       <button
-        onClick={() => toast.success("Chief settings saved")}
+        onClick={() => toast.success("Agent settings saved")}
         className="text-xs font-semibold px-5 py-2 rounded-lg bg-primary text-primary-foreground transition-all duration-150 hover:bg-primary/90"
       >
-        Save Chief Settings
+        Save Agent Settings
       </button>
     </div>
   );

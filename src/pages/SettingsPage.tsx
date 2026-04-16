@@ -8,7 +8,7 @@ import EmailIntegrationSettings from "@/components/settings/EmailIntegrationSett
 import AiModelIntegration from "@/components/settings/AiModelIntegration";
 import BillingSettings from "@/components/settings/BillingSettings";
 
-const navItems = ["Account", "Team", "Integrations", "Chief Settings", "Billing", "API & Webhooks", "Notifications"];
+const navItems = ["Account", "Team", "Integrations", "Agent Settings", "Billing", "API & Webhooks", "Notifications"];
 
 const connected = ["Gmail", "Shopify", "Amazon", "Klaviyo", "Stripe", "QuickBooks", "LinkedIn", "Apollo"];
 
@@ -220,13 +220,13 @@ export default function SettingsPage() {
 
         {activeNav === "Account" && <AccountSettings />}
 
-        {activeNav === "Chief Settings" && <ChiefSettings />}
+        {activeNav === "Agent Settings" && <ChiefSettings />}
 
         {activeNav === "API & Webhooks" && <ApiWebhooksSettings />}
 
         {activeNav === "Notifications" && <NotificationsSettings />}
 
-        {!["Team", "Billing", "Integrations", "Account", "Chief Settings", "API & Webhooks", "Notifications"].includes(activeNav) && (
+        {!["Team", "Billing", "Integrations", "Account", "Agent Settings", "API & Webhooks", "Notifications"].includes(activeNav) && (
           <div>
             <h2 className="text-lg font-bold text-foreground mb-4">{activeNav}</h2>
             <p className="text-sm text-muted-foreground">This section is coming soon.</p>

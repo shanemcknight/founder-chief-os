@@ -158,7 +158,7 @@ export default function BillingSettings() {
           <p className="text-xs text-foreground font-medium mb-1">⚠️ Token limit almost reached</p>
           <p className="text-[11px] text-muted-foreground">
             You've used {formatTokens(tokensUsed)} of your {TOKEN_LABELS[plan]} monthly tokens.{" "}
-            <a href="/pricing" className="text-primary hover:underline">Upgrade</a> or connect your own Anthropic key in Settings → Chief Settings for unlimited access.
+            <a href="/pricing" className="text-primary hover:underline">Upgrade</a> or connect your own API key in Settings → Agent Settings for unlimited access.
           </p>
         </div>
       )}
