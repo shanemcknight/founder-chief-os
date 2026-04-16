@@ -10,6 +10,11 @@ import CommandPage from "./pages/CommandPage";
 import SalesPage from "./pages/SalesPage";
 import PublishPage from "./pages/PublishPage";
 import ChiefPage from "./pages/ChiefPage";
+import AgentsLayout from "./pages/agents/AgentsLayout";
+import AgentsChatPage from "./pages/agents/AgentsChatPage";
+import AgentsApprovalsPage from "./pages/agents/AgentsApprovalsPage";
+import AgentsActivityPage from "./pages/agents/AgentsActivityPage";
+import AgentsDeployedPage from "./pages/agents/AgentsDeployedPage";
 import BuildPage from "./pages/BuildPage";
 import SettingsPage from "./pages/SettingsPage";
 import OnboardingPage from "./pages/OnboardingPage";
@@ -83,10 +88,16 @@ const App = () => (
               <Route path="/sales" element={<SalesPage />} />
               <Route path="/publish" element={<PublishPage />} />
               <Route path="/chief" element={<ChiefPage />} />
+              <Route path="/agents" element={<AgentsLayout />}>
+                <Route index element={<AgentsChatPage />} />
+                <Route path="approvals" element={<AgentsApprovalsPage />} />
+                <Route path="activity" element={<AgentsActivityPage />} />
+                <Route path="deployed" element={<AgentsDeployedPage />} />
+                <Route path="new" element={<AgentDeployPage />} />
+              </Route>
               <Route path="/build" element={<BuildPage />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/agents/new" element={<AgentDeployPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

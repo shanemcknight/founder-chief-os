@@ -192,9 +192,9 @@
 
     "@lovable.dev/cloud-auth-js": ["@lovable.dev/cloud-auth-js@1.1.1", "", {}, "sha512-80elU8dSJG6bho0Xnfj2oy53wp883nYXrG1Wy948LC/ZUaUQ0i9EGXQFmwTLOBFrWqxb6aNaOlZUvQ8BVGhjMQ=="],
 
-    "@nangohq/frontend": ["@nangohq/frontend@0.69.49", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@nangohq/frontend/-/frontend-0.69.49.tgz", { "dependencies": { "@nangohq/types": "0.69.49" } }, "sha512-3Ja9qAfExhVpLx3XVP+d92kNamNoHQfJUuH5kdiSTS8yFBnEzH2U2oOj6rJocVyCt31nAyWu5sGCk0E/2dXOWA=="],
+    "@nangohq/frontend": ["@nangohq/frontend@0.69.50", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@nangohq/frontend/-/frontend-0.69.50.tgz", { "dependencies": { "@nangohq/types": "0.69.50" } }, "sha512-g5AKEsMreHTyMUFvalf4cTnGaWbaFYQ3FgpN+4HohQ7YXqmlkMRgxyNG0em3Iw+valcGoZBhEd7LfSUTfA3onw=="],
 
-    "@nangohq/types": ["@nangohq/types@0.69.49", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@nangohq/types/-/types-0.69.49.tgz", { "dependencies": { "axios": "1.15.0", "json-schema": "0.4.0", "type-fest": "4.41.0" } }, "sha512-vBLIsqvP2vgE+F4L75kaqOT9/aWlXhcjTQa4Mc5EpVdSgj4mpb/rlB14z9xI2J5DNEfMZntMa26rv7bKTKRpvg=="],
+    "@nangohq/types": ["@nangohq/types@0.69.50", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@nangohq/types/-/types-0.69.50.tgz", { "dependencies": { "axios": "1.15.0", "json-schema": "0.4.0", "type-fest": "4.41.0" } }, "sha512-V4cswmGnienq/oydwdUMSgdAb4RDAt6WOy6G+DtFywtN3GI5IzneIrgBew04m1fcN/cut+pimD7bTB6WdbJiNg=="],
 
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
 
