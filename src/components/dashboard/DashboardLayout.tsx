@@ -6,6 +6,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardTopbar from "@/components/dashboard/DashboardTopbar";
 import RelayPanel from "@/components/dashboard/RelayPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useOnboardingRedirect } from "@/hooks/useOnboardingRedirect";
 
 const mobileTabItems = [
   { label: "COMMAND", path: "/dashboard", icon: LayoutDashboard },
