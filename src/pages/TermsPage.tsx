@@ -18,7 +18,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-lg font-semibold text-foreground mb-3">Description of Service</h2>
-              <p>MYTHOS HQ is a founder operating system that provides AI-powered tools for social media management, sales pipeline tracking, email management, content publishing, and custom AI agent deployment. Features and availability may vary by subscription tier.</p>
+              <p>MYTHOS HQ is a user operating system that provides AI-powered tools for social media management, sales pipeline tracking, email management, content publishing, and custom AI agent deployment. Features and availability may vary by subscription tier.</p>
             </section>
 
             <section>

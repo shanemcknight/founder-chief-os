@@ -80,7 +80,7 @@ const MOCK_AGENTS: Agent[] = [
     sessionCount: 4,
     costToday: "$8.10",
     projects: [
-      { id: "p4", name: "Founder OS Dashboard", taskType: "Dev", progress: 40, status: "running", description: "Build primary dashboard components and integrations." },
+      { id: "p4", name: "User OS Dashboard", taskType: "Dev", progress: 40, status: "running", description: "Build primary dashboard components and integrations." },
       { id: "p5", name: "API Integration Layer", taskType: "Dev", progress: 85, status: "running", description: "Connect Shopify, ShipStation, and Klaviyo APIs." },
     ],
     teamAccess: [
@@ -352,7 +352,7 @@ export default function ActiveAgentsOrgChart() {
                 <Circle size={8} fill="#B54165" className="text-[#B54165]" />
                 <span className="text-sm font-bold text-foreground">Shane McKnight</span>
               </div>
-              <span className="text-[11px] text-muted-foreground">CEO · Founder OS</span>
+              <span className="text-[11px] text-muted-foreground">CEO · User OS</span>
             </div>
 
             {/* Vertical line down */}

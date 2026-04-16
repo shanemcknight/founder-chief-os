@@ -26,7 +26,7 @@ function DarkCard({ children, className = "" }: { children: React.ReactNode; cla
 const industries = [
   { icon: Package, title: "CPG & Beverage Brands", body: "DTC, Amazon, wholesale, co-manufacturing. We understand the full channel stack and what it takes to run it lean." },
   { icon: UtensilsCrossed, title: "Food & Beverage Operations", body: "Multi-location restaurants, hospitality groups, catering operations. From Toast to QuickBooks to scheduling — we connect what you already use." },
-  { icon: Briefcase, title: "Founder-Led Businesses", body: "Any industry. If you're a founder running a real operation with a real team and real complexity — we build for you." },
+  { icon: Briefcase, title: "User-Led Businesses", body: "Any industry. If you're a user running a real operation with a real team and real complexity — we build for you." },
 ];
 
 /* ── WHAT YOU GET data ── */
@@ -93,7 +93,7 @@ export default function WhiteLabelPage() {
             Built for you. Branded as yours. Running on day one.
           </p>
           <p className="text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            We design and activate custom Agentic AI operating systems for founders and operators who are ready to run their entire business from one intelligent dashboard — built around how they work, not how a SaaS company thinks they should.
+            We design and activate custom Agentic AI operating systems for users and operators who are ready to run their entire business from one intelligent dashboard — built around how they work, not how a SaaS company thinks they should.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href={CALENDLY} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium bg-primary text-primary-foreground px-8 py-3.5 rounded-md hover:bg-primary/90 transition-colors duration-150">
@@ -114,7 +114,7 @@ export default function WhiteLabelPage() {
               MYTHOS HQ is Customer #1. We built this system to run Top Hat Provisions — a multi-channel CPG brand operating across Shopify, Amazon, wholesale, and events. It manages email, CRM, social content, Klaviyo, QuickBooks, and fulfillment from one dashboard. Now we build it for others.
             </p>
             <p className="text-muted-foreground text-sm italic mt-4">
-              Shane McKnight · Founder, Top Hat Provisions &amp; Culture Cocktails
+              Shane McKnight · User, Top Hat Provisions &amp; Culture Cocktails
             </p>
           </DarkCard>
         </div>
@@ -172,7 +172,7 @@ export default function WhiteLabelPage() {
             {/* LEFT CARD — Build It Yourself */}
             <DarkCard>
               <h3 className="text-xl font-bold text-[#D97706] mb-1">Build It Yourself</h3>
-              <p className="text-xs text-muted-foreground mb-5">For technical founders who want full control</p>
+              <p className="text-xs text-muted-foreground mb-5">For technical users who want full control</p>
               <ul className="space-y-3 mb-6">
                 {[
                   "Purchase and configure your own hardware (Mac Mini or server)",
@@ -189,7 +189,7 @@ export default function WhiteLabelPage() {
                 ))}
               </ul>
               <p className="text-[15px] text-foreground leading-relaxed">
-                <span className="font-semibold">Best for:</span> Solo founders with technical backgrounds who want maximum customization and are comfortable managing the system themselves.
+                <span className="font-semibold">Best for:</span> Solo users with technical backgrounds who want maximum customization and are comfortable managing the system themselves.
               </p>
             </DarkCard>
 

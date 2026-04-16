@@ -88,7 +88,7 @@ export default function HeroSection() {
               <span className="gradient-text">Tell your story.</span>
             </h1>
             <p className="text-base md:text-lg text-muted-foreground max-w-lg mb-8 leading-relaxed">
-              MYTHOS HQ is the all-in-one founder OS — with an AI Chief of Operations handling what doesn't need you, and surfacing everything that does.
+              MYTHOS HQ is the all-in-one user OS — with an AI Chief of Operations handling what doesn't need you, and surfacing everything that does.
             </p>
             <div className="flex gap-3">
               <Link to="/beta" className="inline-flex items-center gap-1 text-sm font-medium bg-primary text-primary-foreground px-6 py-3 rounded-md hover:bg-primary/90 transition-colors duration-150">
@@ -111,7 +111,7 @@ export default function HeroSection() {
 
         <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8 text-center border-t border-border pt-10">
           {([
-            ["10,000+", "Founders"],
+            ["10,000+", "Users"],
             ["99.99%", "Uptime"],
             ["7", "Pillars"],
             ["$276/mo", "Saved"],

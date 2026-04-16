@@ -111,7 +111,7 @@ const CONTENT_DATA: ContentRow[] = [
   { id: "c4", type: "Story", title: "Q&A: Your top shipping questions answered", date: "2026-04-07", platform: "Instagram", reach: 8400, engRate: 3.2, emailSignups: 12, revenue: 120, roiScore: 45 },
   { id: "c5", type: "YouTube", title: "Full factory tour — From recipe to retail", date: "2026-04-05", platform: "YouTube", reach: 6200, engRate: 9.8, emailSignups: 86, revenue: 1640, roiScore: 88 },
   { id: "c6", type: "Blog", title: "The story behind Top Hat Provisions", date: "2026-04-03", platform: "Website", reach: 2400, engRate: 14.2, emailSignups: 98, revenue: 2100, roiScore: 94 },
-  { id: "c7", type: "Reel", title: "Packing orders at 6am — founder life", date: "2026-04-01", platform: "Instagram", reach: 22100, engRate: 7.6, emailSignups: 38, revenue: 680, roiScore: 62 },
+  { id: "c7", type: "Reel", title: "Packing orders at 6am — user life", date: "2026-04-01", platform: "Instagram", reach: 22100, engRate: 7.6, emailSignups: 38, revenue: 680, roiScore: 62 },
 ];
 
 const CONTENT_TYPE_SUMMARY = [

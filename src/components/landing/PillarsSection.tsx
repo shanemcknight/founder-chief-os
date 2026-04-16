@@ -13,7 +13,7 @@ export default function PillarsSection() {
     <section id="features" className="py-24">
       <div className="max-w-7xl mx-auto px-6">
         <h2 className="text-3xl font-bold text-foreground text-center mb-4">The 7 Pillars</h2>
-        <p className="text-muted-foreground text-center mb-14 max-w-xl mx-auto">Every tool a founder needs — unified under one operating system.</p>
+        <p className="text-muted-foreground text-center mb-14 max-w-xl mx-auto">Every tool a user needs — unified under one operating system.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {pillars.map((p, i) => (
             <div

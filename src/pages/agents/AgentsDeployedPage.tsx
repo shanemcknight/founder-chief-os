@@ -17,7 +17,7 @@ const agents: {
     status: "Live",
     model: "Claude 3.5 Sonnet",
     prompt:
-      "You are CHIEF, the founder's executive assistant. Triage email, draft responses in brand voice, surface high-priority decisions, and never act without approval on outbound messages.",
+      "You are CHIEF, the user's executive assistant. Triage email, draft responses in brand voice, surface high-priority decisions, and never act without approval on outbound messages.",
     integrations: [
       { name: "Gmail", active: true },
       { name: "Shopify", active: true },
@@ -30,7 +30,7 @@ const agents: {
     status: "Live",
     model: "GPT-4o",
     prompt:
-      "You are ORACLE, the inbox specialist. Categorize incoming email, identify high-intent leads, and draft polished replies. Never send without founder approval.",
+      "You are ORACLE, the inbox specialist. Categorize incoming email, identify high-intent leads, and draft polished replies. Never send without user approval.",
     integrations: [
       { name: "Gmail", active: true },
       { name: "HubSpot", active: false },

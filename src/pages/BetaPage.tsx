@@ -68,7 +68,7 @@ export default function BetaPage() {
                   Mythos HQ is in private beta.
                 </h1>
                 <p className="text-muted-foreground text-base leading-relaxed max-w-md mx-auto">
-                  Join the waitlist and we'll reach out when your spot is ready. We're opening access to a small group of founders first.
+                  Join the waitlist and we'll reach out when your spot is ready. We're opening access to a small group of users first.
                 </p>
               </div>
 

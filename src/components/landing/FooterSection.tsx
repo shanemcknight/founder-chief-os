@@ -33,7 +33,7 @@ export default function FooterSection() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-16 text-center">
           <h2 className="text-2xl font-bold text-foreground mb-3">Ready to run your business differently?</h2>
-          <p className="text-muted-foreground mb-6">Join 10,000+ founders who replaced their tool stack.</p>
+          <p className="text-muted-foreground mb-6">Join 10,000+ users who replaced their tool stack.</p>
           <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm font-medium bg-primary text-primary-foreground px-6 py-3 rounded-md hover:opacity-90 transition-opacity duration-150">
             Start Free →
           </Link>
@@ -42,7 +42,7 @@ export default function FooterSection() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           <div>
             <p className="text-sm font-bold text-foreground mb-3">MYTHOS <span className="text-primary">HQ</span></p>
-            <p className="text-xs text-muted-foreground leading-relaxed">The founder operating system.</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">The user operating system.</p>
           </div>
           {columns.map((col) => (
             <div key={col.title}>

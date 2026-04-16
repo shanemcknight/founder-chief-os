@@ -13,7 +13,7 @@ export default function PrivacyPage() {
           <div className="space-y-8 text-sm text-muted-foreground leading-relaxed">
             <section>
               <h2 className="text-lg font-semibold text-foreground mb-3">Who We Are</h2>
-              <p>MYTHOS HQ ("we", "our", "us") is a founder operating system that provides AI-powered business tools including social media management, sales pipelines, email, publishing, and custom AI agents. This policy explains how we collect, use, and protect your personal information.</p>
+              <p>MYTHOS HQ ("we", "our", "us") is a user operating system that provides AI-powered business tools including social media management, sales pipelines, email, publishing, and custom AI agents. This policy explains how we collect, use, and protect your personal information.</p>
             </section>
 
             <section>

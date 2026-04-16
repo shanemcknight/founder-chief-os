@@ -88,7 +88,7 @@ function PillarsView() {
     { emoji: "🎉", name: "Social Proof", description: "Events, testimonials, partnerships", platforms: ["Instagram", "Facebook", "LinkedIn"] },
     { emoji: "🍹", name: "Product Showcase", description: "Recipes, use cases, setups", platforms: ["Pinterest", "Instagram", "TikTok"] },
     { emoji: "💡", name: "Education", description: "How-tos, pour cost math, system guides", platforms: ["YouTube", "LinkedIn", "TikTok"] },
-    { emoji: "🤝", name: "Culture & Values", description: "Team, mission, founder stories", platforms: ["Facebook", "Instagram", "LinkedIn"] },
+    { emoji: "🤝", name: "Culture & Values", description: "Team, mission, user stories", platforms: ["Facebook", "Instagram", "LinkedIn"] },
     { emoji: "📣", name: "Announcements", description: "New products, launches, milestones", platforms: ["All"] },
   ];
   return (
@@ -114,7 +114,7 @@ function VoiceView() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const platforms = [
     { id: "instagram", emoji: "📸", label: "Instagram — The Craft", color: "#E1306C", voice: "Confident and intentional. The image does the talking.", tone: ["Visual-first", "Intentional", "Clean", "Cool"] },
-    { id: "facebook", emoji: "📘", label: "Facebook — The Storyteller", color: "#1877F2", voice: "A knowledgeable friend writing you a personal letter.", tone: ["Warm", "Personal", "Narrative", "Founder-led"] },
+    { id: "facebook", emoji: "📘", label: "Facebook — The Storyteller", color: "#1877F2", voice: "A knowledgeable friend writing you a personal letter.", tone: ["Warm", "Personal", "Narrative", "User-led"] },
     { id: "tiktok", emoji: "🎵", label: "TikTok — Unhinged & Raw", color: "#666", voice: "Talking to you like you're standing in the bar.", tone: ["Unfiltered", "Direct", "Industry insider", "No polish"] },
     { id: "linkedin", emoji: "💼", label: "LinkedIn — The Stage", color: "#0A66C2", voice: "A TED Talk from the most credentialed person in the room.", tone: ["Authoritative", "Generous", "Data-driven", "Inspirational"] },
     { id: "pinterest", emoji: "📌", label: "Pinterest — The Guide", color: "#E60023", voice: "The helpful expert who organizes your life and your bar.", tone: ["Searchable", "Practical", "Occasion-aware", "Clear"] },
