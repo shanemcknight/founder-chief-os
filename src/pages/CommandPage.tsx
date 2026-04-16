@@ -185,21 +185,20 @@ export default function CommandPage() {
   return (
     <div className="space-y-6">
       {/* KPI Cards — clickable to open modals */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         {kpis.map((kpi) => (
           <button
             key={kpi.label}
             onClick={() => setActiveModal(kpi.key)}
-            className="bg-card border border-border rounded-xl p-4 relative overflow-hidden text-left cursor-pointer hover:border-primary/50 transition-colors duration-150"
+            className="bg-card border border-border rounded-lg p-2.5 relative overflow-hidden text-left cursor-pointer hover:border-primary/50 transition-colors duration-150"
           >
             <div className={`absolute top-0 left-0 right-0 h-[3px] ${kpi.barColor}`} />
-            <p className="text-[11px] text-muted-foreground mb-1">{kpi.label}</p>
-            <p className="text-xl md:text-[22px] font-bold text-foreground">{kpi.value}</p>
-            <div className="flex items-center gap-1 mt-1">
+            <p className="text-[10px] text-muted-foreground mb-0.5">{kpi.label}</p>
+            <p className="text-base md:text-lg font-bold text-foreground">{kpi.value}</p>
+            <div className="flex items-center gap-1 mt-0.5">
               {kpi.up ? <ArrowUpRight size={10} className="text-success" /> : <Minus size={10} className="text-muted-foreground" />}
-              <span className={`text-[10px] ${kpi.up ? "text-success" : "text-muted-foreground"}`}>{kpi.trend}</span>
+              <span className={`text-[9px] ${kpi.up ? "text-success" : "text-muted-foreground"}`}>{kpi.trend}</span>
             </div>
-            <Sparkline data={kpi.sparkline} color={kpi.up ? "hsl(142 71% 45%)" : "hsl(220 4% 57%)"} />
           </button>
         ))}
       </div>
