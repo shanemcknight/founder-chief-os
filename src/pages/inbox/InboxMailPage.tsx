@@ -257,18 +257,19 @@ export default function InboxMailPage() {
     }
   }, [user]);
 
-  const triggerSync = useCallback(async () => {
+  const triggerSync = useCallback(async (accountId?: string) => {
     if (!user || syncing) return;
     setSyncing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke("sync-emails", {
         headers: { Authorization: `Bearer ${session?.access_token}` },
+        body: accountId ? { account_id: accountId } : undefined,
       });
       if (res.error) throw res.error;
       const now = new Date().toISOString();
       setLastSyncedAt(now);
-      await fetchEmails();
+      await Promise.all([fetchEmails(), fetchAccounts()]);
       const count = res.data?.synced ?? 0;
       if (count > 0) toast.success(`Synced ${count} new emails`);
     } catch (err: any) {
@@ -277,7 +278,7 @@ export default function InboxMailPage() {
     } finally {
       setSyncing(false);
     }
-  }, [user, syncing, fetchEmails]);
+  }, [user, syncing, fetchEmails, fetchAccounts]);
 
 
 
@@ -285,7 +286,7 @@ export default function InboxMailPage() {
     if (!user) return;
     const init = async () => {
       setLoading(true);
-      await fetchEmails();
+      await Promise.all([fetchEmails(), fetchAccounts()]);
 
       // Get last_synced_at from user_integrations
       const { data: integration } = await supabase
@@ -311,13 +312,35 @@ export default function InboxMailPage() {
     init();
   }, [user]);
 
-  const filtered =
-    selectedCategory === "all"
-      ? emails
-      : selectedCategory === "starred"
-      ? emails.filter((e: any) => e.starred)
-      : emails.filter((e: any) => e.category === selectedCategory);
+  // Auto-select first account when entering account mode
+  useEffect(() => {
+    if (viewMode === "account" && !selectedAccountId && emailAccounts.length > 0) {
+      setSelectedAccountId(emailAccounts[0].id);
+    }
+  }, [viewMode, selectedAccountId, emailAccounts]);
 
+  const filtered = useMemo(() => {
+    if (viewMode === "account") {
+      if (!selectedAccountId) return [];
+      return emails.filter((e: any) => e.email_account_id === selectedAccountId);
+    }
+    if (selectedCategory === "all") return emails;
+    if (selectedCategory === "starred") return emails.filter((e: any) => e.starred);
+    return emails.filter((e: any) => e.category === selectedCategory);
+  }, [emails, viewMode, selectedAccountId, selectedCategory]);
+
+  // Per-account unread counts
+  const accountUnreadCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    emails.forEach((e: any) => {
+      if (!e.read && e.email_account_id) {
+        counts[e.email_account_id] = (counts[e.email_account_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [emails]);
+
+  const selectedAccount = emailAccounts.find((a: any) => a.id === selectedAccountId);
   const selected = filtered.find((e: any) => e.id === selectedId) || filtered[0];
 
   const openReply = useCallback((mode: "reply" | "replyAll") => {
