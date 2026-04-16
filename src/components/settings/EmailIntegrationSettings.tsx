@@ -1,120 +1,135 @@
 import { useState, useEffect } from "react";
-import { Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2, Inbox } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
+type EmailAccount = {
+  id: string;
+  user_id: string;
+  provider: "outlook" | "gmail";
+  email_address: string;
+  display_name: string | null;
+  nango_connection_id: string;
+  is_active: boolean;
+  last_synced_at: string | null;
+  created_at: string;
+};
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return "Never synced";
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "Just now";
+  if (m < 60) return `Last synced ${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `Last synced ${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `Last synced ${d}d ago`;
+}
+
 export default function EmailIntegrationSettings() {
   const { user } = useAuth();
-  const [outlookConnected, setOutlookConnected] = useState(false);
-  const [connectionEmail, setConnectionEmail] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [connecting, setConnecting] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const [connecting, setConnecting] = useState<"outlook" | "gmail" | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    checkConnection();
+    loadAccounts();
   }, [user]);
 
-  const checkConnection = async () => {
+  const loadAccounts = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("user_integrations")
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("email_accounts")
       .select("*")
       .eq("user_id", user.id)
-      .eq("provider", "outlook")
-      .maybeSingle();
+      .order("created_at", { ascending: true });
 
-    if (data) {
-      setOutlookConnected(true);
-      setConnectionEmail(data.nango_connection_id);
+    if (error) {
+      console.error("[Email] Load accounts error:", error);
+    } else {
+      setAccounts((data ?? []) as EmailAccount[]);
     }
     setLoading(false);
   };
 
-  const connectOutlook = async () => {
+  const connectProvider = async (provider: "outlook" | "gmail") => {
     if (!user) return;
-    setConnecting(true);
+    setConnecting(provider);
     try {
-      console.log("[Outlook] Connect button clicked");
-
-      // 1. Get connect session token from backend
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast.error("You must be logged in to connect Outlook");
+        toast.error("You must be logged in to connect");
         return;
       }
-      console.log("[Outlook] Calling create-nango-session edge function...");
 
       const sessionRes = await supabase.functions.invoke("create-nango-session", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
-      console.log("[Outlook] Edge function response:", sessionRes);
-
       if (sessionRes.error) {
-        console.error("[Outlook] Edge function error:", sessionRes.error);
+        console.error("[Email] Edge function error:", sessionRes.error);
         toast.error("Failed to create connection session");
         return;
       }
 
       const connectSessionToken = sessionRes.data?.token;
       if (!connectSessionToken) {
-        console.error("[Outlook] No token in response:", sessionRes.data);
         toast.error("No session token returned from server");
         return;
       }
-      console.log("[Outlook] Session token received:", connectSessionToken.substring(0, 20) + "...");
 
-      // 2. Init Nango with connect session token and open UI
-      console.log("[Outlook] Importing @nangohq/frontend...");
       const { default: Nango } = await import("@nangohq/frontend");
-      console.log("[Outlook] Nango SDK loaded, initializing with connectSessionToken...");
-
       const nango = new Nango({ connectSessionToken });
-      console.log("[Outlook] Calling nango.auth('microsoft-outlook')...");
 
-      const result = await nango.auth("microsoft");
-      console.log("[Outlook] nango.auth() result:", result);
+      const integrationId = provider === "outlook" ? "microsoft" : "google-mail";
+      const result = await nango.auth(integrationId);
 
-      // 3. Store connection
-      await supabase.from("user_integrations").upsert(
-        {
-          user_id: user.id,
-          provider: "outlook",
-          nango_connection_id: result.connectionId,
-          connected_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id,provider" }
-      );
+      const { error: insertError } = await supabase.from("email_accounts").insert({
+        user_id: user.id,
+        provider,
+        nango_connection_id: result.connectionId,
+        email_address: result.connectionId,
+        display_name: provider === "outlook" ? "Outlook" : "Gmail",
+      });
 
-      setOutlookConnected(true);
-      setConnectionEmail(result.connectionId);
-      toast.success("Outlook connected successfully");
+      if (insertError) {
+        console.error("[Email] Insert error:", insertError);
+        toast.error(insertError.message || "Failed to save connection");
+        return;
+      }
+
+      await loadAccounts();
+      toast.success(`${provider === "outlook" ? "Outlook" : "Gmail"} connected`);
     } catch (err: any) {
-      console.error("[Outlook] OAuth error:", err);
-      toast.error(err?.message || "Failed to connect Outlook");
+      console.error(`[Email] ${provider} OAuth error:`, err);
+      toast.error(err?.message || `Failed to connect ${provider}`);
     } finally {
-      setConnecting(false);
+      setConnecting(null);
     }
   };
 
-  const disconnectOutlook = async () => {
+  const disconnect = async (account: EmailAccount) => {
     if (!user) return;
-    await supabase
-      .from("user_integrations")
+    const { error } = await supabase
+      .from("email_accounts")
       .delete()
-      .eq("user_id", user.id)
-      .eq("provider", "outlook");
+      .eq("id", account.id);
 
-    setOutlookConnected(false);
-    setConnectionEmail(null);
-    toast.success("Outlook disconnected");
+    if (error) {
+      toast.error("Failed to disconnect");
+      return;
+    }
+    await loadAccounts();
+    toast.success("Account disconnected");
   };
 
-  const triggerSync = async () => {
-    setSyncing(true);
+  const triggerSync = async (account: EmailAccount) => {
+    setSyncing(account.id);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke("sync-emails", {
@@ -122,11 +137,12 @@ export default function EmailIntegrationSettings() {
       });
       if (res.error) throw res.error;
       toast.success(`Synced ${res.data?.synced ?? 0} emails`);
+      await loadAccounts();
     } catch (err: any) {
       console.error("Sync error:", err);
       toast.error("Email sync failed");
     } finally {
-      setSyncing(false);
+      setSyncing(null);
     }
   };
 
@@ -140,50 +156,107 @@ export default function EmailIntegrationSettings() {
 
   return (
     <div className="mb-6">
+      {/* Connected accounts section */}
       <div className="flex items-center gap-1.5 mb-2">
-        <Mail size={12} className="text-muted-foreground" />
-        <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Email</h3>
+        <Inbox size={12} className="text-muted-foreground" />
+        <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          Connected Accounts
+        </h3>
       </div>
 
-      <div className="bg-card border border-border rounded-lg p-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-foreground">Microsoft Outlook</span>
-            {outlookConnected && (
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Connected · {connectionEmail}
+      {accounts.length === 0 ? (
+        <div className="bg-card border border-border rounded-lg p-3 mb-4">
+          <p className="text-[11px] text-muted-foreground">No email accounts connected yet.</p>
+        </div>
+      ) : (
+        <div className="mb-4">
+          {accounts.map((account) => (
+            <div
+              key={account.id}
+              className="bg-card border border-border rounded-lg p-3 mb-2"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Mail size={13} className="text-primary shrink-0" />
+                  <span className="text-xs font-semibold text-foreground truncate">
+                    {account.email_address}
+                  </span>
+                  <span className="text-[9px] bg-muted text-muted-foreground px-1.5 rounded uppercase">
+                    {account.provider}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => triggerSync(account)}
+                    disabled={syncing === account.id}
+                    className="text-[10px] font-semibold text-primary border border-primary px-2.5 py-1 rounded hover:bg-primary/10 transition-colors disabled:opacity-50 flex items-center gap-1"
+                  >
+                    {syncing === account.id && <Loader2 size={10} className="animate-spin" />}
+                    Sync Now
+                  </button>
+                  <button
+                    onClick={() => disconnect(account)}
+                    className="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1 ml-[21px]">
+                {timeAgo(account.last_synced_at)}
               </p>
-            )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add inbox section */}
+      <div className="flex items-center gap-1.5 mb-2">
+        <Mail size={12} className="text-muted-foreground" />
+        <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          Add Inbox
+        </h3>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {/* Outlook card */}
+        <div className="bg-card border border-border rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Mail size={13} className="text-[#0078D4]" />
+            <span className="text-xs font-semibold text-foreground">Microsoft Outlook</span>
           </div>
-          <div className="flex items-center gap-2">
-            {outlookConnected ? (
-              <>
-                <button
-                  onClick={triggerSync}
-                  disabled={syncing}
-                  className="text-[10px] font-semibold text-primary border border-primary px-2.5 py-1 rounded hover:bg-primary/10 transition-colors disabled:opacity-50 flex items-center gap-1"
-                >
-                  {syncing && <Loader2 size={10} className="animate-spin" />}
-                  Sync Now
-                </button>
-                <button
-                  onClick={disconnectOutlook}
-                  className="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
-                >
-                  Disconnect
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={connectOutlook}
-                disabled={connecting}
-                className="text-[10px] font-semibold text-primary border border-primary px-2.5 py-1 rounded hover:bg-primary/10 transition-colors disabled:opacity-50 flex items-center gap-1"
-              >
-                {connecting && <Loader2 size={10} className="animate-spin" />}
-                Connect
-              </button>
-            )}
+          <p className="text-[11px] text-muted-foreground mb-2">
+            Connect your Outlook or Office 365 inbox
+          </p>
+          <button
+            onClick={() => connectProvider("outlook")}
+            disabled={connecting === "outlook"}
+            className="text-[10px] font-semibold text-primary border border-primary px-2.5 py-1 rounded hover:bg-primary/10 transition-colors disabled:opacity-50 flex items-center gap-1"
+          >
+            {connecting === "outlook" && <Loader2 size={10} className="animate-spin" />}
+            Connect
+          </button>
+        </div>
+
+        {/* Gmail card */}
+        <div className="bg-card border border-border rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+              <span className="text-white text-[8px] font-bold">G</span>
+            </span>
+            <span className="text-xs font-semibold text-foreground">Gmail</span>
           </div>
+          <p className="text-[11px] text-muted-foreground mb-2">
+            Connect your Gmail or Google Workspace inbox
+          </p>
+          <button
+            onClick={() => connectProvider("gmail")}
+            disabled={connecting === "gmail"}
+            className="text-[10px] font-semibold text-primary border border-primary px-2.5 py-1 rounded hover:bg-primary/10 transition-colors disabled:opacity-50 flex items-center gap-1"
+          >
+            {connecting === "gmail" && <Loader2 size={10} className="animate-spin" />}
+            Connect
+          </button>
         </div>
       </div>
     </div>
