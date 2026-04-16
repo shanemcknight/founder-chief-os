@@ -4,14 +4,14 @@ import { MessageCircle, X, LayoutDashboard, Mail, BookOpen, Brain, MoreHorizonta
 import { NavLink, useLocation } from "react-router-dom";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardTopbar from "@/components/dashboard/DashboardTopbar";
-import ChiefPanel from "@/components/dashboard/ChiefPanel";
+import RelayPanel from "@/components/dashboard/RelayPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const mobileTabItems = [
   { label: "COMMAND", path: "/dashboard", icon: LayoutDashboard },
   { label: "INBOX", path: "/inbox", icon: Mail },
   { label: "SOCIAL", path: "/social", icon: BookOpen },
-  { label: "CHIEF", path: "/chief", icon: Brain },
+  { label: "AGENTS", path: "/agents", icon: Brain },
   { label: "More", path: "", icon: MoreHorizontal },
 ];
 
@@ -29,7 +29,7 @@ export default function DashboardLayout() {
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
           <Outlet />
         </main>
-        {!isMobile && <ChiefPanel />}
+        {!isMobile && <RelayPanel />}
       </div>
 
       {/* Mobile bottom tab bar */}
@@ -92,11 +92,11 @@ export default function DashboardLayout() {
         <div className="fixed inset-0 z-50 bg-background/90 backdrop-blur-sm flex items-end">
           <div className="w-full h-[80vh] bg-card border-t border-border rounded-t-2xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-3 border-b border-border">
-              <span className="text-sm font-bold text-foreground">CHIEF</span>
+              <span className="text-sm font-bold text-foreground">RELAY</span>
               <button onClick={() => setShowChief(false)} className="text-muted-foreground"><X size={18} /></button>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <ChiefPanel />
+              <RelayPanel />
             </div>
           </div>
         </div>
