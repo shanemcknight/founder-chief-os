@@ -9,6 +9,8 @@ export interface UserProfile {
   environment: "production" | "sandbox";
   is_admin: boolean;
   api_keys_connected: boolean;
+  openai_api_key?: string | null;
+  gemini_api_key?: string | null;
 }
 
 interface AuthContextType {
@@ -46,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const { data } = await supabase
       .from("profiles")
-      .select("full_name, business_name, approved, environment, is_admin, api_keys_connected")
+      .select("full_name, business_name, approved, environment, is_admin, api_keys_connected, openai_api_key, gemini_api_key")
       .eq("user_id", userId)
       .single();
     setProfile(data as UserProfile | null);

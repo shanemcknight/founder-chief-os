@@ -395,8 +395,10 @@ export type Database = {
           created_at: string
           environment: string
           full_name: string | null
+          gemini_api_key: string | null
           id: string
           is_admin: boolean
+          openai_api_key: string | null
           updated_at: string
           user_id: string
         }
@@ -408,8 +410,10 @@ export type Database = {
           created_at?: string
           environment?: string
           full_name?: string | null
+          gemini_api_key?: string | null
           id?: string
           is_admin?: boolean
+          openai_api_key?: string | null
           updated_at?: string
           user_id: string
         }
@@ -421,8 +425,10 @@ export type Database = {
           created_at?: string
           environment?: string
           full_name?: string | null
+          gemini_api_key?: string | null
           id?: string
           is_admin?: boolean
+          openai_api_key?: string | null
           updated_at?: string
           user_id?: string
         }
