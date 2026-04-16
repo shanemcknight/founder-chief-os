@@ -1,8 +1,8 @@
 // POST /agent-chat — streams Lovable AI responses, persists messages, detects proposed actions.
 // Body: { conversationId: uuid, agentId: uuid, agentName: string, message: string }
 // Returns: SSE stream of token deltas, terminated by [DONE].
-// Side effects (after stream ends, written by client via /agent-finalize? No — we save inline before streaming starts and after it ends).
-// Approach: insert user msg first; stream Claude/Gemini; buffer full text; on close, insert agent msg; if [[PROPOSE_ACTION ...]] marker present, also insert proposed_actions row.
+// Token gating: BYOK users skip all checks. Otherwise enforce subscriptions.token_budget,
+// emit warnings at 80%/95%, block at 100%, and silently rate-limit >50 msgs/10min.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -30,6 +30,11 @@ function detectProposal(text: string): { actionType: string; summary: string; dr
   return { actionType, summary: m[2] || "", draft: m[3].trim() };
 }
 
+// Rough token estimator (~4 chars per token) used as fallback if gateway omits usage.
+function estimateTokens(text: string): number {
+  return Math.max(1, Math.ceil(text.length / 4));
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -41,12 +46,15 @@ Deno.serve(async (req) => {
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
+    // Service-role client used for tracking writes that bypass RLS (subscriptions row).
+    const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const { data: userData, error: userErr } = await supabase.auth.getUser();
     if (userErr || !userData?.user) {
@@ -57,6 +65,58 @@ Deno.serve(async (req) => {
     const { conversationId, agentName, message } = await req.json();
     if (!conversationId || !message) {
       return new Response(JSON.stringify({ error: "conversationId and message required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── TOKEN GATING ────────────────────────────────────────────────────────────
+    const { data: profile } = await adminSupabase
+      .from("profiles")
+      .select("anthropic_api_key, openai_api_key, gemini_api_key")
+      .eq("user_id", userId)
+      .single();
+    const hasByok = !!(profile?.anthropic_api_key || profile?.openai_api_key || profile?.gemini_api_key);
+
+    let tokensUsed = 0;
+    let tokenBudget = 500_000;
+    let warning: { level: "low" | "critical"; percent: number } | null = null;
+
+    if (!hasByok) {
+      // Silent abuse rate-limit: > 50 user messages in last 10 minutes
+      const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { count: recentCount } = await adminSupabase
+        .from("messages")
+        .select("id, conversation:conversations!inner(user_id)", { count: "exact", head: true })
+        .eq("sender", "user")
+        .eq("conversation.user_id", userId)
+        .gte("created_at", tenMinAgo);
+      if ((recentCount ?? 0) > 50) {
+        return new Response(JSON.stringify({ error: "rate_limited" }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: sub } = await adminSupabase
+        .from("subscriptions")
+        .select("plan, tokens_used, token_budget")
+        .eq("user_id", userId)
+        .single();
+      tokensUsed = sub?.tokens_used ?? 0;
+      tokenBudget = sub?.token_budget ?? 500_000;
+      const usagePercent = (tokensUsed / tokenBudget) * 100;
+
+      if (usagePercent >= 100) {
+        return new Response(JSON.stringify({
+          error: "token_budget_exceeded",
+          warning_level: "blocked",
+          message: "You've used all your tokens for this month.",
+          tokens_used: tokensUsed,
+          token_budget: tokenBudget,
+          upgrade_url: "/pricing",
+          byok_url: "/settings",
+        }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (usagePercent >= 95) warning = { level: "critical", percent: usagePercent };
+      else if (usagePercent >= 80) warning = { level: "low", percent: usagePercent };
     }
 
     // Verify conversation ownership and load history
@@ -127,9 +187,15 @@ Deno.serve(async (req) => {
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
     let fullText = "";
+    let usageTotalTokens: number | null = null;
 
     const stream = new ReadableStream({
       async start(controller) {
+        // Emit a meta event up front so the client can render warnings before the first token.
+        if (warning) {
+          controller.enqueue(encoder.encode(`event: meta\ndata: ${JSON.stringify({ warning })}\n\n`));
+        }
+
         const reader = aiResp.body!.getReader();
         let textBuffer = "";
         try {
@@ -152,6 +218,7 @@ Deno.serve(async (req) => {
                 const parsed = JSON.parse(json);
                 const c = parsed.choices?.[0]?.delta?.content;
                 if (typeof c === "string") fullText += c;
+                if (parsed.usage?.total_tokens) usageTotalTokens = parsed.usage.total_tokens;
               } catch {
                 /* partial JSON */
               }
@@ -194,6 +261,15 @@ Deno.serve(async (req) => {
 
             // Touch conversation updated_at
             await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
+
+            // Track token usage for non-BYOK users (admin client bypasses RLS).
+            if (!hasByok) {
+              const consumed = usageTotalTokens ?? (estimateTokens(message) + estimateTokens(fullText));
+              await adminSupabase
+                .from("subscriptions")
+                .update({ tokens_used: tokensUsed + consumed })
+                .eq("user_id", userId);
+            }
           } catch (e) {
             console.error("persist error:", e);
           }
