@@ -225,6 +225,22 @@ export default function InboxMailPage() {
   const [sending, setSending] = useState(false);
   const [sentConfirm, setSentConfirm] = useState(false);
 
+  // Multi-account view
+  const [viewMode, setViewMode] = useState<"priority" | "account">("priority");
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [emailAccounts, setEmailAccounts] = useState<any[]>([]);
+
+  const fetchAccounts = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("email_accounts")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true });
+    setEmailAccounts(data || []);
+  }, [user]);
+
   const fetchEmails = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
