@@ -45,7 +45,11 @@ export default function AgentDeployPage() {
   );
   const [deployed, setDeployed] = useState(false);
   const [confetti, setConfetti] = useState(false);
-  const [hasByokKey, setHasByokKey] = useState(false);
+  const [providerKeys, setProviderKeys] = useState<{ anthropic: boolean; openai: boolean; gemini: boolean }>({
+    anthropic: false,
+    openai: false,
+    gemini: false,
+  });
   const [systemPrompt, setSystemPrompt] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -66,11 +70,16 @@ export default function AgentDeployPage() {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("anthropic_api_key")
+      .select("anthropic_api_key, openai_api_key, gemini_api_key")
       .eq("user_id", user.id)
       .single()
       .then(({ data }) => {
-        if (data?.anthropic_api_key) setHasByokKey(true);
+        const d = data as any;
+        setProviderKeys({
+          anthropic: !!d?.anthropic_api_key,
+          openai: !!d?.openai_api_key,
+          gemini: !!d?.gemini_api_key,
+        });
       });
   }, [user]);
 
