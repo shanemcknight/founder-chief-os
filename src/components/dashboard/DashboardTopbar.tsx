@@ -11,6 +11,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { toggleTheme } from "@/lib/theme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePendingApprovalsCount } from "@/hooks/usePendingApprovals";
 import DashboardSidebar from "./DashboardSidebar";
 import { InviteBetaTesterButton, BetaTesterAdminPanel } from "./BetaTesterAdmin";
 
@@ -25,6 +26,7 @@ export default function DashboardTopbar() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { user, profile, signOut, setEnvironment } = useAuth();
+  const pendingCount = usePendingApprovalsCount();
 
   const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
   const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -93,13 +95,16 @@ export default function DashboardTopbar() {
             {dark ? <Sun size={14} /> : <Moon size={14} />}
           </button>
           <button
+            onClick={() => navigate("/agents/approvals")}
             className="relative w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors duration-150"
             aria-label="Notifications"
           >
             <Bell size={14} />
-            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full flex items-center justify-center">
-              3
-            </span>
+            {pendingCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-3.5 h-3.5 px-1 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full flex items-center justify-center">
+                {pendingCount > 9 ? "9+" : pendingCount}
+              </span>
+            )}
           </button>
 
           {/* User Avatar + Dropdown */}
