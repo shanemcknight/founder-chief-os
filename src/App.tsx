@@ -93,11 +93,11 @@ const App = () => (
                 <Route path="approvals" element={<AgentsApprovalsPage />} />
                 <Route path="activity" element={<AgentsActivityPage />} />
                 <Route path="deployed" element={<AgentsDeployedPage />} />
+                <Route path="new" element={<AgentDeployPage />} />
               </Route>
               <Route path="/build" element={<BuildPage />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/agents/new" element={<AgentDeployPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
