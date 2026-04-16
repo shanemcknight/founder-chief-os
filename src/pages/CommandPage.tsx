@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowUpRight,
   Minus,
   X,
+  CheckCircle2,
 } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import CalendarTimeline from "@/components/dashboard/CalendarTimeline";
 import ConnectedToolsGrid from "@/components/dashboard/ConnectedToolsGrid";
 import ActiveAgentsOrgChart from "@/components/dashboard/ActiveAgentsOrgChart";
@@ -16,6 +18,14 @@ import SocialReachDashboard from "@/components/dashboard/SocialReachDashboard";
 import RevenueDashboard from "@/components/dashboard/RevenueDashboard";
 
 type ModalKey = "revenue" | "agents" | "emails" | "social" | null;
+
+type AttentionItem = {
+  priority: "HIGH" | "MED" | "FYI";
+  text: string;
+  btn: string;
+  type: "approval" | "email" | "setup";
+  id?: string;
+};
 
 const kpis: { key: ModalKey; label: string; value: string; barColor: string; trend: string; up: boolean; sparkline: number[] }[] = [
   { key: "revenue", label: "Revenue Today", value: "$4,840", barColor: "bg-accent", trend: "+12%", up: true, sparkline: [30, 45, 38, 55, 48, 62, 58] },
@@ -58,26 +68,24 @@ const priorityBadgeClass: Record<string, string> = {
   FYI: "bg-muted text-muted-foreground",
 };
 
-const actions = [
-  { priority: "HIGH", text: "Wholesale lead email from Austin — Barrel & Oak", btn: "Reply" },
-  { priority: "HIGH", text: "Amazon listing suppressed: Ginger Beer BIB", btn: "Review" },
-  { priority: "MED", text: "Invoice #1042 overdue $840", btn: "Pay Now" },
-  { priority: "MED", text: "LinkedIn post scheduled for today, not yet approved", btn: "Preview" },
-  { priority: "FYI", text: "Agent Cipher has 3 consecutive errors", btn: "Fix" },
-];
+const priorityRank: Record<string, number> = { HIGH: 0, MED: 1, FYI: 2 };
 
 export default function CommandPage() {
   const { isVerifying } = useSubscription();
   const { isSandbox, isProduction, environment } = useEnvironmentData();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [activeModal, setActiveModal] = useState<ModalKey>(null);
+  const [attentionItems, setAttentionItems] = useState<AttentionItem[]>([]);
+  const [attentionLoading, setAttentionLoading] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const displayName = profile?.full_name || "there";
 
   useEffect(() => {
     setActiveModal(null);
   }, [location.key]);
+
   useEffect(() => {
     if (activeModal) {
       document.body.style.overflow = "hidden";
@@ -86,6 +94,81 @@ export default function CommandPage() {
     }
     return () => { document.body.style.overflow = ""; };
   }, [activeModal]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const loadAttention = async () => {
+      try {
+        const { data: approvals } = await supabase
+          .from("proposed_actions")
+          .select(`
+            id, action_type, draft_content, created_at,
+            messages!inner (
+              content,
+              conversations!inner ( title, user_id )
+            )
+          `)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        const { data: emails } = await supabase
+          .from("emails")
+          .select("id, subject, from_name, chief_summary, category, received_at")
+          .eq("user_id", user.id)
+          .eq("read", false)
+          .in("category", ["urgent", "lead"])
+          .order("received_at", { ascending: false })
+          .limit(5);
+
+        const approvalItems: AttentionItem[] = (approvals || []).map((pa: any) => ({
+          priority: "HIGH",
+          text: `${pa.messages?.conversations?.title || "Conversation"} — ${pa.action_type}`,
+          btn: "Review",
+          type: "approval",
+          id: pa.id,
+        }));
+
+        const emailItems: AttentionItem[] = (emails || []).map((e: any) => ({
+          priority: e.category === "urgent" ? "HIGH" : "MED",
+          text: e.chief_summary || e.subject || "(no subject)",
+          btn: "Reply",
+          type: "email",
+          id: e.id,
+        }));
+
+        const merged = [...approvalItems, ...emailItems]
+          .sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority])
+          .slice(0, 8);
+
+        if (merged.length === 0 && (emails?.length ?? 0) === 0) {
+          setAttentionItems([
+            { priority: "FYI", text: "Connect your inbox to see real priority emails", btn: "Connect", type: "setup" },
+            { priority: "FYI", text: "Deploy your first agent to start getting approvals", btn: "Deploy", type: "setup" },
+          ]);
+        } else {
+          setAttentionItems(merged);
+        }
+      } catch (err) {
+        console.error("Failed to load attention items", err);
+        setAttentionItems([]);
+      } finally {
+        setAttentionLoading(false);
+      }
+    };
+
+    loadAttention();
+    const interval = setInterval(loadAttention, 60_000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const handleAttentionClick = (item: AttentionItem) => {
+    if (item.type === "approval") navigate("/agents/approvals");
+    else if (item.type === "email") navigate("/inbox/mail");
+    else if (item.type === "setup" && item.btn === "Connect") navigate("/settings");
+    else if (item.type === "setup" && item.btn === "Deploy") navigate("/agents/new");
+  };
 
   if (isVerifying) {
     return (
@@ -97,6 +180,7 @@ export default function CommandPage() {
   }
 
   const ModalContent = activeModal ? MODAL_COMPONENTS[activeModal] : null;
+  const realCount = attentionItems.filter((i) => i.type !== "setup").length;
 
   return (
     <div className="space-y-6">
@@ -117,7 +201,7 @@ export default function CommandPage() {
         <p className="text-[13px] text-muted-foreground mt-1">
           {isSandbox
             ? "7 agents active · 3 items need your attention · Mock data mode"
-            : "7 agents active · 3 items need your attention · Last action 12 min ago"}
+            : `${realCount} items need your attention · Updated just now`}
         </p>
       </div>
 
@@ -141,26 +225,44 @@ export default function CommandPage() {
         ))}
       </div>
 
+      <div>
+        <h2 className="text-sm font-semibold text-foreground mb-3">Needs Your Attention</h2>
+        {attentionLoading ? (
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="bg-muted/30 animate-pulse h-12 rounded-lg" />
+            ))}
+          </div>
+        ) : attentionItems.length === 0 ? (
+          <div className="bg-card border border-border rounded-lg p-4 text-center">
+            <CheckCircle2 size={16} className="text-success mx-auto" />
+            <p className="text-xs text-muted-foreground mt-1">
+              All clear — nothing needs your attention right now.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {attentionItems.map((a, i) => (
+              <div key={a.id || i} className="flex items-center justify-between bg-card border border-border rounded-lg p-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${priorityBadgeClass[a.priority]}`}>{a.priority}</span>
+                  <p className="text-xs md:text-sm text-foreground truncate">{a.text}</p>
+                </div>
+                <button
+                  onClick={() => handleAttentionClick(a)}
+                  className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 transition-colors duration-150 shrink-0 ml-3"
+                >
+                  {a.btn}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <CalendarTimeline />
 
       <ConnectedToolsGrid />
-
-      <div>
-        <h2 className="text-sm font-semibold text-foreground mb-3">Needs Your Attention</h2>
-        <div className="space-y-2">
-          {actions.map((a, i) => (
-            <div key={i} className="flex items-center justify-between bg-card border border-border rounded-lg p-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${priorityBadgeClass[a.priority]}`}>{a.priority}</span>
-                <p className="text-xs md:text-sm text-foreground truncate">{a.text}</p>
-              </div>
-              <button className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 transition-colors duration-150 shrink-0 ml-3">
-                {a.btn}
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* Dashboard Modal Overlay */}
       {activeModal && ModalContent && (
