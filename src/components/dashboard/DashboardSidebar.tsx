@@ -23,6 +23,8 @@ import {
   Clock,
   AlertTriangle,
   Activity,
+  MessageCircle,
+  Cpu,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -46,10 +48,20 @@ const inboxSubItems = [
   { label: "Activity", path: "/inbox/activity", icon: Activity, countKey: null },
 ];
 
+// Mock counts
+const AGENTS_PENDING_APPROVALS = 3;
+const AGENTS_CHAT_UNREAD = 2;
+
+const agentsSubItems = [
+  { label: "Chat", path: "/agents", icon: MessageCircle, badge: AGENTS_CHAT_UNREAD, badgeStyle: "primary" as const, exact: true },
+  { label: "Approvals", path: "/agents/approvals", icon: ShieldCheck, badge: AGENTS_PENDING_APPROVALS, badgeStyle: "destructive" as const },
+  { label: "Activity", path: "/agents/activity", icon: Activity, badge: 0 },
+  { label: "Deployed", path: "/agents/deployed", icon: Cpu, badge: 0 },
+];
+
 const mainNavAfterInbox = [
   { label: "SALES", path: "/sales", icon: Target },
   { label: "PUBLISH", path: "/publish", icon: FileText },
-  { label: "CHIEF", path: "/chief", icon: Brain },
   { label: "BUILD", path: "/build", icon: Wrench },
   { label: "CALENDAR", path: "/calendar", icon: Calendar },
 ];
