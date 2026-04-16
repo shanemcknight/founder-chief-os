@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Trash2, UserX, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -30,8 +32,11 @@ const timezones = [
   "UTC",
 ];
 
+type DangerMode = null | "data" | "account";
+
 export default function AccountSettings() {
-  const { user, profile } = useAuth();
+  const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [businessName, setBusinessName] = useState(profile?.business_name || "");
@@ -45,8 +50,9 @@ export default function AccountSettings() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [updatingPassword, setUpdatingPassword] = useState(false);
 
-  const [deleteText, setDeleteText] = useState("");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [dangerMode, setDangerMode] = useState<DangerMode>(null);
+  const [confirmText, setConfirmText] = useState("");
+  const [processing, setProcessing] = useState(false);
 
   const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
   const initials = displayName
@@ -90,6 +96,47 @@ export default function AccountSettings() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+    }
+  };
+
+  const closeDanger = () => {
+    if (processing) return;
+    setDangerMode(null);
+    setConfirmText("");
+  };
+
+  const expectedConfirm = dangerMode === "account" ? "DELETE MY ACCOUNT" : "DELETE";
+  const canConfirm = confirmText === expectedConfirm && !processing;
+
+  const handleDangerConfirm = async () => {
+    if (!dangerMode || !canConfirm) return;
+    setProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-account", {
+        body: { type: dangerMode },
+      });
+      if (error || (data as { error?: string })?.error) {
+        throw new Error(error?.message || (data as { error?: string })?.error || "Request failed");
+      }
+      if (dangerMode === "data") {
+        toast.success("All data cleared");
+        setDangerMode(null);
+        setConfirmText("");
+        navigate("/onboarding");
+      } else {
+        await signOut();
+        navigate("/");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      if (dangerMode === "data") {
+        toast.error("Failed to clear data. Please try again.");
+      } else {
+        toast.error("Failed to delete account. Contact hello@mythoshq.io");
+      }
+      console.error("delete-account error:", msg);
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -177,46 +224,125 @@ export default function AccountSettings() {
       </div>
 
       {/* Danger Zone */}
-      <div className="border border-destructive/50 rounded-xl p-5">
-        <h3 className="text-sm font-bold text-destructive mb-2">Danger Zone</h3>
-        <p className="text-xs text-muted-foreground mb-4">
-          This permanently deletes your account and all data. This cannot be undone.
+      <div className="border-t border-border mt-8 pt-6">
+        <p className="text-[10px] font-semibold text-destructive uppercase tracking-wider mb-4">
+          Danger Zone
         </p>
-        {!showDeleteConfirm ? (
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="text-xs font-semibold px-4 py-2 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+
+        <div className="space-y-3">
+          {/* Clear Data */}
+          <div className="bg-card border border-border rounded-lg p-4 flex items-start gap-3">
+            <Trash2 className="w-[14px] h-[14px] text-muted-foreground mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-foreground">Clear All My Data</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Permanently delete all your emails, conversations, agent activity, and connected account data. Your account stays active.
+              </p>
+            </div>
+            <button
+              onClick={() => { setDangerMode("data"); setConfirmText(""); }}
+              className="text-[10px] font-medium border border-destructive/40 text-destructive px-3 py-1.5 rounded-md hover:bg-destructive/10 transition-colors shrink-0"
+            >
+              Clear Data
+            </button>
+          </div>
+
+          {/* Delete Account */}
+          <div className="bg-card border border-border rounded-lg p-4 flex items-start gap-3">
+            <UserX className="w-[14px] h-[14px] text-muted-foreground mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-foreground">Delete My Account</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Permanently delete your account and all associated data. This cannot be undone. Your subscription will be cancelled.
+              </p>
+            </div>
+            <button
+              onClick={() => { setDangerMode("account"); setConfirmText(""); }}
+              className="text-[10px] font-medium border border-destructive/40 text-destructive px-3 py-1.5 rounded-md hover:bg-destructive/10 transition-colors shrink-0"
+            >
+              Delete Account
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Confirmation Modal */}
+      {dangerMode && (
+        <div
+          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={closeDanger}
+        >
+          <div
+            className="bg-card border border-border rounded-xl p-6 w-full max-w-sm shadow-xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            Delete My Account
-          </button>
-        ) : (
-          <div className="space-y-3 max-w-sm">
-            <p className="text-xs text-foreground">
-              Type <span className="font-bold text-destructive">DELETE</span> to confirm:
-            </p>
+            <div className="flex justify-center mb-3">
+              <Trash2 className="w-8 h-8 text-destructive" />
+            </div>
+            <h3 className="text-base font-bold text-foreground text-center">
+              {dangerMode === "account" ? "Delete your account?" : "Clear all your data?"}
+            </h3>
+
+            {dangerMode === "data" ? (
+              <div className="text-xs text-muted-foreground text-center mt-2 mb-5">
+                <p>This will permanently delete:</p>
+                <ul className="mt-2 space-y-0.5 text-left inline-block">
+                  <li>• All synced emails and drafts</li>
+                  <li>• All agent conversations and messages</li>
+                  <li>• All pending approvals</li>
+                  <li>• All connected email accounts</li>
+                </ul>
+                <p className="mt-3">Your MythosHQ account stays active.</p>
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground text-center mt-2 mb-5">
+                <p>This will permanently delete your account and:</p>
+                <ul className="mt-2 space-y-0.5 text-left inline-block">
+                  <li>• All synced emails and drafts</li>
+                  <li>• All agent conversations and messages</li>
+                  <li>• All pending approvals</li>
+                  <li>• All connected accounts and integrations</li>
+                  <li>• Your profile and settings</li>
+                </ul>
+                <p className="mt-3 text-destructive">
+                  Your subscription will be cancelled. This cannot be undone.
+                </p>
+              </div>
+            )}
+
+            <label className="text-xs font-medium text-foreground mb-1 block">
+              {dangerMode === "account"
+                ? 'Type "DELETE MY ACCOUNT" to confirm'
+                : 'Type "DELETE" to confirm'}
+            </label>
             <input
-              value={deleteText}
-              onChange={(e) => setDeleteText(e.target.value)}
-              placeholder="Type DELETE"
-              className="w-full bg-background border border-destructive/50 rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-destructive/50"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              autoFocus
+              disabled={processing}
+              className="bg-background border border-border rounded-lg px-3 py-2 text-xs w-full text-foreground focus:outline-none focus:ring-1 focus:ring-destructive/50"
             />
-            <div className="flex gap-2">
+
+            <div className="mt-4 flex gap-2">
               <button
-                disabled={deleteText !== "DELETE"}
-                className="text-xs font-semibold px-4 py-2 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-40"
+                onClick={handleDangerConfirm}
+                disabled={!canConfirm}
+                className="bg-destructive text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition-all flex items-center gap-2"
               >
-                Confirm Delete
+                {processing && <Loader2 className="w-3 h-3 animate-spin" />}
+                {dangerMode === "account" ? "Delete My Account" : "Clear All Data"}
               </button>
               <button
-                onClick={() => { setShowDeleteConfirm(false); setDeleteText(""); }}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                onClick={closeDanger}
+                disabled={processing}
+                className="border border-border text-foreground text-xs px-4 py-2 rounded-lg hover:bg-muted/30 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
