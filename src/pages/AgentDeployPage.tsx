@@ -53,6 +53,7 @@ export default function AgentDeployPage() {
   });
   const [systemPrompt, setSystemPrompt] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importedFileName, setImportedFileName] = useState("");
   const navigate = useNavigate();
 
   const handleImportSoul = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,7 +62,11 @@ export default function AgentDeployPage() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result;
-      if (typeof text === "string") setSystemPrompt(text);
+      if (typeof text === "string") {
+        setSystemPrompt(text);
+        setImportedFileName(file.name);
+        toast.success("Agent instructions imported");
+      }
     };
     reader.readAsText(file);
     e.target.value = "";
