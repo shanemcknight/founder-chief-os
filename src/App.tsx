@@ -65,7 +65,7 @@ const App = () => (
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/white-label" element={<WhiteLabelPage />} />
             <Route path="/for/food-people" element={<FoodPeoplePage />} />
-            <Route path="/onboarding" element={<Navigate to="/beta" replace />} />
+            <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
             <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<CommandPage />} />
               <Route path="/social" element={<SocialLayout />}>

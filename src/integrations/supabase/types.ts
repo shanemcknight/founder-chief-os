@@ -448,6 +448,7 @@ export type Database = {
           gemini_api_key: string | null
           id: string
           is_admin: boolean
+          onboarding_complete: boolean
           openai_api_key: string | null
           updated_at: string
           user_id: string
@@ -463,6 +464,7 @@ export type Database = {
           gemini_api_key?: string | null
           id?: string
           is_admin?: boolean
+          onboarding_complete?: boolean
           openai_api_key?: string | null
           updated_at?: string
           user_id: string
@@ -478,6 +480,7 @@ export type Database = {
           gemini_api_key?: string | null
           id?: string
           is_admin?: boolean
+          onboarding_complete?: boolean
           openai_api_key?: string | null
           updated_at?: string
           user_id?: string
