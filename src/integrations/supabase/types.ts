@@ -223,6 +223,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_accounts: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          email_address: string
+          id: string
+          is_active: boolean | null
+          last_synced_at: string | null
+          nango_connection_id: string
+          provider: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          email_address: string
+          id?: string
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          nango_connection_id: string
+          provider: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          email_address?: string
+          id?: string
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          nango_connection_id?: string
+          provider?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_drafts: {
         Row: {
           created_at: string
@@ -263,12 +299,14 @@ export type Database = {
       }
       emails: {
         Row: {
+          account_email: string | null
           archived: boolean
           body_full: string | null
           body_preview: string | null
           category: string
           chief_summary: string | null
           created_at: string
+          email_account_id: string | null
           external_id: string | null
           from_email: string | null
           from_name: string | null
@@ -281,12 +319,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_email?: string | null
           archived?: boolean
           body_full?: string | null
           body_preview?: string | null
           category?: string
           chief_summary?: string | null
           created_at?: string
+          email_account_id?: string | null
           external_id?: string | null
           from_email?: string | null
           from_name?: string | null
@@ -299,12 +339,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_email?: string | null
           archived?: boolean
           body_full?: string | null
           body_preview?: string | null
           category?: string
           chief_summary?: string | null
           created_at?: string
+          email_account_id?: string | null
           external_id?: string | null
           from_email?: string | null
           from_name?: string | null
@@ -316,7 +358,15 @@ export type Database = {
           subject?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "emails_email_account_id_fkey"
+            columns: ["email_account_id"]
+            isOneToOne: false
+            referencedRelation: "email_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
