@@ -93,7 +93,7 @@ export default function WhiteLabelPage() {
             Built for you. Branded as yours. Running on day one.
           </p>
           <p className="text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            We design and activate custom Agentic AI operating systems for users and operators who are ready to run their entire business from one intelligent dashboard — built around how they work, not how a SaaS company thinks they should.
+            We design and activate custom Agentic AI operating systems for users and operators who are ready to run their entire business from one intelligent dashboard — built around how they work, not how a SaaS company thinks they should. Deploy agents that read your inbox, manage your pipeline, draft responses in your voice, and surface the decisions that matter — you approve, they execute.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href={CALENDLY} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium bg-primary text-primary-foreground px-8 py-3.5 rounded-md hover:bg-primary/90 transition-colors duration-150">
@@ -297,7 +297,7 @@ export default function WhiteLabelPage() {
                 </DarkCard>
                 {card.featured && (
                   <p className="text-xs text-muted-foreground italic mt-3 leading-relaxed">
-                    About AI infrastructure: We'll set up your organization's own Anthropic API account during the build — you pay Anthropic directly at standard rates. No markup. Full transparency.
+                    About AI infrastructure: We connect your own AI provider accounts during the build — Anthropic, OpenAI, or Google. You pay the provider directly at standard rates. No markup. Full transparency.
                   </p>
                 )}
               </div>

@@ -9,32 +9,25 @@ function ByokLine() {
       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/30 rounded-md px-2.5 py-1.5">
         <Key size={11} className="text-primary shrink-0" />
         <span>
-          Connect your{" "}
-          <a
-            href="https://console.anthropic.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:underline"
-            style={{ color: "#5D9992" }}
-          >
-            Anthropic API key
-          </a>{" "}
+          Connect{" "}
+          <Link to="/settings" className="hover:underline" style={{ color: "#5D9992" }}>
+            your own API key
+          </Link>{" "}
           for unlimited tokens
         </span>
         <button
           onClick={(e) => { e.preventDefault(); setOpen(!open); }}
           className="ml-auto shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="What is an Anthropic API key?"
+          aria-label="What is BYOK?"
         >
           <HelpCircle size={12} />
         </button>
       </div>
       {open && (
         <div className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground bg-muted/20 border border-border/50 rounded-md px-2.5 py-2">
-          Your Claude.ai subscription and an Anthropic API key are two different things.
-          An API key is a separate account at{" "}
-          <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: "#5D9992" }}>console.anthropic.com</a>
-          {" "}— you pay Anthropic directly per token with no monthly fee. Takes 5 minutes to set up.
+          Connect your Anthropic, OpenAI, or Google API key in{" "}
+          <Link to="/settings" className="hover:underline" style={{ color: "#5D9992" }}>Settings → Agent Settings</Link>
+          . You pay the AI provider directly — no markup, no token limits. Takes 2 minutes to set up.
         </div>
       )}
     </div>
@@ -46,9 +39,15 @@ const plans = [
     name: "SCOUT",
     price: "Free",
     period: "",
-    tokens: "500K tokens",
+    agents: "1 Agent",
+    tokens: "500K tokens/mo",
     seats: "1 seat",
-    features: ["1 agent", "3 social accounts", "Basic CRM — 25 contacts", "100 AI email responses/mo"],
+    features: [
+      "3 integrations",
+      "Basic inbox triage",
+      "3 social accounts",
+      "100 AI email responses/mo",
+    ],
     featured: false,
     cta: "Start Free",
   },
@@ -57,14 +56,14 @@ const plans = [
     price: "$49",
     period: "/mo",
     badge: "Most Popular",
-    tokens: "10M tokens",
+    agents: "3 Agents",
+    tokens: "10M tokens/mo",
     seats: "1 seat",
     features: [
-      "Up to 3 agents",
       "All 7 pillars",
-      "Full CRM — unlimited contacts",
       "All integrations",
-      "Chief AI full access",
+      "Full CRM — unlimited contacts",
+      "BYOK unlocks unlimited tokens",
     ],
     featured: true,
     cta: "Start with Titan",
@@ -74,7 +73,8 @@ const plans = [
     name: "ATLAS",
     price: "$79",
     period: "/mo",
-    tokens: "20M tokens",
+    agents: "10 Agents",
+    tokens: "20M tokens/mo",
     seats: "2 seats",
     features: [
       "Everything in TITAN",
@@ -91,7 +91,8 @@ const plans = [
     name: "OLYMPUS",
     price: "$149",
     period: "/mo",
-    tokens: "50M tokens",
+    agents: "Unlimited Agents",
+    tokens: "50M tokens/mo",
     seats: "5 seats",
     features: [
       "Everything in ATLAS",
@@ -128,10 +129,17 @@ export default function PricingSection() {
                 </span>
               )}
               <h3 className="text-sm font-semibold tracking-wide text-foreground mb-1">{plan.name}</h3>
-              <div className="mb-2">
+              <div className="mb-3">
                 <span className="text-3xl font-bold text-foreground">{plan.price}</span>
                 <span className="text-sm text-muted-foreground">{plan.period}</span>
               </div>
+
+              {/* Hero metric — agent count */}
+              <div className="mb-3 pb-3 border-b border-border">
+                <p className="text-2xl font-bold text-primary leading-none">{plan.agents}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">Deployed Agents</p>
+              </div>
+
               <div className="flex items-center gap-3 mb-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><Zap size={12} className="text-primary" />{plan.tokens}</span>
                 <span>{plan.seats}</span>
@@ -160,7 +168,8 @@ export default function PricingSection() {
         </div>
 
         <p className="text-center text-sm text-muted-foreground mt-8">
-          TITAN replaces <span className="font-semibold text-foreground">$276/mo</span> in tools. You pay <span className="font-semibold text-primary">$49</span>.
+          <span className="font-semibold text-foreground">3 agents</span> running your business.{" "}
+          <span className="font-semibold text-primary">$49/mo</span>.
         </p>
       </div>
     </section>
