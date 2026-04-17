@@ -25,6 +25,10 @@ import {
   Activity,
   MessageCircle,
   Cpu,
+  Users,
+  Building2,
+  ListChecks,
+  Search,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -59,8 +63,15 @@ const agentsSubItems = [
   { label: "Deployed", path: "/agents/deployed", icon: Cpu, badge: 0 },
 ];
 
+const salesSubItems = [
+  { label: "Pipeline", path: "/sales", icon: LayoutGrid, exact: true },
+  { label: "Contacts", path: "/sales/contacts", icon: Users },
+  { label: "Companies", path: "/sales/companies", icon: Building2 },
+  { label: "Tasks", path: "/sales/tasks", icon: ListChecks },
+  { label: "Prospects", path: "/sales/prospects", icon: Search },
+];
+
 const mainNavAfterInbox = [
-  { label: "SALES", path: "/sales", icon: Target },
   { label: "PUBLISH", path: "/publish", icon: FileText },
   { label: "BUILD", path: "/build", icon: Wrench },
   { label: "CALENDAR", path: "/calendar", icon: Calendar },
