@@ -37,11 +37,26 @@ const channels = [
 
 export default function AgentDeployPage() {
   const { user } = useAuth();
-  const [step, setStep] = useState(0);
+  const location = useLocation();
+  const template = (location.state as { template?: AgentTemplate } | null)?.template;
+
+  const [step, setStep] = useState(template ? 1 : 0);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [integrations, setIntegrations] = useState<Record<string, boolean>>(
-    Object.fromEntries(integrationsList.map((i) => [i.name, i.defaultOn]))
-  );
+  const [agentName, setAgentName] = useState<string>(template?.name ?? "My HQ Agent");
+  const [integrations, setIntegrations] = useState<Record<string, boolean>>(() => {
+    const base = Object.fromEntries(integrationsList.map((i) => [i.name, i.defaultOn])) as Record<string, boolean>;
+    if (template) {
+      // Auto-select integrations matching the template (case-insensitive)
+      for (const wanted of template.integrations) {
+        for (const integ of integrationsList) {
+          if (integ.name.toLowerCase() === wanted.toLowerCase()) {
+            base[integ.name] = true;
+          }
+        }
+      }
+    }
+    return base;
+  });
   const [channelState, setChannelState] = useState<Record<string, boolean>>(
     Object.fromEntries(channels.map((c) => [c.name, c.defaultOn]))
   );
@@ -52,7 +67,7 @@ export default function AgentDeployPage() {
     openai: false,
     gemini: false,
   });
-  const [systemPrompt, setSystemPrompt] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState<string>(template?.systemPrompt ?? "");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importedFileName, setImportedFileName] = useState("");
   const navigate = useNavigate();
