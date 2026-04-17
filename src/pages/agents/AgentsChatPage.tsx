@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import {
-  Search, Download, Send, Paperclip, PlusCircle, ChevronRight, ChevronDown, X, Zap,
+  Search, Download, Send, Paperclip, PlusCircle, ChevronRight, ChevronDown, X, Zap, Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +60,7 @@ function StatusDot({ status }: { status: "online" | "offline" }) {
 export default function AgentsChatPage() {
   const [activeAgentName, setActiveAgentName] = useState<AgentName>("CHIEF");
   const activeAgent = AGENTS.find((a) => a.name === activeAgentName)!;
+  const isClaudeDirect = activeAgent.isSpecial === true;
 
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
@@ -272,6 +273,7 @@ export default function AgentsChatPage() {
         <div className="px-2 space-y-0.5">
           {AGENTS.map((a) => {
             const isActive = activeAgentName === a.name;
+            const special = a.isSpecial === true;
             return (
               <button
                 key={a.id}
@@ -282,15 +284,25 @@ export default function AgentsChatPage() {
                 }}
                 className={cn(
                   "w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md transition-colors duration-150 cursor-pointer text-left",
-                  isActive ? "bg-primary/10 border-l-2 border-primary text-primary -ml-[2px] pl-[10px]" : "hover:bg-muted/30",
+                  special && !isActive && "border border-primary/20 bg-primary/5",
+                  isActive ? "bg-primary/10 border-l-2 border-primary text-primary -ml-[2px] pl-[10px]" : !special && "hover:bg-muted/30",
                 )}
               >
-                <StatusDot status={a.status} />
+                {special ? (
+                  <Sparkles size={10} className="text-primary mt-1 shrink-0" />
+                ) : (
+                  <StatusDot status={a.status} />
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className={cn("text-sm font-semibold", isActive ? "text-primary" : "text-foreground")}>{a.name}</span>
+                    <span className={cn("text-xs font-semibold", isActive ? "text-primary" : "text-foreground")}>{a.name}</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">{a.preview}</p>
+                  <p className={cn(
+                    "text-[10px] truncate mt-0.5",
+                    special ? "text-muted-foreground italic" : "text-muted-foreground",
+                  )}>
+                    {special ? "Direct AI · No agent layer" : a.preview}
+                  </p>
                 </div>
               </button>
             );
@@ -423,7 +435,7 @@ export default function AgentsChatPage() {
                   return <p key={m.id} className="text-center py-1 text-[10px] text-muted-foreground italic">{m.content}</p>;
                 }
                 // agent
-                if (m.type === "proposal" && m.proposedAction) {
+                if (m.type === "proposal" && m.proposedAction && !isClaudeDirect) {
                   const action = m.proposedAction;
                   const draftText = (action.draft_content?.draft as string) || "";
                   const summary = (action.draft_content?.summary as string) || m.content;
@@ -520,15 +532,29 @@ export default function AgentsChatPage() {
                   );
                 }
 
-                // text agent message
+                // text agent message (or Claude Direct response — proposals fall through to here too)
                 return (
                   <div key={m.id} className="flex items-start gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="text-[10px] font-bold text-primary">{activeAgent.name[0]}</span>
+                    <div className={cn(
+                      "w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                      isClaudeDirect ? "bg-primary/10 border border-primary/30" : "bg-primary/20",
+                    )}>
+                      {isClaudeDirect ? (
+                        <Sparkles size={11} className="text-primary" />
+                      ) : (
+                        <span className="text-[10px] font-bold text-primary">{activeAgent.name[0]}</span>
+                      )}
                     </div>
                     <div>
                       <div className="max-w-[78%] bg-card border border-border rounded-xl rounded-tl-sm px-3 py-2.5">
-                        <p className="text-[10px] font-semibold text-primary mb-1">{activeAgent.name}</p>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <p className="text-[10px] font-semibold text-primary">{activeAgent.name}</p>
+                          {isClaudeDirect && (
+                            <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                              Claude Direct
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">{m.content}</p>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1">{formatTime(m.created_at)}</p>

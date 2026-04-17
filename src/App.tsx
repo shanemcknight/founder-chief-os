@@ -17,6 +17,7 @@ import PublishPage from "./pages/PublishPage";
 import ChiefPage from "./pages/ChiefPage";
 import AgentsLayout from "./pages/agents/AgentsLayout";
 import AgentsChatPage from "./pages/agents/AgentsChatPage";
+import AgentsResearchPage from "./pages/agents/AgentsResearchPage";
 import AgentsApprovalsPage from "./pages/agents/AgentsApprovalsPage";
 import AgentsActivityPage from "./pages/agents/AgentsActivityPage";
 import AgentsDeployedPage from "./pages/agents/AgentsDeployedPage";
@@ -109,6 +110,7 @@ const App = () => (
               <Route path="/chief" element={<ChiefPage />} />
               <Route path="/agents" element={<AgentsLayout />}>
                 <Route index element={<AgentsChatPage />} />
+                <Route path="research" element={<AgentsResearchPage />} />
                 <Route path="approvals" element={<AgentsApprovalsPage />} />
                 <Route path="activity" element={<AgentsActivityPage />} />
                 <Route path="deployed" element={<AgentsDeployedPage />} />
