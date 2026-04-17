@@ -274,7 +274,7 @@ export default function RelayPanel() {
                         onClick={() => handleAction(item)}
                         className="bg-primary text-primary-foreground text-[10px] font-medium px-2 py-1 rounded hover:bg-primary/90 transition-colors duration-150"
                       >
-                        {item.source === "approval" ? "Review" : "Reply"}
+                        {buttonLabel(item.source)}
                       </button>
                     </div>
                   </div>
