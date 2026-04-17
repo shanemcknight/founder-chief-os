@@ -58,6 +58,7 @@ const AGENTS_CHAT_UNREAD = 2;
 
 const agentsSubItems = [
   { label: "Chat", path: "/agents", icon: MessageCircle, badge: AGENTS_CHAT_UNREAD, badgeStyle: "primary" as const, exact: true },
+  { label: "Deep Research", path: "/agents/research", icon: Search, badge: 0, badgeStyle: "primary" as const },
   { label: "Approvals", path: "/agents/approvals", icon: ShieldCheck, badge: AGENTS_PENDING_APPROVALS, badgeStyle: "destructive" as const },
   { label: "Activity", path: "/agents/activity", icon: Activity, badge: 0 },
   { label: "Deployed", path: "/agents/deployed", icon: Cpu, badge: 0 },
