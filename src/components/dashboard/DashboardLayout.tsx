@@ -36,6 +36,20 @@ export default function DashboardLayout() {
         {!isMobile && <RelayPanel />}
       </div>
 
+      {/* Floating Support button (desktop only — mobile has Chief FAB on right) */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => navigate("/support")}
+            className="hidden md:flex fixed bottom-6 left-6 z-40 w-10 h-10 rounded-full bg-card border border-border shadow-lg items-center justify-center hover:border-primary/40 hover:shadow-[0_0_16px_hsl(170_22%_48%/0.15)] transition-all duration-200 cursor-pointer"
+            aria-label="Support"
+          >
+            <MessageCircle size={16} className="text-primary" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right">Support</TooltipContent>
+      </Tooltip>
+
       {/* Mobile bottom tab bar */}
       {isMobile && (
         <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border flex items-center justify-around h-14 z-40">
