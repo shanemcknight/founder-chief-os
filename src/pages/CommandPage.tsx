@@ -111,11 +111,11 @@ export default function CommandPage() {
         ))}
       </div>
 
-      <ConnectedToolsGrid />
-
       <div className="flex-1 min-h-0">
         <CalendarTimeline />
       </div>
+
+      <ConnectedToolsGrid />
 
       {/* Dashboard Modal Overlay */}
       {activeModal && ModalContent && (
