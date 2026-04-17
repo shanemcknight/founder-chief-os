@@ -222,12 +222,12 @@ export default function HeroSection() {
               Private Beta · Invite Only
             </span>
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight text-foreground mb-6">
-              Your agents run the business.
+              Less noise. More story.
               <br />
-              <span className="gradient-text">You make the calls.</span>
+              <span className="gradient-text">Scale What Matters.</span>
             </h1>
             <p className="text-base md:text-lg text-muted-foreground max-w-lg mb-8 leading-relaxed">
-              MythosHQ deploys AI agents across your inbox, CRM, social media, and operations. Every agent surfaces decisions for your approval — nothing goes out without you. Connect your tools once. Your agents handle the rest.
+              Emails read, written and ready for approval. Leads tracked. Orders placed. Invoices sent. Socials designed, scheduled, and live. All of it done. You are not alone.
             </p>
             <div className="flex gap-3">
               <Link to="/beta" className="inline-flex items-center gap-1 text-sm font-medium bg-primary text-primary-foreground px-6 py-3 rounded-md hover:bg-primary/90 transition-colors duration-150">
