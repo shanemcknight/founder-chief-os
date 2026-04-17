@@ -46,18 +46,16 @@ const pillars = [
 export default function PillarsSection() {
   return (
     <section id="features" className="py-24">
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-screen-2xl mx-auto px-6 md:px-12 lg:px-16">
         <h2 className="text-3xl font-bold text-foreground text-center mb-4">Every function of your business.</h2>
         <p className="text-muted-foreground text-center mb-14 max-w-xl mx-auto">
           Seven pillars. One dashboard. One approval workflow.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {pillars.map((p, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {pillars.map((p) => (
             <div
               key={p.name}
-              className={`bg-card border border-border rounded-xl p-6 hover:border-primary transition-colors duration-150 group flex flex-col ${
-                i === 6 ? "sm:col-start-1 lg:col-start-2" : ""
-              }`}
+              className="bg-card border border-border rounded-xl p-6 hover:border-primary transition-colors duration-150 group flex flex-col"
             >
               <div className="flex items-start justify-between mb-3">
                 <span className="text-2xl block">{p.icon}</span>

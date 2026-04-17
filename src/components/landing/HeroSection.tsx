@@ -139,7 +139,7 @@ function AgentHQMockup() {
     },
   ];
   return (
-    <div className="bg-card border border-border rounded-xl p-4 w-full max-w-[300px] shadow-2xl">
+    <div className="bg-card border border-border rounded-xl p-4 w-full max-w-[288px] lg:max-w-[340px] shadow-2xl">
       <div className="flex items-center gap-2 mb-4">
         <span className="text-sm font-semibold text-foreground tracking-wide">AGENTIC HQ</span>
         <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
@@ -215,18 +215,18 @@ function CountUp({ target, suffix = "" }: { target: string; suffix?: string }) {
 export default function HeroSection() {
   return (
     <section className="relative grid-bg overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 pt-16 pb-16 w-full">
-        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+      <div className="max-w-screen-2xl mx-auto px-6 md:px-12 lg:px-16 pt-16 pb-16 w-full">
+        <div className="flex flex-col lg:grid lg:grid-cols-[1.2fr_0.8fr] gap-8 lg:gap-20 items-center">
           <div>
             <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-sm mb-6">
               Private Beta · Invite Only
             </span>
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight text-foreground mb-6">
+            <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold leading-[1.1] tracking-tight text-foreground mb-6">
               Less noise. More story.
               <br />
               <span className="gradient-text">Scale What Matters.</span>
             </h1>
-            <p className="text-base md:text-lg text-muted-foreground max-w-lg mb-8 leading-relaxed">
+            <p className="text-base md:text-xl text-muted-foreground max-w-lg mb-8 leading-relaxed">
               Emails read, written and ready for approval. Leads tracked. Orders placed. Invoices sent. Socials designed, scheduled, and live. All of it done. You are not alone.
             </p>
             <div className="flex gap-3">
