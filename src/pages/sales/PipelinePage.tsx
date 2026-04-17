@@ -122,7 +122,7 @@ export default function PipelinePage() {
       ) : (
         <div className="overflow-x-auto -mx-2 px-2">
           <div className="flex gap-3" style={{ minWidth: "1280px" }}>
-            {STAGES.map((stage) => {
+            {stagesToShow.map((stage) => {
               const items = byStage[stage.key] || [];
               const isClosed = stage.key === "won" || stage.key === "lost";
               return (
