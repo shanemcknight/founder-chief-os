@@ -45,7 +45,7 @@ const pillars = [
 
 export default function PillarsSection() {
   return (
-    <section id="features" className="py-24">
+    <section id="features" className="pt-8 pb-24">
       <div className="max-w-screen-2xl mx-auto px-6 md:px-12 lg:px-16">
         <h2 className="text-3xl font-bold text-foreground text-center mb-4">Every function of your business.</h2>
         <p className="text-muted-foreground text-center mb-14 max-w-xl mx-auto">

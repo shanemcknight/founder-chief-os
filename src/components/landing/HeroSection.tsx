@@ -149,8 +149,8 @@ export default function HeroSection() {
             </div>
           ))}
         </div>
-        <div className="mt-4 text-center">
-          <p className="text-2xl font-bold text-primary">$49/mo to start</p>
+        <div className="mt-6 text-center">
+          <p className="text-2xl font-bold text-foreground">$49/mo to start</p>
           <p className="text-sm text-muted-foreground mt-1">No credit card required</p>
         </div>
       </div>
