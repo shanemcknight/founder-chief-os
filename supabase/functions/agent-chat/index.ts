@@ -150,7 +150,9 @@ Deno.serve(async (req) => {
       content: message,
     });
 
-    const systemPrompt = AGENT_PROMPTS[agentName?.toUpperCase()] || AGENT_PROMPTS.CHIEF;
+    const agentKey = (agentName || "").toUpperCase();
+    const isDirect = DIRECT_AGENTS.has(agentKey);
+    const systemPrompt = AGENT_PROMPTS[agentKey] || AGENT_PROMPTS.CHIEF;
     const aiMessages = [
       { role: "system" as const, content: systemPrompt },
       ...(history || []).filter((m) => m.type !== "thinking" && m.type !== "system").map((m) => ({
