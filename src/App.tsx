@@ -7,7 +7,12 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import CommandPage from "./pages/CommandPage";
-import SalesPage from "./pages/SalesPage";
+import SalesLayout from "./pages/sales/SalesLayout";
+import PipelinePage from "./pages/sales/PipelinePage";
+import ContactsPage from "./pages/sales/ContactsPage";
+import CompaniesPage from "./pages/sales/CompaniesPage";
+import TasksPage from "./pages/sales/TasksPage";
+import ProspectsPage from "./pages/sales/ProspectsPage";
 import PublishPage from "./pages/PublishPage";
 import ChiefPage from "./pages/ChiefPage";
 import AgentsLayout from "./pages/agents/AgentsLayout";
@@ -85,7 +90,13 @@ const App = () => (
                 <Route path="alerts" element={<InboxAlertsPage />} />
                 <Route path="activity" element={<InboxActivityPage />} />
               </Route>
-              <Route path="/sales" element={<SalesPage />} />
+              <Route path="/sales" element={<SalesLayout />}>
+                <Route index element={<PipelinePage />} />
+                <Route path="contacts" element={<ContactsPage />} />
+                <Route path="companies" element={<CompaniesPage />} />
+                <Route path="tasks" element={<TasksPage />} />
+                <Route path="prospects" element={<ProspectsPage />} />
+              </Route>
               <Route path="/publish" element={<PublishPage />} />
               <Route path="/chief" element={<ChiefPage />} />
               <Route path="/agents" element={<AgentsLayout />}>

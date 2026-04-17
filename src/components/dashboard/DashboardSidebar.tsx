@@ -25,6 +25,10 @@ import {
   Activity,
   MessageCircle,
   Cpu,
+  Users,
+  Building2,
+  ListChecks,
+  Search,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -59,8 +63,15 @@ const agentsSubItems = [
   { label: "Deployed", path: "/agents/deployed", icon: Cpu, badge: 0 },
 ];
 
+const salesSubItems = [
+  { label: "Pipeline", path: "/sales", icon: LayoutGrid, exact: true },
+  { label: "Contacts", path: "/sales/contacts", icon: Users },
+  { label: "Companies", path: "/sales/companies", icon: Building2 },
+  { label: "Tasks", path: "/sales/tasks", icon: ListChecks },
+  { label: "Prospects", path: "/sales/prospects", icon: Search },
+];
+
 const mainNavAfterInbox = [
-  { label: "SALES", path: "/sales", icon: Target },
   { label: "PUBLISH", path: "/publish", icon: FileText },
   { label: "BUILD", path: "/build", icon: Wrench },
   { label: "CALENDAR", path: "/calendar", icon: Calendar },
@@ -81,9 +92,11 @@ export default function DashboardSidebar() {
   const isSocialActive = location.pathname.startsWith("/social");
   const isInboxActive = location.pathname.startsWith("/inbox");
   const isAgentsActive = location.pathname.startsWith("/agents");
+  const isSalesActive = location.pathname.startsWith("/sales");
   const [socialOpen, setSocialOpen] = useState(isSocialActive);
   const [inboxOpen, setInboxOpen] = useState(isInboxActive);
   const [agentsOpen, setAgentsOpen] = useState(isAgentsActive);
+  const [salesOpen, setSalesOpen] = useState(isSalesActive);
 
   const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
   const initials = displayName
@@ -255,6 +268,48 @@ export default function DashboardSidebar() {
                       {item.badge}
                     </span>
                   )}
+                </NavLink>
+              );
+            })}
+          </div>
+        )}
+
+        {/* SALES — expandable */}
+        <button
+          onClick={() => setSalesOpen(!salesOpen)}
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150",
+            isSalesActive
+              ? "text-primary bg-primary/10"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+          )}
+        >
+          <Target size={16} />
+          <span className="flex-1 text-left">SALES</span>
+          <ChevronRight size={14} className={cn("opacity-50 transition-transform duration-200", salesOpen && "rotate-90")} />
+        </button>
+
+        {salesOpen && (
+          <div className="ml-3 pl-3 border-l border-border/40 space-y-0.5 py-1">
+            {salesSubItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = item.exact
+                ? location.pathname === item.path
+                : location.pathname === item.path;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.exact}
+                  className={cn(
+                    "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] transition-colors duration-150",
+                    isActive
+                      ? "text-primary bg-primary/10 font-medium border-l-2 border-primary -ml-[2px] pl-[10px]"
+                      : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/30"
+                  )}
+                >
+                  <Icon size={14} />
+                  <span className="flex-1">{item.label}</span>
                 </NavLink>
               );
             })}

@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 type Tab = "approvals" | "chat" | "activity";
 
 type PriorityKind = "HIGH" | "MED" | "FYI";
-type SourceKind = "approval" | "email";
+type SourceKind = "approval" | "email" | "task";
 
 type Priority = {
   id: string;
@@ -120,7 +120,24 @@ export default function RelayPanel() {
         .in("category", ["urgent", "lead"])
         .order("received_at", { ascending: false });
 
+      const in24h = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const { data: crmTasks } = await supabase
+        .from("crm_tasks")
+        .select("id, title, due_date, contact_id, created_at")
+        .eq("user_id", user.id)
+        .eq("completed", false)
+        .lt("due_date", in24h)
+        .order("due_date", { ascending: true });
+
+      const { data: contactsData } = await supabase
+        .from("contacts")
+        .select("id, name")
+        .eq("user_id", user.id);
+
       if (cancelled) return;
+
+      const contactMap = new Map<string, string>();
+      (contactsData || []).forEach((c: any) => contactMap.set(c.id, c.name));
 
       const approvalItems: Priority[] = (actions || []).map((a: any) => {
         const content = a.draft_content || {};
@@ -144,7 +161,19 @@ export default function RelayPanel() {
         source: "email",
       }));
 
-      const merged = [...approvalItems, ...emailItems].sort(
+      const taskItems: Priority[] = (crmTasks || []).map((t: any) => {
+        const contactName = t.contact_id ? contactMap.get(t.contact_id) : null;
+        return {
+          id: `tk-${t.id}`,
+          summary: contactName ? `${t.title} — ${contactName}` : t.title,
+          priority: "MED",
+          actionType: "Task",
+          createdAt: t.due_date || t.created_at,
+          source: "task",
+        };
+      });
+
+      const merged = [...approvalItems, ...emailItems, ...taskItems].sort(
         (a, b) => priorityRank[a.priority] - priorityRank[b.priority]
       );
 
@@ -171,8 +200,11 @@ export default function RelayPanel() {
 
   const handleAction = (item: Priority) => {
     if (item.source === "approval") navigate("/agents/approvals");
+    else if (item.source === "task") navigate("/sales/tasks");
     else navigate("/inbox/mail");
   };
+
+  const buttonLabel = (s: SourceKind) => (s === "approval" ? "Review" : s === "task" ? "View" : "Reply");
 
   return (
     <aside className="w-full md:w-[300px] shrink-0 md:border-l border-border bg-card flex flex-col overflow-hidden">
@@ -242,7 +274,7 @@ export default function RelayPanel() {
                         onClick={() => handleAction(item)}
                         className="bg-primary text-primary-foreground text-[10px] font-medium px-2 py-1 rounded hover:bg-primary/90 transition-colors duration-150"
                       >
-                        {item.source === "approval" ? "Review" : "Reply"}
+                        {buttonLabel(item.source)}
                       </button>
                     </div>
                   </div>
