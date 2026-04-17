@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      activities: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_log: {
         Row: {
           action_type: string | null
@@ -193,6 +228,95 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          created_at: string
+          id: string
+          industry: string | null
+          location: string | null
+          name: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          industry?: string | null
+          location?: string | null
+          name: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          industry?: string | null
+          location?: string | null
+          name?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      contacts: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          last_contacted_at: string | null
+          location: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          stage: string
+          tags: string[]
+          title: string | null
+          user_id: string
+          value: number
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contacted_at?: string | null
+          location?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          stage?: string
+          tags?: string[]
+          title?: string | null
+          user_id: string
+          value?: number
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contacted_at?: string | null
+          location?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          stage?: string
+          tags?: string[]
+          title?: string | null
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           agent_id: string
@@ -222,6 +346,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      crm_tasks: {
+        Row: {
+          completed: boolean
+          contact_id: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          contact_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          contact_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_accounts: {
         Row: {
