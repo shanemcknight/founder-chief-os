@@ -79,12 +79,13 @@ function priorityDotClass(p: Priority["priority"]): string {
 
 export default function RelayPanel() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("approvals");
-  const [approved, setApproved] = useState<string[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>(initialLogs);
   const [input, setInput] = useState("");
-  const [priorities, setPriorities] = useState<Priority[]>(seedPriorities);
-  const [urgentCount, setUrgentCount] = useState(0);
+  const [priorities, setPriorities] = useState<Priority[]>([]);
+  const [loadingPriorities, setLoadingPriorities] = useState(true);
+  const [showAll, setShowAll] = useState(false);
   const rotateIdx = useRef(0);
 
   // Rotating activity logs
@@ -99,44 +100,56 @@ export default function RelayPanel() {
     return () => clearInterval(interval);
   }, []);
 
-  // Load real pending approvals + urgent count
+  // Load real pending approvals + urgent/lead emails (merged)
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
 
     const loadData = async () => {
-      // Pending proposed_actions joined for context
       const { data: actions } = await supabase
         .from("proposed_actions")
         .select("id, action_type, draft_content, status, created_at")
         .eq("status", "pending")
-        .order("created_at", { ascending: false })
-        .limit(10);
+        .order("created_at", { ascending: false });
 
-      // Urgent unread emails count
-      const { count: emailCount } = await supabase
+      const { data: emails } = await supabase
         .from("emails")
-        .select("id", { count: "exact", head: true })
-        .eq("category", "urgent")
-        .eq("read", false);
+        .select("id, subject, from_name, chief_summary, category, received_at")
+        .eq("user_id", user.id)
+        .eq("read", false)
+        .in("category", ["urgent", "lead"])
+        .order("received_at", { ascending: false });
 
       if (cancelled) return;
 
-      const realPriorities: Priority[] = (actions || []).map((a: any) => {
+      const approvalItems: Priority[] = (actions || []).map((a: any) => {
         const content = a.draft_content || {};
         const summary = content.summary || content.draft?.slice(0, 80) || `${actionTypeLabel(a.action_type)} action`;
         return {
-          id: a.id,
+          id: `pa-${a.id}`,
           summary: String(summary).slice(0, 120),
           priority: "HIGH",
           actionType: actionTypeLabel(a.action_type),
           createdAt: a.created_at,
-          isReal: true,
+          source: "approval",
         };
       });
 
-      setPriorities(realPriorities.length > 0 ? realPriorities : seedPriorities);
-      setUrgentCount((actions?.length || 0) + (emailCount || 0));
+      const emailItems: Priority[] = (emails || []).map((e: any) => ({
+        id: `em-${e.id}`,
+        summary: e.chief_summary || e.subject || "(no subject)",
+        priority: e.category === "urgent" ? "HIGH" : "MED",
+        actionType: e.category === "urgent" ? "Urgent" : "Lead",
+        createdAt: e.received_at || new Date().toISOString(),
+        source: "email",
+      }));
+
+      const merged = [...approvalItems, ...emailItems].sort(
+        (a, b) => priorityRank[a.priority] - priorityRank[b.priority]
+      );
+
+      setPriorities(merged);
+      setLoadingPriorities(false);
     };
 
     loadData();
@@ -153,7 +166,13 @@ export default function RelayPanel() {
     return "text-muted-foreground";
   };
 
-  const visiblePriorities = priorities.filter((p) => !approved.includes(p.id));
+  const totalCount = priorities.length;
+  const visiblePriorities = showAll || totalCount <= 8 ? priorities : priorities.slice(0, 8);
+
+  const handleAction = (item: Priority) => {
+    if (item.source === "approval") navigate("/agents/approvals");
+    else navigate("/inbox/mail");
+  };
 
   return (
     <aside className="w-full md:w-[300px] shrink-0 md:border-l border-border bg-card flex flex-col overflow-hidden">
@@ -161,9 +180,9 @@ export default function RelayPanel() {
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
         <span className="text-sm font-bold text-foreground tracking-wide">AGENTIC HQ</span>
         <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-        {urgentCount > 0 && (
-          <span className="bg-destructive text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-            {urgentCount}
+        {totalCount > 0 && (
+          <span className="bg-destructive text-destructive-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+            {totalCount}
           </span>
         )}
         <Link to="/agents/deployed" className="ml-auto text-muted-foreground hover:text-foreground transition-colors duration-150">
@@ -192,45 +211,53 @@ export default function RelayPanel() {
       {/* Approvals tab */}
       {tab === "approvals" && (
         <div className="flex-1 overflow-y-auto px-4 pb-4">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Today's Priorities</p>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Needs Attention</p>
 
-          {visiblePriorities.length === 0 ? (
+          {loadingPriorities ? (
+            <div className="space-y-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="bg-muted/30 animate-pulse h-16 rounded-lg" />
+              ))}
+            </div>
+          ) : totalCount === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 gap-2">
-              <CheckCircle2 size={20} className="text-emerald-400" />
-              <p className="text-[11px] text-muted-foreground text-center">✓ All clear — nothing needs your attention</p>
+              <CheckCircle2 size={16} className="text-success" />
+              <p className="text-[11px] text-muted-foreground text-center mt-2">Nothing needs your attention</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {visiblePriorities.map((item) => (
-                <div key={item.id} className="bg-background/50 border border-border rounded-lg p-2.5 relative">
-                  <span className="absolute top-2 right-2 text-[9px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                    {item.actionType}
-                  </span>
-                  <div className="flex gap-2 pr-14">
-                    <span className={cn("w-2 h-2 rounded-full shrink-0 mt-1", priorityDotClass(item.priority))} />
-                    <p className="text-xs text-foreground leading-relaxed">{item.summary}</p>
+            <>
+              <div className="space-y-2">
+                {visiblePriorities.map((item) => (
+                  <div key={item.id} className="bg-background/50 border border-border rounded-lg p-2.5 relative">
+                    <span className="absolute top-2 right-2 text-[9px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                      {item.actionType}
+                    </span>
+                    <div className="flex gap-2 pr-14">
+                      <span className={cn("w-2 h-2 rounded-full shrink-0 mt-1", priorityDotClass(item.priority))} />
+                      <p className="text-xs text-foreground leading-relaxed">{item.summary}</p>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1.5 ml-4">{relativeTime(item.createdAt)}</p>
+                    <div className="flex gap-1.5 mt-2 ml-4">
+                      <button
+                        onClick={() => handleAction(item)}
+                        className="bg-primary text-primary-foreground text-[10px] font-medium px-2 py-1 rounded hover:bg-primary/90 transition-colors duration-150"
+                      >
+                        {item.source === "approval" ? "Review" : "Reply"}
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1.5 ml-4">{relativeTime(item.createdAt)}</p>
-                  <div className="flex gap-1.5 mt-2 ml-4">
-                    <button
-                      onClick={() => setApproved((p) => [...p, item.id])}
-                      className="bg-primary text-primary-foreground text-[10px] font-medium px-2 py-1 rounded hover:bg-primary/90 transition-colors duration-150"
-                    >
-                      Approve
-                    </button>
-                    <button className="text-muted-foreground border border-border text-[10px] px-2 py-1 rounded hover:text-foreground transition-colors duration-150">
-                      Edit
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {approved.length > 0 && (
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2.5 flex items-center gap-2">
-                  <Check size={14} className="text-emerald-400" />
-                  <span className="text-xs text-emerald-400 font-medium">{approved.length} approved</span>
-                </div>
+                ))}
+              </div>
+
+              {totalCount > 8 && (
+                <button
+                  onClick={() => setShowAll((v) => !v)}
+                  className="text-[10px] text-primary cursor-pointer text-center mt-2 w-full hover:underline"
+                >
+                  {showAll ? "Show less ↑" : `Show all ${totalCount} items ↓`}
+                </button>
               )}
-            </div>
+            </>
           )}
 
           <Link to="/agents/approvals" className="block text-[10px] text-primary hover:underline mt-3">
