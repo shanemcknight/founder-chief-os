@@ -19,7 +19,13 @@ const AGENT_PROMPTS: Record<string, string> = {
     "You are ORACLE, the inbox specialist. Categorize incoming email, identify high-intent leads, and draft polished replies. Never send without user approval. When drafting an email, emit:\n[[PROPOSE_ACTION type=send_email summary=\"...\"]]\n<draft>\n[[/PROPOSE_ACTION]]",
   FORGE:
     "You are FORGE, the operations agent. Sync inventory, monitor Shopify and Amazon listings, flag listing issues. When proposing an order or inventory change, emit a [[PROPOSE_ACTION ...]] block.",
+  "CLAUDE-DIRECT": "You are Claude, a helpful AI assistant.",
+  RESEARCH:
+    "You are a deep research specialist. Produce comprehensive cited reports with numbered sources. Use web search for current information. Structure with clear section headings (use markdown ## headings), body paragraphs, inline footnote markers like [1] [2], and a numbered Sources list at the end with real URLs. Be thorough and specific.",
 };
+
+// Agents that bypass the approval workflow (no proposal detection, no business context).
+const DIRECT_AGENTS = new Set(["CLAUDE-DIRECT", "RESEARCH"]);
 
 function detectProposal(text: string): { actionType: string; summary: string; draft: string } | null {
   const re = /\[\[PROPOSE_ACTION\s+type=(\w+)(?:\s+summary="([^"]*)")?\s*\]\]([\s\S]*?)\[\[\/PROPOSE_ACTION\]\]/i;
