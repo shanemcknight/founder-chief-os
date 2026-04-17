@@ -337,9 +337,11 @@ export default function DashboardSidebar() {
           );
         })}
 
-        {/* REPORTS — expandable */}
-        <button
-          onClick={() => setReportsOpen(!reportsOpen)}
+        {/* REPORTS — navigates AND expands */}
+        <NavLink
+          to="/reports"
+          end
+          onClick={() => setReportsOpen(true)}
           className={cn(
             "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150",
             isReportsActive
@@ -349,8 +351,19 @@ export default function DashboardSidebar() {
         >
           <BarChart3 size={16} />
           <span className="flex-1 text-left">REPORTS</span>
-          <ChevronRight size={14} className={cn("opacity-50 transition-transform duration-200", reportsOpen && "rotate-90")} />
-        </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setReportsOpen(!reportsOpen);
+            }}
+            className="p-0.5 -m-0.5"
+            aria-label="Toggle reports submenu"
+          >
+            <ChevronRight size={14} className={cn("opacity-50 transition-transform duration-200", reportsOpen && "rotate-90")} />
+          </button>
+        </NavLink>
 
         {reportsOpen && (
           <div className="ml-3 pl-3 border-l border-border/40 space-y-0.5 py-1">
