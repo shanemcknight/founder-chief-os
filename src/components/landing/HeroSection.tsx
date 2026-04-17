@@ -140,9 +140,9 @@ export default function HeroSection() {
           {([
             ["7", "Pillars"],
             ["1-Click", "Approvals"],
+            ["$49/mo", "to start"],
             ["4", "Tiers"],
             ["1", "Agent Free"],
-            ["$49/mo", "to start"],
           ] as const).map(([val, label]) => (
             <div key={label}>
               <p className="text-2xl font-bold text-foreground"><CountUp target={val} /></p>
