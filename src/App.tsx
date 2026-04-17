@@ -52,6 +52,13 @@ import InboxQueuePage from "./pages/inbox/InboxQueuePage";
 import InboxAlertsPage from "./pages/inbox/InboxAlertsPage";
 import InboxActivityPage from "./pages/inbox/InboxActivityPage";
 
+// Reports sub-pages
+import ReportsLayout from "./pages/reports/ReportsLayout";
+import ReportsAnalyzePage from "./pages/reports/ReportsAnalyzePage";
+import ReportsLibraryPage from "./pages/reports/ReportsLibraryPage";
+import ReportsBuildPage from "./pages/reports/ReportsBuildPage";
+import ReportsVaultPage from "./pages/reports/ReportsVaultPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -107,6 +114,13 @@ const App = () => (
                 <Route path="new" element={<AgentDeployPage />} />
               </Route>
               <Route path="/build" element={<BuildPage />} />
+              <Route path="/reports" element={<ReportsLayout />}>
+                <Route index element={<Navigate to="/reports/library" replace />} />
+                <Route path="analyze" element={<ReportsAnalyzePage />} />
+                <Route path="library" element={<ReportsLibraryPage />} />
+                <Route path="build" element={<ReportsBuildPage />} />
+                <Route path="vault" element={<ReportsVaultPage />} />
+              </Route>
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
