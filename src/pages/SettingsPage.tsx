@@ -45,9 +45,29 @@ const plans = [
   { name: "OLYMPUS", price: "$149", period: "/month", features: ["25 seats", "Unlimited agents", "500,000 runs/mo", "Priority support", "Custom branding"], current: false },
 ];
 
+const TAB_PARAM_MAP: Record<string, string> = {
+  account: "Account",
+  team: "Team",
+  integrations: "Integrations",
+  agent: "Agent Settings",
+  "agent-settings": "Agent Settings",
+  billing: "Billing",
+  api: "API & Webhooks",
+  webhooks: "API & Webhooks",
+  notifications: "Notifications",
+};
+
 export default function SettingsPage() {
-  const [activeNav, setActiveNav] = useState("Account");
+  const [searchParams] = useSearchParams();
+  const initialTab = TAB_PARAM_MAP[(searchParams.get("tab") || "").toLowerCase()] || "Account";
+  const [activeNav, setActiveNav] = useState(initialTab);
   const [showInvite, setShowInvite] = useState(false);
+
+  useEffect(() => {
+    const param = (searchParams.get("tab") || "").toLowerCase();
+    const mapped = TAB_PARAM_MAP[param];
+    if (mapped) setActiveNav(mapped);
+  }, [searchParams]);
 
   return (
     <div className="flex gap-6 h-full min-h-0">
