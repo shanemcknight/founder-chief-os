@@ -11,10 +11,20 @@ function daysAgo(iso: string | null): number {
 
 export default function PipelinePage() {
   const { contacts, companies, loading, updateContact, createContact, setSelectedContactId } = useCrm();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const stageFilter = searchParams.get("stage") as Stage | null;
   const [search, setSearch] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
+
+  const stagesToShow = stageFilter ? STAGES.filter((s) => s.key === stageFilter) : STAGES;
+  const stageLabel = stageFilter ? STAGES.find((s) => s.key === stageFilter)?.label : null;
+  const clearFilter = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("stage");
+    setSearchParams(next);
+  };
 
   const filtered = useMemo(() => {
     if (!search.trim()) return contacts;
