@@ -13,6 +13,7 @@ import ContactsPage from "./pages/sales/ContactsPage";
 import CompaniesPage from "./pages/sales/CompaniesPage";
 import TasksPage from "./pages/sales/TasksPage";
 import ProspectsPage from "./pages/sales/ProspectsPage";
+import SalesDashboardPage from "./pages/sales/SalesDashboardPage";
 import PublishPage from "./pages/PublishPage";
 import ChiefPage from "./pages/ChiefPage";
 import AgentsLayout from "./pages/agents/AgentsLayout";
@@ -101,7 +102,8 @@ const App = () => (
                 <Route path="activity" element={<InboxActivityPage />} />
               </Route>
               <Route path="/sales" element={<SalesLayout />}>
-                <Route index element={<PipelinePage />} />
+                <Route index element={<SalesDashboardPage />} />
+                <Route path="pipeline" element={<PipelinePage />} />
                 <Route path="contacts" element={<ContactsPage />} />
                 <Route path="companies" element={<CompaniesPage />} />
                 <Route path="tasks" element={<TasksPage />} />

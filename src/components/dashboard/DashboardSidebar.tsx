@@ -65,7 +65,8 @@ const agentsSubItems = [
 ];
 
 const salesSubItems = [
-  { label: "Pipeline", path: "/sales", icon: LayoutGrid, exact: true },
+  { label: "Dashboard", path: "/sales", icon: LayoutDashboard, exact: true },
+  { label: "Pipeline", path: "/sales/pipeline", icon: LayoutGrid },
   { label: "Contacts", path: "/sales/contacts", icon: Users },
   { label: "Companies", path: "/sales/companies", icon: Building2 },
   { label: "Tasks", path: "/sales/tasks", icon: ListChecks },
