@@ -136,11 +136,12 @@ export default function HeroSection() {
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-8 text-center border-t border-border pt-10">
+        <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-8 text-center border-t border-border pt-10">
           {([
             ["7", "Pillars"],
             ["1-Click", "Approvals"],
-            ["3", "Agents min"],
+            ["4", "Tiers"],
+            ["1", "Agent Free"],
             ["$49/mo", "to start"],
           ] as const).map(([val, label]) => (
             <div key={label}>
