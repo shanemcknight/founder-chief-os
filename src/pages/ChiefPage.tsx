@@ -98,7 +98,7 @@ export default function ChiefPage() {
         </div>
 
         <div>
-          <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Chief's Activity Today</h3>
+          <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">My HQ Agent's Activity Today</h3>
           <div className="space-y-1.5">
             {chiefActivity.map((a, i) => (
               <div key={i} className="flex items-start gap-2">
@@ -112,12 +112,12 @@ export default function ChiefPage() {
 
       {/* CENTER — Chat */}
       <div className="flex flex-col min-h-0 flex-1 border-x border-border px-4 min-w-0">
-        <h2 className="text-sm font-bold text-foreground mb-3">Ask Chief Anything</h2>
+        <h2 className="text-sm font-bold text-foreground mb-3">Chat with My HQ Agent</h2>
         <div className="flex-1 overflow-y-auto space-y-3 mb-3">
           {chatMessages.map((msg, i) => (
             <div key={i} className={`rounded-lg p-3 ${msg.role === "chief" ? "bg-primary/10 border border-primary/20" : "bg-muted/30"}`}>
               <span className="text-[10px] font-semibold text-muted-foreground block mb-1">
-                {msg.role === "chief" ? "CHIEF" : "SHANE"}
+                {msg.role === "chief" ? "MY HQ AGENT" : "SHANE"}
               </span>
               <p className="text-xs text-foreground leading-relaxed">{msg.text}</p>
             </div>
@@ -125,7 +125,7 @@ export default function ChiefPage() {
         </div>
         <div className="flex items-center gap-2 border-t border-border pt-3">
           <input
-            placeholder="Ask Chief anything..."
+            placeholder="Ask My HQ Agent anything..."
             className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
           />
           <button className="bg-primary text-primary-foreground p-2 rounded-lg hover:bg-primary/90 transition-colors">

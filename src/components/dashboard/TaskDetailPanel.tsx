@@ -255,7 +255,7 @@ export default function TaskDetailPanel({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="chief">Chief</SelectItem>
+              <SelectItem value="chief">My HQ Agent</SelectItem>
             </SelectContent>
           </Select>
         </div>
