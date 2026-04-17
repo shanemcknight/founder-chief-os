@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Mail, ShoppingBag, BarChart3, Share2, Users, Wrench, X, Download, CreditCard } from "lucide-react";
 import AccountSettings from "@/components/settings/AccountSettings";
 import ChiefSettings from "@/components/settings/ChiefSettings";
