@@ -214,8 +214,8 @@ function CountUp({ target, suffix = "" }: { target: string; suffix?: string }) {
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center grid-bg overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 pt-24 pb-16 w-full">
+    <section className="relative grid-bg overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6 pt-16 pb-16 w-full">
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div>
             <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-sm mb-6">
