@@ -14,7 +14,7 @@ const corsHeaders = {
 
 const AGENT_PROMPTS: Record<string, string> = {
   CHIEF:
-    "You are CHIEF, the user's executive assistant for Top Hat Provisions (a craft beverage brand). Triage email, draft responses in brand voice, surface high-priority decisions, and never act without approval. Be concise, decisive, warm. When you draft a high-stakes action (sending an email, posting to social, updating CRM, creating an order), emit a proposal block on its own line in the form:\n[[PROPOSE_ACTION type=send_email|post_social|update_crm|create_order|other summary=\"one-line summary\"]]\n<draft body here>\n[[/PROPOSE_ACTION]]\nOnly emit one proposal per reply. Otherwise, just chat normally.",
+    "You are the user's primary AI Chief of Staff. Triage email, draft responses in brand voice, surface high-priority decisions, and never act without approval. Be concise, decisive, warm. When you draft a high-stakes action (sending an email, posting to social, updating CRM, creating an order), emit a proposal block on its own line in the form:\n[[PROPOSE_ACTION type=send_email|post_social|update_crm|create_order|other summary=\"one-line summary\"]]\n<draft body here>\n[[/PROPOSE_ACTION]]\nOnly emit one proposal per reply. Otherwise, just chat normally.",
   ORACLE:
     "You are ORACLE, the inbox specialist. Categorize incoming email, identify high-intent leads, and draft polished replies. Never send without user approval. When drafting an email, emit:\n[[PROPOSE_ACTION type=send_email summary=\"...\"]]\n<draft>\n[[/PROPOSE_ACTION]]",
   FORGE:
@@ -25,7 +25,9 @@ const AGENT_PROMPTS: Record<string, string> = {
 };
 
 // Agents that bypass the approval workflow (no proposal detection, no business context).
-const DIRECT_AGENTS = new Set(["CLAUDE-DIRECT", "RESEARCH"]);
+const DIRECT_AGENTS = new Set(["CLAUDE-DIRECT", "RESEARCH", "CUSTOMER-SUPPORT"]);
+// Agents that should NOT receive injected business context.
+const SKIP_CONTEXT_AGENTS = new Set(["CLAUDE-DIRECT", "CUSTOMER-SUPPORT"]);
 
 function detectProposal(text: string): { actionType: string; summary: string; draft: string } | null {
   const re = /\[\[PROPOSE_ACTION\s+type=(\w+)(?:\s+summary="([^"]*)")?\s*\]\]([\s\S]*?)\[\[\/PROPOSE_ACTION\]\]/i;
@@ -39,6 +41,67 @@ function detectProposal(text: string): { actionType: string; summary: string; dr
 // Rough token estimator (~4 chars per token) used as fallback if gateway omits usage.
 function estimateTokens(text: string): number {
   return Math.max(1, Math.ceil(text.length / 4));
+}
+
+// Fetch live business context for the user. Returns "" on any error so chat continues.
+async function buildBusinessContext(adminSupabase: any, userId: string): Promise<string> {
+  try {
+    const tomorrowIso = new Date(Date.now() + 86_400_000).toISOString();
+    const [emailsResult, contactsResult, tasksResult, profileResult] = await Promise.all([
+      adminSupabase
+        .from("emails")
+        .select("subject, from_name, category, chief_summary, received_at")
+        .eq("user_id", userId)
+        .eq("read", false)
+        .in("category", ["urgent", "lead"])
+        .order("received_at", { ascending: false })
+        .limit(5),
+      adminSupabase
+        .from("contacts")
+        .select("name, stage, value, last_contacted_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      adminSupabase
+        .from("crm_tasks")
+        .select("title, due_date, contact_id")
+        .eq("user_id", userId)
+        .eq("completed", false)
+        .lte("due_date", tomorrowIso)
+        .limit(5),
+      adminSupabase
+        .from("profiles")
+        .select("agent_name, full_name, business_name")
+        .eq("user_id", userId)
+        .single(),
+    ]);
+
+    const profile = profileResult.data || {};
+    const agentName = profile.agent_name || "My HQ Agent";
+    const userName = profile.full_name || "there";
+    const businessName = profile.business_name || "your business";
+    const urgentEmails = emailsResult.data || [];
+    const recentContacts = contactsResult.data || [];
+    const dueTasks = tasksResult.data || [];
+
+    return `
+CURRENT BUSINESS CONTEXT FOR ${String(businessName).toUpperCase()}:
+User: ${userName}
+Agent Name: ${agentName}
+
+URGENT EMAILS NEEDING ATTENTION (${urgentEmails.length}):
+${urgentEmails.map((e: any) => `- ${String(e.category).toUpperCase()}: "${e.subject}" from ${e.from_name} — ${e.chief_summary || "no summary"}`).join("\n") || "None"}
+
+RECENT CRM CONTACTS (${recentContacts.length}):
+${recentContacts.map((c: any) => `- ${c.name} · Stage: ${c.stage} · Value: $${c.value}`).join("\n") || "None"}
+
+TASKS DUE TODAY/TOMORROW (${dueTasks.length}):
+${dueTasks.map((t: any) => `- ${t.title} · Due: ${t.due_date ? new Date(t.due_date).toLocaleDateString() : "soon"}`).join("\n") || "None"}
+`;
+  } catch (e) {
+    console.error("buildBusinessContext error (continuing without context):", e);
+    return "";
+  }
 }
 
 Deno.serve(async (req) => {
@@ -152,7 +215,16 @@ Deno.serve(async (req) => {
 
     const agentKey = (agentName || "").toUpperCase();
     const isDirect = DIRECT_AGENTS.has(agentKey);
-    const systemPrompt = AGENT_PROMPTS[agentKey] || AGENT_PROMPTS.CHIEF;
+    let systemPrompt = AGENT_PROMPTS[agentKey] || AGENT_PROMPTS.CHIEF;
+
+    // Inject live business context for non-direct, non-support agents.
+    if (!SKIP_CONTEXT_AGENTS.has(agentKey)) {
+      const businessContext = await buildBusinessContext(adminSupabase, userId);
+      if (businessContext) {
+        systemPrompt = businessContext + "\n\n" + systemPrompt;
+      }
+    }
+
     const aiMessages = [
       { role: "system" as const, content: systemPrompt },
       ...(history || []).filter((m) => m.type !== "thinking" && m.type !== "system").map((m) => ({

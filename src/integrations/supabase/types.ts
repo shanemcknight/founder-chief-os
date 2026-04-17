@@ -600,6 +600,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          agent_name: string
           anthropic_api_key: string | null
           api_keys_connected: boolean
           approved: boolean
@@ -616,6 +617,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agent_name?: string
           anthropic_api_key?: string | null
           api_keys_connected?: boolean
           approved?: boolean
@@ -632,6 +634,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agent_name?: string
           anthropic_api_key?: string | null
           api_keys_connected?: boolean
           approved?: boolean
