@@ -95,6 +95,7 @@ const linkClass = (isActive: boolean) =>
 
 export default function DashboardSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
   const inboxCounts = useInboxCounts();
 
