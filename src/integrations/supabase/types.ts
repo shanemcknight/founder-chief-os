@@ -690,6 +690,98 @@ export type Database = {
           },
         ]
       }
+      report_formulas: {
+        Row: {
+          category: string | null
+          created_at: string
+          formula: string
+          id: string
+          plain_english: string | null
+          starred: boolean
+          title: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          formula: string
+          id?: string
+          plain_english?: string | null
+          starred?: boolean
+          title: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          formula?: string
+          id?: string
+          plain_english?: string | null
+          starred?: boolean
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reports: {
+        Row: {
+          category: string
+          content: string | null
+          created_at: string
+          description: string | null
+          file_name: string | null
+          file_type: string | null
+          file_url: string | null
+          id: string
+          last_used_at: string | null
+          starred: boolean
+          title: string
+          user_id: string
+          version_label: string | null
+          version_of: string | null
+        }
+        Insert: {
+          category?: string
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          last_used_at?: string | null
+          starred?: boolean
+          title: string
+          user_id: string
+          version_label?: string | null
+          version_of?: string | null
+        }
+        Update: {
+          category?: string
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          last_used_at?: string | null
+          starred?: boolean
+          title?: string
+          user_id?: string
+          version_label?: string | null
+          version_of?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_version_of_fkey"
+            columns: ["version_of"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       social_brand_voice_rules: {
         Row: {
           created_at: string

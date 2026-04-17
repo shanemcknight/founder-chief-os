@@ -41,6 +41,12 @@ const pillars = [
     desc: "Deploy new agents, configure workflows, and connect new integrations — without writing a line of code. Your operating system grows as your business grows.",
     tag: "Automation",
   },
+  {
+    name: "REPORTS",
+    icon: "▦",
+    desc: "Upload any file for instant AI analysis. Build custom Excel tools with your agent. Save your best reports and formulas in one organized library. Your data, finally working for you.",
+    tag: "Intelligence",
+  },
 ];
 
 export default function PillarsSection() {
