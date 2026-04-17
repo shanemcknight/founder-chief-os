@@ -1,5 +1,6 @@
 import { useState, useMemo, DragEvent } from "react";
-import { MapPin, Clock, Search, Plus } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { MapPin, Clock, Search, Plus, X } from "lucide-react";
 import { useCrm, STAGES, Stage } from "@/contexts/CrmContext";
 import { cn } from "@/lib/utils";
 
@@ -10,10 +11,20 @@ function daysAgo(iso: string | null): number {
 
 export default function PipelinePage() {
   const { contacts, companies, loading, updateContact, createContact, setSelectedContactId } = useCrm();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const stageFilter = searchParams.get("stage") as Stage | null;
   const [search, setSearch] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
+
+  const stagesToShow = stageFilter ? STAGES.filter((s) => s.key === stageFilter) : STAGES;
+  const stageLabel = stageFilter ? STAGES.find((s) => s.key === stageFilter)?.label : null;
+  const clearFilter = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("stage");
+    setSearchParams(next);
+  };
 
   const filtered = useMemo(() => {
     if (!search.trim()) return contacts;
@@ -56,7 +67,18 @@ export default function PipelinePage() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-lg font-bold text-foreground">Pipeline</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-bold text-foreground">Pipeline</h1>
+          {stageLabel && (
+            <button
+              onClick={clearFilter}
+              className="flex items-center gap-1 text-[10px] font-semibold bg-primary/10 text-primary px-2 py-1 rounded-full hover:bg-primary/20 transition-colors"
+            >
+              {stageLabel}
+              <X size={10} />
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-2 flex-1 max-w-md">
           <div className="relative flex-1">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -100,7 +122,7 @@ export default function PipelinePage() {
       ) : (
         <div className="overflow-x-auto -mx-2 px-2">
           <div className="flex gap-3" style={{ minWidth: "1280px" }}>
-            {STAGES.map((stage) => {
+            {stagesToShow.map((stage) => {
               const items = byStage[stage.key] || [];
               const isClosed = stage.key === "won" || stage.key === "lost";
               return (
