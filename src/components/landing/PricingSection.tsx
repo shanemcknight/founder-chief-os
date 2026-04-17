@@ -60,7 +60,8 @@ const plans = [
     tokens: "10M tokens/mo",
     seats: "1 seat",
     features: [
-      "All 7 pillars",
+      "All 8 pillars",
+      "REPORTS — Excel agent + library",
       "All integrations",
       "Full CRM — unlimited contacts",
       "BYOK unlocks unlimited tokens",

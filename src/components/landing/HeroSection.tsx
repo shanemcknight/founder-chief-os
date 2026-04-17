@@ -138,7 +138,7 @@ export default function HeroSection() {
 
         <div className="mt-8 grid grid-cols-4 gap-8 text-center border-t border-border pt-10">
           {([
-            ["7", "Pillars"],
+            ["8", "Pillars"],
             ["1-Click", "Approvals"],
             ["4", "Tiers"],
             ["1", "Agent Free"],
