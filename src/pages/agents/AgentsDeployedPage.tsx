@@ -13,11 +13,11 @@ const agents: {
   stats: string;
 }[] = [
   {
-    name: "CHIEF",
+    name: "My HQ Agent",
     status: "Live",
     model: "Claude 3.5 Sonnet",
     prompt:
-      "You are CHIEF, the user's executive assistant. Triage email, draft responses in brand voice, surface high-priority decisions, and never act without approval on outbound messages.",
+      "You are My HQ Agent, the user's executive assistant. Triage email, draft responses in brand voice, surface high-priority decisions, and never act without approval on outbound messages.",
     integrations: [
       { name: "Gmail", active: true },
       { name: "Shopify", active: true },

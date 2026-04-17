@@ -140,7 +140,7 @@ export default function AgentDeployPage() {
               <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-4">
                 <Sparkles size={28} className="text-emerald-400" />
               </div>
-              <h2 className="text-xl font-bold text-foreground">Agent deployed. Hermes is live.</h2>
+              <h2 className="text-xl font-bold text-foreground">Agent deployed. My HQ Agent is live.</h2>
               <p className="text-sm text-muted-foreground">Your agent is now active and listening on the channels you selected.</p>
               <div className="flex items-center justify-center gap-3 pt-4">
                 <button onClick={() => navigate("/chief")} className="text-sm font-semibold bg-primary text-primary-foreground px-6 py-2.5 rounded-lg hover:bg-primary/90 transition-colors">
@@ -255,7 +255,7 @@ export default function AgentDeployPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="text-xs font-medium text-foreground block mb-1">Agent Name</label>
-                    <input placeholder="e.g. Email Manager, Social Publisher, Outreach Bot" className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50" />
+                    <input defaultValue="My HQ Agent" placeholder="e.g. Email Manager, Social Publisher, Outreach Bot" className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50" />
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
@@ -283,7 +283,7 @@ export default function AgentDeployPage() {
                       rows={6}
                       value={systemPrompt}
                       onChange={(e) => setSystemPrompt(e.target.value)}
-                      placeholder="Describe your agent's role, tone, and instructions. Example: You are Chief's email assistant. You read incoming emails, score them by priority, and draft responses in Shane's voice — warm, direct, and always ending with 'Have the best day of your life.'"
+                      placeholder="Describe your agent's role, tone, and instructions. Example: You are My HQ Agent, the primary AI Chief of Staff for [business name]. You read incoming emails, score them by priority, and draft responses in the founder's voice — warm, direct, and always ending with 'Have the best day of your life.'"
                       className="w-full bg-background border border-border rounded-lg p-3 text-xs text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary/50"
                     />
                     {importedFileName && (

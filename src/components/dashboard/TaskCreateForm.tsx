@@ -222,7 +222,7 @@ export default function TaskCreateForm({ open, onClose, onCreate }: TaskCreateFo
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="chief">Chief</SelectItem>
+                    <SelectItem value="chief">My HQ Agent</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

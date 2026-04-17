@@ -23,7 +23,7 @@ export default function ChiefPanel() {
   return (
     <aside className="w-full md:w-[300px] shrink-0 md:border-l border-border bg-card flex flex-col overflow-hidden">
       <div className="p-4 border-b border-border flex items-center gap-2">
-        <span className="text-sm font-bold text-foreground tracking-wide">CHIEF</span>
+        <span className="text-sm font-bold text-foreground tracking-wide">My HQ Agent</span>
         <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
       </div>
 
@@ -65,7 +65,7 @@ export default function ChiefPanel() {
           <div className="space-y-2">
             {mockChat.map((msg, i) => (
               <div key={i} className={`text-xs p-2.5 rounded-lg ${msg.role === "chief" ? "bg-primary/10 text-foreground" : "bg-muted/50 text-foreground"}`}>
-                <span className="font-semibold text-[10px] block mb-1">{msg.role === "chief" ? "CHIEF" : "You"}</span>
+                <span className="font-semibold text-[10px] block mb-1">{msg.role === "chief" ? "My HQ Agent" : "You"}</span>
                 {msg.text}
               </div>
             ))}
@@ -78,7 +78,7 @@ export default function ChiefPanel() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask Chief anything..."
+            placeholder="Ask My HQ Agent anything..."
             className="flex-1 text-xs bg-background border border-border rounded-md px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <button className="text-xs font-medium bg-primary text-primary-foreground px-3 py-2 rounded-md hover:bg-primary/90 transition-colors duration-150">→</button>

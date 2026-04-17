@@ -286,7 +286,7 @@ function EmailDetail({ email, onApprove, onSchedule, onReject, onFlag }: {
             <div className="flex items-center gap-2 mb-3">
               <Sparkles size={14} className="text-primary" />
               <span className="text-xs font-semibold text-primary">AI Draft Response</span>
-              <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">Chief</Badge>
+              <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">My HQ Agent</Badge>
             </div>
             {editing ? (
               <div className="space-y-2">
@@ -407,10 +407,10 @@ function ContextPanel({ email }: { email: PendingEmail }) {
           </div>
         </div>
 
-        {/* Chief Summary */}
+        {/* Agent Summary */}
         {email.segment && (
           <div>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Chief Summary</h4>
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">My HQ Agent Summary</h4>
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
               <p className="text-xs text-foreground">{email.segment}</p>
             </div>

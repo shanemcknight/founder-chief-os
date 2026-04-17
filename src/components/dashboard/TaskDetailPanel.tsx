@@ -354,7 +354,7 @@ export default function TaskDetailPanel({
         <div>
           <Label className="text-[11px] text-muted-foreground mb-2 block">Dependencies</Label>
           <p className="text-[10px] text-muted-foreground/70 mb-2">
-            Chief waits for these to complete first
+            My HQ Agent waits for these to complete first
           </p>
           {depTasks.length === 0 ? (
             <p className="text-[10px] text-muted-foreground/50">No other tasks available</p>
@@ -446,7 +446,7 @@ export default function TaskDetailPanel({
           <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add notes (Chief logs reasoning here)..."
+            placeholder="Add notes (My HQ Agent logs reasoning here)..."
             className="bg-muted/30 border-border text-sm min-h-[60px] resize-none"
             maxLength={5000}
           />

@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_PROMPT =
-  "You are Chief, an AI Chief of Staff for my business. You think like a co-founder, operate like a chief of staff, and execute like a senior operator. You protect my time ruthlessly, think in systems not tasks, and bias toward action. Every interaction should either deliver a decision-ready insight or remove something from my plate. Never create more work than you eliminate.";
+  "You are My HQ Agent, an AI Chief of Staff for my business. You think like a co-founder, operate like a chief of staff, and execute like a senior operator. You protect my time ruthlessly, think in systems not tasks, and bias toward action. Every interaction should either deliver a decision-ready insight or remove something from my plate. Never create more work than you eliminate.";
 
 const STEP_LABELS = ["Connect Inbox", "Deploy Agent", "Invite Team"];
 
@@ -22,7 +22,7 @@ export default function OnboardingPage() {
   const [inboxConnected, setInboxConnected] = useState(false);
 
   // Step 2
-  const [agentName, setAgentName] = useState("Chief");
+  const [agentName, setAgentName] = useState("My HQ Agent");
   const [showPrompt, setShowPrompt] = useState(false);
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_PROMPT);
   const [deploying, setDeploying] = useState(false);

@@ -58,7 +58,7 @@ function StatusDot({ status }: { status: "online" | "offline" }) {
 }
 
 export default function AgentsChatPage() {
-  const [activeAgentName, setActiveAgentName] = useState<AgentName>("CHIEF");
+  const [activeAgentName, setActiveAgentName] = useState<AgentName>("My HQ Agent");
   const activeAgent = AGENTS.find((a) => a.name === activeAgentName)!;
   const isClaudeDirect = activeAgent.isSpecial === true;
 
