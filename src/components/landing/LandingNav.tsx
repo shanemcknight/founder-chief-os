@@ -18,12 +18,10 @@ export default function LandingNav() {
   }, []);
 
   const links = [
-    { label: "Features", href: "#features" },
-    { label: "Social", href: "#social" },
-    { label: "Sales", href: "#sales" },
+    { label: "How It Works", href: "#how-it-works" },
+    { label: "Pillars", href: "#features" },
     { label: "Pricing", href: "#pricing" },
     { label: "White Label", href: "/white-label", isRoute: true },
-    { label: "Docs", href: "#docs" },
   ];
 
   return (
@@ -64,7 +62,7 @@ export default function LandingNav() {
               Log in
             </Link>
             <Link to="/beta" className="text-sm font-medium bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors duration-150">
-              Join Waitlist
+              Start Free →
             </Link>
             {isMobile && (
               <button onClick={() => setMobileMenu(!mobileMenu)} className="text-muted-foreground hover:text-foreground md:hidden">
