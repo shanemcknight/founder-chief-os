@@ -29,6 +29,9 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDue, setTaskDue] = useState("");
   const [notesDraft, setNotesDraft] = useState(contact?.notes || "");
+  const { getActiveForContact, getHistoryForContact, refresh: refreshSequences } = useEmailSequences();
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [confirmUnenroll, setConfirmUnenroll] = useState(false);
 
   useEffect(() => setNotesDraft(contact?.notes || ""), [contact?.notes]);
 
