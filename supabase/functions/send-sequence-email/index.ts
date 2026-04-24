@@ -1,4 +1,5 @@
-// Tier-aware sender: enforces per-tier monthly email limits from user_usage.
+// Tier-aware sender: enforces per-tier monthly + daily email limits and a
+// business-hours sending window (Mon-Fri 08:00-17:00 UTC by default).
 // Sends due sequence emails via Resend using the platform RESEND_API_KEY.
 // - Skips and unsubscribes recipients in email_unsubscribes
 // - Replaces merge fields (e.g. {{first_name}}) in subject + body
@@ -13,6 +14,14 @@ const corsHeaders = {
 
 const FROM_ADDR = "MythosHQ Outreach <outreach@mythoshq.io>";
 const MAX_PER_RUN = 500;
+
+// Per-tier daily send limits
+const DAILY_LIMITS: Record<string, number> = {
+  SCOUT: 50,
+  TITAN: 200,
+  ATLAS: 500,
+  OLYMPUS: 2000,
+};
 
 // ---- merge field replacement ----
 type MergeContact = {
@@ -77,7 +86,28 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } }
   );
 
-  const nowIso = new Date().toISOString();
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const utcDay = now.getUTCDay(); // 0 Sun .. 6 Sat
+  const utcHour = now.getUTCHours();
+  const isWeekend = utcDay === 0 || utcDay === 6;
+  const todayStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+
+  // Global business-hours gate (Mon-Fri 08:00-17:00 UTC).
+  // Per-step send_window_start/end is also enforced below.
+  if (isWeekend || utcHour < 8 || utcHour >= 17) {
+    return new Response(
+      JSON.stringify({
+        skipped_business_hours: true,
+        utc_day: utcDay,
+        utc_hour: utcHour,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
 
   const { data: dueSeqs, error: seqErr } = await supabase
     .from("email_sequences")
@@ -95,32 +125,95 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Per-user usage cache for this run, so we don't refetch for every sequence.
+  const usageCache = new Map<
+    string,
+    {
+      plan_tier: string;
+      emails_sent_this_month: number;
+      email_monthly_limit: number;
+      emails_sent_today: number;
+      daily_limit: number;
+    }
+  >();
+  const dailyBlocked = new Set<string>();
+
   let sent = 0;
   let skipped_limit = 0;
+  let skipped_daily_limit = 0;
   let skipped_no_email = 0;
   let skipped_unsubscribed = 0;
+  let skipped_step_window = 0;
   let errors = 0;
 
   for (const seq of dueSeqs || []) {
     try {
-      // Fetch usage row
-      const { data: usage } = await supabase
-        .from("user_usage")
-        .select("emails_sent_this_month, email_monthly_limit")
-        .eq("user_id", seq.user_id)
-        .maybeSingle();
+      // Skip remaining sequences for users already over their daily cap
+      if (dailyBlocked.has(seq.user_id)) {
+        skipped_daily_limit++;
+        continue;
+      }
 
-      // CHECK LIMIT
-      if (
-        usage &&
-        (usage.emails_sent_this_month ?? 0) >=
-          (usage.email_monthly_limit ?? 0)
-      ) {
+      // Load + roll over usage row once per user per run
+      let usage = usageCache.get(seq.user_id);
+      if (!usage) {
+        const { data: u } = await supabase
+          .from("user_usage")
+          .select(
+            "plan_tier, emails_sent_this_month, email_monthly_limit, emails_sent_today, last_daily_reset"
+          )
+          .eq("user_id", seq.user_id)
+          .maybeSingle();
+
+        if (u) {
+          // Daily roll-over if last_daily_reset is in the past
+          let emailsToday = u.emails_sent_today ?? 0;
+          if (!u.last_daily_reset || u.last_daily_reset < todayStr) {
+            await supabase
+              .from("user_usage")
+              .update({
+                emails_sent_today: 0,
+                last_daily_reset: todayStr,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("user_id", seq.user_id);
+            emailsToday = 0;
+          }
+          const tier = (u.plan_tier || "SCOUT").toUpperCase();
+          usage = {
+            plan_tier: tier,
+            emails_sent_this_month: u.emails_sent_this_month ?? 0,
+            email_monthly_limit: u.email_monthly_limit ?? 0,
+            emails_sent_today: emailsToday,
+            daily_limit: DAILY_LIMITS[tier] ?? DAILY_LIMITS.SCOUT,
+          };
+        } else {
+          // No usage row → conservative defaults
+          usage = {
+            plan_tier: "SCOUT",
+            emails_sent_this_month: 0,
+            email_monthly_limit: 0,
+            emails_sent_today: 0,
+            daily_limit: DAILY_LIMITS.SCOUT,
+          };
+        }
+        usageCache.set(seq.user_id, usage);
+      }
+
+      // Monthly cap → pause sequence
+      if (usage.emails_sent_this_month >= usage.email_monthly_limit) {
         await supabase
           .from("email_sequences")
           .update({ status: "paused" })
           .eq("id", seq.id);
         skipped_limit++;
+        continue;
+      }
+
+      // Daily cap → skip until next hour (may be a new day)
+      if (usage.emails_sent_today >= usage.daily_limit) {
+        dailyBlocked.add(seq.user_id);
+        skipped_daily_limit++;
         continue;
       }
 
@@ -188,6 +281,15 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Per-step send window (defaults 8-17 UTC). Skip without state change so
+      // the next hourly tick can pick it up.
+      const winStart = tpl.send_window_start ?? 8;
+      const winEnd = tpl.send_window_end ?? 17;
+      if (utcHour < winStart || utcHour >= winEnd) {
+        skipped_step_window++;
+        continue;
+      }
+
       // Apply merge fields
       const subject = applyMergeFields(tpl.subject || "", mergeData);
       let bodyText = applyMergeFields(tpl.body_text || "", mergeData);
@@ -239,10 +341,22 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Increment counter
+      // Increment monthly counter (RPC) + daily counter (direct update)
       await supabase.rpc("increment_email_count", {
         _user_id: seq.user_id,
       });
+      const newDaily = usage.emails_sent_today + 1;
+      await supabase
+        .from("user_usage")
+        .update({
+          emails_sent_today: newDaily,
+          last_daily_reset: todayStr,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", seq.user_id);
+      usage.emails_sent_today = newDaily;
+      usage.emails_sent_this_month += 1;
+      if (newDaily >= usage.daily_limit) dailyBlocked.add(seq.user_id);
 
       // Check next step
       const nextStep = (seq.sequence_step || 1) + 1;
@@ -288,8 +402,10 @@ Deno.serve(async (req) => {
       processed: (dueSeqs || []).length,
       sent,
       skipped_limit,
+      skipped_daily_limit,
       skipped_no_email,
       skipped_unsubscribed,
+      skipped_step_window,
       errors,
     }),
     {

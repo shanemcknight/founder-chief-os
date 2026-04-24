@@ -27,6 +27,8 @@ type StepDraft = {
   htmlOpen: boolean;
 };
 
+type TestState = "idle" | "sending" | "sent" | "error";
+
 export default function SequencesPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -44,6 +46,43 @@ export default function SequencesPage() {
 
   // Delete confirm
   const [deleteName, setDeleteName] = useState<string | null>(null);
+
+  // Test send state per step index
+  const [testState, setTestState] = useState<Record<number, TestState>>({});
+
+  const sendTest = async (idx: number, step: StepDraft) => {
+    if (!step.subject.trim() || !step.body_text.trim()) {
+      toast.error("Subject and plain text body are required to send a test");
+      return;
+    }
+    setTestState((s) => ({ ...s, [idx]: "sending" }));
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "send-test-email",
+        {
+          body: {
+            subject: step.subject,
+            body_text: step.body_text,
+            body_html: step.body_html || "",
+          },
+        }
+      );
+      if (error || (data as any)?.error) {
+        throw new Error((data as any)?.error || error?.message || "Send failed");
+      }
+      setTestState((s) => ({ ...s, [idx]: "sent" }));
+      toast.success(`Test email sent to ${(data as any)?.sent_to || "you"}`);
+      setTimeout(() => {
+        setTestState((s) => ({ ...s, [idx]: "idle" }));
+      }, 3000);
+    } catch (e: any) {
+      console.error(e);
+      setTestState((s) => ({ ...s, [idx]: "error" }));
+      setTimeout(() => {
+        setTestState((s) => ({ ...s, [idx]: "idle" }));
+      }, 4000);
+    }
+  };
 
   // ---------- Load ----------
   const refresh = async () => {
@@ -560,6 +599,63 @@ export default function SequencesPage() {
                           />
                         </div>
                       )}
+                    </div>
+
+                    {/* Test send */}
+                    <div className="mt-3">
+                      {(() => {
+                        const state = testState[idx] ?? "idle";
+                        const base =
+                          "text-xs px-3 py-1.5 rounded-lg border transition-colors inline-flex items-center gap-1.5";
+                        if (state === "sending") {
+                          return (
+                            <button
+                              type="button"
+                              disabled
+                              className={`${base} border-border text-muted-foreground opacity-70`}
+                            >
+                              <span className="inline-block w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                              Sending…
+                            </button>
+                          );
+                        }
+                        if (state === "sent") {
+                          return (
+                            <button
+                              type="button"
+                              disabled
+                              className={`${base} border-emerald-500/30 bg-emerald-500/10 text-emerald-600`}
+                            >
+                              Sent ✓
+                            </button>
+                          );
+                        }
+                        if (state === "error") {
+                          return (
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => sendTest(idx, s)}
+                                className={`${base} border-border text-muted-foreground hover:text-foreground`}
+                              >
+                                Send test email ↗
+                              </button>
+                              <span className="text-[11px] text-destructive">
+                                Failed to send — check your email settings.
+                              </span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => sendTest(idx, s)}
+                            className={`${base} border-border text-muted-foreground hover:text-foreground`}
+                          >
+                            Send test email ↗
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                 ))}

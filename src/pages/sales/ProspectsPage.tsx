@@ -4,30 +4,92 @@ import { useCrm } from "@/contexts/CrmContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const mockProspects = [
-  { biz: "The Interval Bar & Café", loc: "Long Now Foundation, SF", contact: "Maria Santos", title: "Bar Manager", email: "m***@***.org" },
-  { biz: "Trick Dog", loc: "Mission District, SF", contact: "Scott Baird", title: "Owner", email: "s***@***.com" },
-  { biz: "Smuggler's Cove", loc: "Hayes Valley, SF", contact: "Martin Cate", title: "Owner", email: "m***@***.com" },
+  { biz: "The Interval Bar & Café", loc: "Long Now Foundation, SF", contact: "Maria Santos", title: "Bar Manager", email: "maria@theinterval.org" },
+  { biz: "Trick Dog", loc: "Mission District, SF", contact: "Scott Baird", title: "Owner", email: "scott@trickdogbar.com" },
+  { biz: "Smuggler's Cove", loc: "Hayes Valley, SF", contact: "Martin Cate", title: "Owner", email: "martin@smugglerscovesf.com" },
 ];
+
+type DupState =
+  | { kind: "unknown" }
+  | { kind: "checking" }
+  | { kind: "duplicate"; contactId: string }
+  | { kind: "available" }
+  | { kind: "no_email" };
 
 export default function ProspectsPage() {
   const { createCompany, createContact, setSelectedContactId, pipelines } = useCrm();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [adding, setAdding] = useState<string | null>(null);
   const [pipelineId, setPipelineId] = useState<string>("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [dupState, setDupState] = useState<Record<string, DupState>>({});
 
   useEffect(() => {
     if (!pipelineId && pipelines.length > 0) setPipelineId(pipelines[0].id);
   }, [pipelines, pipelineId]);
+
+  // Pre-check duplicates on mount so the row UI reflects state immediately.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, DupState> = {};
+      for (const p of mockProspects) {
+        if (!p.email) {
+          next[p.biz] = { kind: "no_email" };
+          continue;
+        }
+        const { data } = await supabase
+          .from("contacts")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("email", p.email)
+          .maybeSingle();
+        next[p.biz] = data?.id
+          ? { kind: "duplicate", contactId: data.id as string }
+          : { kind: "available" };
+      }
+      if (!cancelled) setDupState(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const viewExisting = (contactId: string) => {
+    setSelectedContactId(contactId);
+    navigate("/sales/contacts");
+  };
 
   const addToPipeline = async (p: (typeof mockProspects)[number]) => {
     if (!pipelineId) {
       toast.error("Create a pipeline first");
       return;
     }
+    if (!user) return;
+
+    // Final dedupe check at click time
+    if (p.email) {
+      const { data: existing } = await supabase
+        .from("contacts")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("email", p.email)
+        .maybeSingle();
+      if (existing?.id) {
+        setDupState((s) => ({
+          ...s,
+          [p.biz]: { kind: "duplicate", contactId: existing.id as string },
+        }));
+        toast.info(`${p.contact} is already in your CRM`);
+        return;
+      }
+    }
+
     const pipeline = pipelines.find((pl) => pl.id === pipelineId);
     setAdding(p.contact);
     const co = await createCompany({ name: p.biz, location: p.loc });
@@ -44,7 +106,67 @@ export default function ProspectsPage() {
     if (contact) {
       toast.success(`${p.contact} added to ${pipeline?.name || "pipeline"}`);
       setSelectedContactId(contact.id);
+      setDupState((s) => ({
+        ...s,
+        [p.biz]: { kind: "duplicate", contactId: contact.id },
+      }));
     }
+  };
+
+  const addAll = async () => {
+    if (!pipelineId) {
+      toast.error("Create a pipeline first");
+      return;
+    }
+    if (!user) return;
+    const pipeline = pipelines.find((pl) => pl.id === pipelineId);
+
+    let added = 0;
+    let duplicates = 0;
+    let noEmail = 0;
+
+    for (const p of mockProspects) {
+      if (!p.email) {
+        noEmail++;
+        setDupState((s) => ({ ...s, [p.biz]: { kind: "no_email" } }));
+        continue;
+      }
+      const { data: existing } = await supabase
+        .from("contacts")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("email", p.email)
+        .maybeSingle();
+      if (existing?.id) {
+        duplicates++;
+        setDupState((s) => ({
+          ...s,
+          [p.biz]: { kind: "duplicate", contactId: existing.id as string },
+        }));
+        continue;
+      }
+      const co = await createCompany({ name: p.biz, location: p.loc });
+      const contact = await createContact({
+        name: p.contact,
+        title: p.title,
+        email: p.email,
+        company_id: co?.id || null,
+        location: p.loc,
+        pipeline_id: pipelineId,
+        stage: pipeline?.stages[0] || "New Lead",
+      });
+      if (contact) {
+        added++;
+        setDupState((s) => ({
+          ...s,
+          [p.biz]: { kind: "duplicate", contactId: contact.id },
+        }));
+      }
+    }
+
+    toast.success(
+      `${added} added · ${duplicates} duplicate${duplicates === 1 ? "" : "s"} skipped · ${noEmail} had no email`
+    );
   };
 
   return (
@@ -91,26 +213,66 @@ export default function ProspectsPage() {
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
+          <button
+            onClick={addAll}
+            disabled={!pipelineId}
+            className="ml-auto text-[11px] font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+          >
+            Add selected to CRM
+          </button>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {mockProspects.map((p) => (
-          <div key={p.biz} className="bg-card border border-border rounded-lg p-4">
-            <p className="text-xs font-semibold text-foreground mb-0.5">{p.biz}</p>
-            <p className="text-[10px] text-muted-foreground mb-2">{p.loc}</p>
-            <p className="text-[11px] text-foreground">{p.contact}</p>
-            <p className="text-[10px] text-muted-foreground mb-1">{p.title}</p>
-            <p className="text-[10px] text-muted-foreground font-mono mb-3">{p.email}</p>
-            <button
-              onClick={() => addToPipeline(p)}
-              disabled={adding === p.contact || !pipelineId}
-              className="w-full text-[11px] font-medium bg-primary text-primary-foreground py-1.5 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
-              {adding === p.contact ? "Adding..." : "Add to Pipeline"}
-            </button>
-          </div>
-        ))}
+        {mockProspects.map((p) => {
+          const state = dupState[p.biz] ?? { kind: "unknown" as const };
+          const isDup = state.kind === "duplicate";
+          const isNoEmail = state.kind === "no_email";
+          return (
+            <div key={p.biz} className="bg-card border border-border rounded-lg p-4">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="text-xs font-semibold text-foreground">{p.biz}</p>
+                {isDup && (
+                  <span className="bg-warning/10 text-warning text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap">
+                    Already in CRM
+                  </span>
+                )}
+                {isNoEmail && (
+                  <span className="bg-muted text-muted-foreground text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap">
+                    No email
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground mb-2">{p.loc}</p>
+              <p className="text-[11px] text-foreground">{p.contact}</p>
+              <p className="text-[10px] text-muted-foreground mb-1">{p.title}</p>
+              <p className="text-[10px] text-muted-foreground font-mono mb-3">
+                {p.email || "—"}
+              </p>
+
+              {isDup ? (
+                <button
+                  onClick={() => viewExisting(state.contactId)}
+                  className="w-full text-xs text-primary border border-primary/20 py-1.5 rounded-md hover:bg-primary/10 transition-colors"
+                >
+                  View in CRM →
+                </button>
+              ) : (
+                <button
+                  onClick={() => addToPipeline(p)}
+                  disabled={adding === p.contact || !pipelineId || isNoEmail}
+                  className="w-full text-[11px] font-medium bg-primary text-primary-foreground py-1.5 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {adding === p.contact
+                    ? "Adding..."
+                    : isNoEmail
+                      ? "No email — can't add"
+                      : "Add to CRM"}
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {settingsOpen && user && (
