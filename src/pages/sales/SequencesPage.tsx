@@ -27,6 +27,8 @@ type StepDraft = {
   htmlOpen: boolean;
 };
 
+type TestState = "idle" | "sending" | "sent" | "error";
+
 export default function SequencesPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
