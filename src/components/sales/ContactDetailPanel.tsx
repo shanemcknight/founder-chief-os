@@ -177,6 +177,158 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
                   </div>
                 </div>
               )}
+
+              {/* EMAIL SEQUENCE */}
+              <div className="pt-2">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Email Sequence
+                </p>
+                {(() => {
+                  const seq = getActiveForContact(contact.id);
+                  const history = getHistoryForContact(contact.id).filter((s) => s.last_sent_at);
+
+                  const updateSeqStatus = async (id: string, status: string, successMsg: string) => {
+                    const { error } = await supabase
+                      .from("email_sequences" as any)
+                      .update({ status } as any)
+                      .eq("id", id);
+                    if (error) {
+                      toast.error(error.message || "Failed to update sequence");
+                      return;
+                    }
+                    toast.success(successMsg);
+                    refreshSequences();
+                  };
+
+                  if (!seq) {
+                    return (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">Not enrolled in any sequence</p>
+                        <button
+                          onClick={() => setEnrollOpen(true)}
+                          className="text-xs bg-primary/10 text-primary border border-primary/20 px-3 py-1.5 rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors"
+                        >
+                          Enroll →
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  if (seq.status === "completed") {
+                    return (
+                      <div className="space-y-2">
+                        <p className="text-emerald-600 text-xs font-medium">Completed ✓</p>
+                        <button
+                          onClick={() => setEnrollOpen(true)}
+                          className="text-primary text-xs hover:underline"
+                        >
+                          Enroll in another sequence →
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  if (seq.status === "unsubscribed") {
+                    return (
+                      <p className="text-xs text-muted-foreground/60">Contact opted out of sequences.</p>
+                    );
+                  }
+
+                  // pending or paused — active enrollment
+                  return (
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-foreground">
+                          {seq.sequence_name}
+                        </span>
+                        <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full">
+                          Step {seq.sequence_step}
+                        </span>
+                        {seq.status === "paused" && (
+                          <span className="text-amber-600 text-[10px] font-medium">Paused</span>
+                        )}
+                      </div>
+                      {seq.next_send_at && seq.status === "pending" && (
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Sends {formatDateLong(seq.next_send_at)}
+                        </p>
+                      )}
+
+                      <div className="flex gap-2 mt-2">
+                        {seq.status === "pending" ? (
+                          <button
+                            onClick={() => updateSeqStatus(seq.id, "paused", "Sequence paused")}
+                            className="text-xs border border-border px-3 py-1.5 rounded-lg hover:bg-muted/50 transition-colors"
+                          >
+                            Pause
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => updateSeqStatus(seq.id, "pending", "Sequence resumed")}
+                            className="text-xs border border-border px-3 py-1.5 rounded-lg hover:bg-muted/50 transition-colors"
+                          >
+                            Resume
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setConfirmUnenroll(true)}
+                          className="text-xs text-destructive border border-destructive/20 px-3 py-1.5 rounded-lg hover:bg-destructive/10 transition-colors"
+                        >
+                          Unenroll
+                        </button>
+                      </div>
+
+                      {history.length > 0 && (
+                        <div className="mt-3 space-y-1">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                            History
+                          </p>
+                          {history.map((h) => (
+                            <p key={h.id} className="text-[11px] text-muted-foreground">
+                              Step {h.sequence_step} sent{" "}
+                              {h.last_sent_at ? formatDateLong(h.last_sent_at) : ""}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+
+                      {confirmUnenroll && (
+                        <div
+                          className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4"
+                          onClick={() => setConfirmUnenroll(false)}
+                        >
+                          <div
+                            className="bg-card border border-border rounded-xl w-full max-w-sm p-5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <h3 className="text-sm font-bold mb-2">Unenroll contact?</h3>
+                            <p className="text-xs text-muted-foreground">
+                              {contact.name} will stop receiving emails from "{seq.sequence_name}".
+                            </p>
+                            <div className="flex justify-end gap-2 mt-4">
+                              <button
+                                onClick={() => setConfirmUnenroll(false)}
+                                className="border border-border px-3 py-1.5 rounded-lg text-xs hover:bg-muted/50"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  await updateSeqStatus(seq.id, "completed", "Contact unenrolled");
+                                  setConfirmUnenroll(false);
+                                }}
+                                className="bg-destructive text-destructive-foreground px-3 py-1.5 rounded-lg text-xs font-semibold"
+                              >
+                                Unenroll
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
             </>
           )}
 
