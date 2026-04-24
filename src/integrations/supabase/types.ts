@@ -496,6 +496,96 @@ export type Database = {
           },
         ]
       }
+      email_sequences: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          id: string
+          last_sent_at: string | null
+          next_send_at: string | null
+          pipeline_id: string | null
+          sequence_name: string
+          sequence_step: number | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_sent_at?: string | null
+          next_send_at?: string | null
+          pipeline_id?: string | null
+          sequence_name: string
+          sequence_step?: number | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_sent_at?: string | null
+          next_send_at?: string | null
+          pipeline_id?: string | null
+          sequence_name?: string
+          sequence_step?: number | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_sequences_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sequences_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          body_html: string | null
+          body_text: string
+          created_at: string | null
+          delay_days: number | null
+          id: string
+          sequence_name: string
+          sequence_step: number
+          subject: string
+          user_id: string
+        }
+        Insert: {
+          body_html?: string | null
+          body_text: string
+          created_at?: string | null
+          delay_days?: number | null
+          id?: string
+          sequence_name: string
+          sequence_step: number
+          subject: string
+          user_id: string
+        }
+        Update: {
+          body_html?: string | null
+          body_text?: string
+          created_at?: string | null
+          delay_days?: number | null
+          id?: string
+          sequence_name?: string
+          sequence_step?: number
+          subject?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       emails: {
         Row: {
           account_email: string | null
