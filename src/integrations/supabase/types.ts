@@ -1400,11 +1400,52 @@ export type Database = {
         }
         Relationships: []
       }
+      user_usage: {
+        Row: {
+          api_token_monthly_limit: number
+          api_tokens_used_this_month: number
+          billing_cycle_start: string
+          byok_active: boolean
+          email_monthly_limit: number
+          emails_sent_this_month: number
+          id: string
+          plan_tier: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          api_token_monthly_limit?: number
+          api_tokens_used_this_month?: number
+          billing_cycle_start?: string
+          byok_active?: boolean
+          email_monthly_limit?: number
+          emails_sent_this_month?: number
+          id?: string
+          plan_tier?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          api_token_monthly_limit?: number
+          api_tokens_used_this_month?: number
+          billing_cycle_start?: string
+          byok_active?: boolean
+          email_monthly_limit?: number
+          emails_sent_this_month?: number
+          id?: string
+          plan_tier?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      check_email_limit: { Args: { _user_id: string }; Returns: boolean }
+      increment_email_count: { Args: { _user_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
