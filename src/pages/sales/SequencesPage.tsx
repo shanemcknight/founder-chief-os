@@ -431,6 +431,7 @@ export default function SequencesPage() {
                         Subject
                       </label>
                       <input
+                        data-merge-target
                         value={s.subject}
                         onChange={(e) => updateStep(idx, { subject: e.target.value })}
                         placeholder="Email subject line"
@@ -447,6 +448,7 @@ export default function SequencesPage() {
                         </span>
                       </label>
                       <textarea
+                        data-merge-target
                         rows={4}
                         value={s.body_text}
                         onChange={(e) =>
@@ -455,6 +457,72 @@ export default function SequencesPage() {
                         placeholder="The plain text version — appears in inbox preview"
                         className="w-full border border-border bg-background rounded-lg px-3 py-2 text-sm resize-none"
                       />
+                    </div>
+
+                    {/* Merge field chips */}
+                    <div className="mt-2 flex items-center flex-wrap gap-1.5">
+                      <span className="text-[10px] text-muted-foreground mr-1">
+                        Insert merge field →
+                      </span>
+                      {[
+                        "{{first_name}}",
+                        "{{company}}",
+                        "{{city}}",
+                        "{{full_name}}",
+                        "{{website}}",
+                      ].map((token) => (
+                        <button
+                          key={token}
+                          type="button"
+                          onMouseDown={(e) => {
+                            // Prevent the active input from losing focus before we read selection
+                            e.preventDefault();
+                          }}
+                          onClick={() => {
+                            const el = document.activeElement as
+                              | HTMLInputElement
+                              | HTMLTextAreaElement
+                              | null;
+                            if (
+                              !el ||
+                              !el.hasAttribute("data-merge-target") ||
+                              (el.tagName !== "INPUT" && el.tagName !== "TEXTAREA")
+                            ) {
+                              // Default: append to plain text body of this step
+                              updateStep(idx, {
+                                body_text: (s.body_text || "") + token,
+                              });
+                              return;
+                            }
+                            const start = el.selectionStart ?? el.value.length;
+                            const end = el.selectionEnd ?? el.value.length;
+                            const newVal =
+                              el.value.slice(0, start) + token + el.value.slice(end);
+                            // Determine which field changed via placeholder/role
+                            if (el === (document.activeElement as any)) {
+                              // Find the step container
+                              const event = new Event("input", { bubbles: true });
+                              const setter = Object.getOwnPropertyDescriptor(
+                                el.tagName === "TEXTAREA"
+                                  ? HTMLTextAreaElement.prototype
+                                  : HTMLInputElement.prototype,
+                                "value",
+                              )?.set;
+                              setter?.call(el, newVal);
+                              el.dispatchEvent(event);
+                              // Restore caret after the inserted token
+                              const pos = start + token.length;
+                              requestAnimationFrame(() => {
+                                el.focus();
+                                el.setSelectionRange(pos, pos);
+                              });
+                            }
+                          }}
+                          className="border border-border rounded px-2 py-0.5 text-[10px] font-mono text-primary cursor-pointer hover:bg-primary/10 transition-colors"
+                        >
+                          {token}
+                        </button>
+                      ))}
                     </div>
 
                     {/* HTML body */}
