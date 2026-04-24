@@ -110,12 +110,15 @@ export default function HeroSection() {
               Private Beta · Invite Only
             </span>
             <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold leading-[1.1] tracking-tight text-foreground mb-6">
-              Less noise. More story.
+              Automated Workflows. More Leads. Less Noise.
               <br />
-              <span className="gradient-text">Scale What Matters.</span>
+              <span className="gradient-text">The Agentic Operating System.</span>
             </h1>
+            <p className="text-base md:text-xl text-muted-foreground max-w-lg mb-3 leading-relaxed font-medium text-foreground">
+              That scales what matters.
+            </p>
             <p className="text-base md:text-xl text-muted-foreground max-w-lg mb-8 leading-relaxed">
-              Emails read, written and ready for approval. Leads tracked. Orders placed. Invoices sent. Socials designed, scheduled, and live. All of it done. You are not alone.
+              MythosHQ deploys AI agents across every corner of your business — inbox, sales, social, reports, and 6 more pillars. Workflows run automatically. Leads surface intelligently. Noise gets cut. You get a business that scales without burning you out.
             </p>
             <div className="flex gap-3">
               <Link to="/beta" className="inline-flex items-center gap-1 text-sm font-medium bg-primary text-primary-foreground px-6 py-3 rounded-md hover:bg-primary/90 transition-colors duration-150">
