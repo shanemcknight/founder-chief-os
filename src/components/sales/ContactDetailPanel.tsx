@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { X, Mail, Phone, MapPin, Building2, Plus, Check, Trash2 } from "lucide-react";
 import { useCrm } from "@/contexts/CrmContext";
 import { useEmailSequences } from "@/hooks/useEmailSequences";
+import { useUserUsage, nextResetDate } from "@/hooks/useUserUsage";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import SequenceEnrollmentModal from "@/components/sales/SequenceEnrollmentModal";
@@ -30,6 +32,7 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
   const [taskDue, setTaskDue] = useState("");
   const [notesDraft, setNotesDraft] = useState(contact?.notes || "");
   const { getActiveForContact, getHistoryForContact, refresh: refreshSequences } = useEmailSequences();
+  const { usage } = useUserUsage();
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [confirmUnenroll, setConfirmUnenroll] = useState(false);
 
@@ -253,6 +256,31 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
                           Sends {formatDateLong(seq.next_send_at)}
                         </p>
                       )}
+
+                      {seq.status === "paused" &&
+                        usage &&
+                        (usage.emails_sent_this_month ?? 0) >=
+                          (usage.email_monthly_limit ?? 0) && (
+                          <div className="mt-2 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 space-y-1">
+                            <span className="inline-block bg-amber-500/20 text-amber-600 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                              Monthly limit reached
+                            </span>
+                            <p className="text-[11px] text-muted-foreground">
+                              {usage.emails_sent_this_month} of{" "}
+                              {usage.email_monthly_limit} emails used this month
+                            </p>
+                            <Link
+                              to="/settings?tab=billing"
+                              className="block text-[11px] text-primary hover:underline"
+                            >
+                              Upgrade to send more →
+                            </Link>
+                            <p className="text-[11px] text-muted-foreground">
+                              Sequence resumes automatically on{" "}
+                              {nextResetDate(usage.billing_cycle_start)}
+                            </p>
+                          </div>
+                        )}
 
                       <div className="flex gap-2 mt-2">
                         {seq.status === "pending" ? (
