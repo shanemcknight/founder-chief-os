@@ -1,7 +1,14 @@
 import { useState, useMemo } from "react";
 import { Search } from "lucide-react";
 import { useCrm, PIPELINE_COLORS } from "@/contexts/CrmContext";
+import { useEmailSequences } from "@/hooks/useEmailSequences";
 import { cn } from "@/lib/utils";
+
+function formatShortDate(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 type SortKey = "name" | "stage" | "value" | "last_contacted_at";
 const ALL = "__all__";
