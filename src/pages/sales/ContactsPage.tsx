@@ -19,6 +19,7 @@ function colorDot(color: string) {
 
 export default function ContactsPage() {
   const { contacts, companies, loading, setSelectedContactId, pipelines } = useCrm();
+  const { getActiveForContact } = useEmailSequences();
   const [search, setSearch] = useState("");
   const [pipelineFilter, setPipelineFilter] = useState<string>(ALL);
   const [sortKey, setSortKey] = useState<SortKey>("name");
