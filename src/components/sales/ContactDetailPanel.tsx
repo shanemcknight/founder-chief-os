@@ -1,14 +1,15 @@
 import { useEffect, useState, useMemo } from "react";
 import { X, Mail, Phone, MapPin, Building2, Plus, Check, Trash2 } from "lucide-react";
-import { useCrm, STAGES, Stage } from "@/contexts/CrmContext";
+import { useCrm } from "@/contexts/CrmContext";
 import { cn } from "@/lib/utils";
 
 type Tab = "overview" | "activity" | "tasks" | "notes";
 
 export default function ContactDetailPanel({ contactId, onClose }: { contactId: string; onClose: () => void }) {
-  const { contacts, companies, activities, tasks, updateContact, logActivity, createTask, toggleTask, deleteTask } = useCrm();
+  const { contacts, companies, activities, tasks, updateContact, logActivity, createTask, toggleTask, deleteTask, pipelines } = useCrm();
   const contact = contacts.find((c) => c.id === contactId);
   const company = contact?.company_id ? companies.find((c) => c.id === contact.company_id) : null;
+  const contactPipeline = contact?.pipeline_id ? pipelines.find((p) => p.id === contact.pipeline_id) : null;
   const [tab, setTab] = useState<Tab>("overview");
   const [activityText, setActivityText] = useState("");
   const [activityType, setActivityType] = useState("note");
@@ -90,18 +91,52 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
               </div>
 
               <div>
-                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Stage</label>
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Pipeline</label>
                 <select
-                  value={contact.stage}
-                  onChange={(e) => updateContact(contact.id, { stage: e.target.value as Stage })}
+                  value={contact.pipeline_id || ""}
+                  onChange={(e) => {
+                    const newPid = e.target.value || null;
+                    const newPipeline = pipelines.find((p) => p.id === newPid);
+                    updateContact(contact.id, {
+                      pipeline_id: newPid,
+                      stage: newPipeline?.stages.includes(contact.stage) ? contact.stage : (newPipeline?.stages[0] || contact.stage),
+                    });
+                  }}
                   className="mt-1 w-full bg-background border border-border rounded-md px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
                 >
-                  {STAGES.map((s) => (
-                    <option key={s.key} value={s.key}>
-                      {s.label}
-                    </option>
+                  <option value="">— Unassigned —</option>
+                  {pipelines.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Stage</label>
+                <select
+                  value={contact.stage || ""}
+                  onChange={(e) => updateContact(contact.id, { stage: e.target.value })}
+                  disabled={!contactPipeline}
+                  className="mt-1 w-full bg-background border border-border rounded-md px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
+                >
+                  {contactPipeline ? (
+                    contactPipeline.stages.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))
+                  ) : (
+                    <option value="">Assign a pipeline first</option>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Value (monthly)</label>
+                <input
+                  type="number"
+                  value={contact.value}
+                  onChange={(e) => updateContact(contact.id, { value: Number(e.target.value) || 0 })}
+                  className="mt-1 w-full bg-background border border-border rounded-md px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                />
               </div>
 
               <div>

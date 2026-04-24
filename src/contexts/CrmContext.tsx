@@ -3,9 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-export type Stage = "new_lead" | "contacted" | "sample_sent" | "tasting_done" | "proposal_sent" | "won" | "lost";
+// Stage is now a free-form text label defined per-pipeline.
+// Kept as string for backward compatibility with the contacts.stage column.
+export type Stage = string;
 
-export const STAGES: { key: Stage; label: string }[] = [
+// Legacy fixed stages — kept for any leftover references but no longer the source of truth.
+export const STAGES: { key: string; label: string }[] = [
   { key: "new_lead", label: "NEW LEAD" },
   { key: "contacted", label: "CONTACTED" },
   { key: "sample_sent", label: "SAMPLE SENT" },
@@ -14,6 +17,27 @@ export const STAGES: { key: Stage; label: string }[] = [
   { key: "won", label: "WON" },
   { key: "lost", label: "LOST" },
 ];
+
+export const PIPELINE_COLORS = [
+  { key: "primary", className: "bg-primary", hex: "hsl(var(--primary))" },
+  { key: "amber", className: "bg-amber-500", hex: "#f59e0b" },
+  { key: "blue", className: "bg-blue-500", hex: "#3b82f6" },
+  { key: "green", className: "bg-emerald-500", hex: "#10b981" },
+  { key: "purple", className: "bg-purple-500", hex: "#a855f7" },
+  { key: "red", className: "bg-rose-500", hex: "#f43f5e" },
+] as const;
+
+export type Pipeline = {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string;
+  stages: string[];
+  color: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
 
 export type Company = {
   id: string;
@@ -33,6 +57,7 @@ export type Contact = {
   phone: string | null;
   title: string | null;
   company_id: string | null;
+  pipeline_id: string | null;
   stage: Stage;
   value: number;
   location: string | null;
@@ -67,6 +92,7 @@ type CrmContextValue = {
   companies: Company[];
   activities: Activity[];
   tasks: CrmTask[];
+  pipelines: Pipeline[];
   selectedContactId: string | null;
   setSelectedContactId: (id: string | null) => void;
   createContact: (data: Partial<Contact> & { name: string }) => Promise<Contact | null>;
@@ -77,6 +103,10 @@ type CrmContextValue = {
   createTask: (contactId: string | null, title: string, dueDate?: string | null) => Promise<void>;
   toggleTask: (id: string, completed: boolean) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  createPipeline: (data: { name: string; description?: string; color?: string; stages?: string[] }) => Promise<Pipeline | null>;
+  updatePipeline: (id: string, patch: Partial<Pipeline>) => Promise<void>;
+  deletePipeline: (id: string) => Promise<void>;
+  duplicatePipeline: (id: string) => Promise<Pipeline | null>;
 };
 
 const CrmContext = createContext<CrmContextValue | null>(null);
@@ -94,6 +124,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [tasks, setTasks] = useState<CrmTask[]>([]);
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
 
   // Initial load
@@ -105,17 +136,22 @@ export function CrmProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [c, co, a, t] = await Promise.all([
+      const [c, co, a, t, p] = await Promise.all([
         supabase.from("contacts").select("*").order("created_at", { ascending: false }),
         supabase.from("companies").select("*").order("created_at", { ascending: false }),
         supabase.from("activities").select("*").order("created_at", { ascending: false }).limit(500),
         supabase.from("crm_tasks").select("*").order("due_date", { ascending: true, nullsFirst: false }),
+        supabase.from("pipelines" as any).select("*").order("sort_order", { ascending: true }),
       ]);
       if (cancelled) return;
       setContacts((c.data as Contact[]) || []);
       setCompanies((co.data as Company[]) || []);
       setActivities((a.data as Activity[]) || []);
       setTasks((t.data as CrmTask[]) || []);
+      setPipelines(((p.data as any[]) || []).map((row) => ({
+        ...row,
+        stages: Array.isArray(row.stages) ? row.stages : (typeof row.stages === "string" ? JSON.parse(row.stages) : []),
+      })) as Pipeline[]);
       setLoading(false);
     })();
     return () => {
@@ -154,7 +190,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
       if (!user) return null;
       const { data: row, error } = await supabase
         .from("contacts")
-        .insert({ ...data, user_id: user.id })
+        .insert({ ...data, user_id: user.id } as any)
         .select()
         .single();
       if (error) {
@@ -169,7 +205,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
 
   const updateContact = useCallback<CrmContextValue["updateContact"]>(async (id, patch) => {
     setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
-    const { error } = await supabase.from("contacts").update(patch).eq("id", id);
+    const { error } = await supabase.from("contacts").update(patch as any).eq("id", id);
     if (error) toast.error("Failed to update contact");
   }, []);
 
@@ -214,7 +250,6 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         return;
       }
       setActivities((prev) => [row as Activity, ...prev]);
-      // touch last_contacted_at
       await supabase.from("contacts").update({ last_contacted_at: new Date().toISOString() }).eq("id", contactId);
       setContacts((prev) => prev.map((c) => (c.id === contactId ? { ...c, last_contacted_at: new Date().toISOString() } : c)));
     },
@@ -249,6 +284,67 @@ export function CrmProvider({ children }: { children: ReactNode }) {
     await supabase.from("crm_tasks").delete().eq("id", id);
   }, []);
 
+  // ---- Pipelines ----
+  const createPipeline = useCallback<CrmContextValue["createPipeline"]>(
+    async (data) => {
+      if (!user) return null;
+      const stages = data.stages && data.stages.length > 0 ? data.stages : ["New Lead", "Contacted", "Proposal Sent", "Won", "Lost"];
+      const sort_order = pipelines.length;
+      const { data: row, error } = await supabase
+        .from("pipelines" as any)
+        .insert({
+          user_id: user.id,
+          name: data.name,
+          description: data.description || "",
+          color: data.color || "primary",
+          stages: stages as any,
+          sort_order,
+        } as any)
+        .select()
+        .single();
+      if (error) {
+        toast.error("Failed to create pipeline");
+        return null;
+      }
+      const pipeline = { ...(row as any), stages } as Pipeline;
+      setPipelines((prev) => [...prev, pipeline]);
+      return pipeline;
+    },
+    [user, pipelines.length]
+  );
+
+  const updatePipeline = useCallback<CrmContextValue["updatePipeline"]>(async (id, patch) => {
+    setPipelines((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } as Pipeline : p)));
+    const { error } = await supabase.from("pipelines" as any).update(patch as any).eq("id", id);
+    if (error) toast.error("Failed to update pipeline");
+  }, []);
+
+  const deletePipeline = useCallback<CrmContextValue["deletePipeline"]>(async (id) => {
+    const prev = pipelines;
+    setPipelines((p) => p.filter((pl) => pl.id !== id));
+    // Clear pipeline_id on local contacts
+    setContacts((prevContacts) => prevContacts.map((c) => (c.pipeline_id === id ? { ...c, pipeline_id: null } : c)));
+    const { error } = await supabase.from("pipelines" as any).delete().eq("id", id);
+    if (error) {
+      setPipelines(prev);
+      toast.error("Failed to delete pipeline");
+    }
+  }, [pipelines]);
+
+  const duplicatePipeline = useCallback<CrmContextValue["duplicatePipeline"]>(
+    async (id) => {
+      const src = pipelines.find((p) => p.id === id);
+      if (!src) return null;
+      return await createPipeline({
+        name: `${src.name} (copy)`,
+        description: src.description,
+        color: src.color,
+        stages: [...src.stages],
+      });
+    },
+    [pipelines, createPipeline]
+  );
+
   return (
     <CrmContext.Provider
       value={{
@@ -257,6 +353,7 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         companies,
         activities,
         tasks,
+        pipelines,
         selectedContactId,
         setSelectedContactId,
         createContact,
@@ -267,6 +364,10 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         createTask,
         toggleTask,
         deleteTask,
+        createPipeline,
+        updatePipeline,
+        deletePipeline,
+        duplicatePipeline,
       }}
     >
       {children}
