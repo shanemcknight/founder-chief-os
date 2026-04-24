@@ -6,10 +6,11 @@ import ChiefSettings from "@/components/settings/ChiefSettings";
 import ApiWebhooksSettings from "@/components/settings/ApiWebhooksSettings";
 import NotificationsSettings from "@/components/settings/NotificationsSettings";
 import EmailIntegrationSettings from "@/components/settings/EmailIntegrationSettings";
+import EmailSenderSettings from "@/components/settings/EmailSenderSettings";
 import AiModelIntegration from "@/components/settings/AiModelIntegration";
 import BillingSettings from "@/components/settings/BillingSettings";
 
-const navItems = ["Account", "Team", "Integrations", "Agent Settings", "Billing", "API & Webhooks", "Notifications"];
+const navItems = ["Account", "Team", "Integrations", "Email", "Agent Settings", "Billing", "API & Webhooks", "Notifications"];
 
 const connected = ["Gmail", "Shopify", "Amazon", "Klaviyo", "Stripe", "QuickBooks", "LinkedIn", "Apollo"];
 
@@ -51,6 +52,7 @@ const TAB_PARAM_MAP: Record<string, string> = {
   integrations: "Integrations",
   agent: "Agent Settings",
   "agent-settings": "Agent Settings",
+  email: "Email",
   billing: "Billing",
   api: "API & Webhooks",
   webhooks: "API & Webhooks",
@@ -247,7 +249,9 @@ export default function SettingsPage() {
 
         {activeNav === "Notifications" && <NotificationsSettings />}
 
-        {!["Team", "Billing", "Integrations", "Account", "Agent Settings", "API & Webhooks", "Notifications"].includes(activeNav) && (
+        {activeNav === "Email" && <EmailSenderSettings />}
+
+        {!["Team", "Billing", "Integrations", "Account", "Agent Settings", "API & Webhooks", "Notifications", "Email"].includes(activeNav) && (
           <div>
             <h2 className="text-lg font-bold text-foreground mb-4">{activeNav}</h2>
             <p className="text-sm text-muted-foreground">This section is coming soon.</p>
