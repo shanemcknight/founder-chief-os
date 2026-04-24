@@ -1,1 +1,4 @@
 project_id = "cdaywezuktrlkunhqtil"
+
+[functions.send-sequence-email]
+verify_jwt = false
