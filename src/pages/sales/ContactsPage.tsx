@@ -1,7 +1,14 @@
 import { useState, useMemo } from "react";
 import { Search } from "lucide-react";
 import { useCrm, PIPELINE_COLORS } from "@/contexts/CrmContext";
+import { useEmailSequences } from "@/hooks/useEmailSequences";
 import { cn } from "@/lib/utils";
+
+function formatShortDate(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 type SortKey = "name" | "stage" | "value" | "last_contacted_at";
 const ALL = "__all__";
@@ -12,6 +19,7 @@ function colorDot(color: string) {
 
 export default function ContactsPage() {
   const { contacts, companies, loading, setSelectedContactId, pipelines } = useCrm();
+  const { getActiveForContact } = useEmailSequences();
   const [search, setSearch] = useState("");
   const [pipelineFilter, setPipelineFilter] = useState<string>(ALL);
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -115,6 +123,7 @@ export default function ContactsPage() {
                 <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">Company</th>
                 <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">Pipeline</th>
                 <Th k="stage">Stage</Th>
+                <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">Sequence</th>
                 <Th k="value">Value</Th>
                 <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">Location</th>
                 <Th k="last_contacted_at">Last Contact</Th>
@@ -155,6 +164,32 @@ export default function ContactsPage() {
                       >
                         {c.stage || "—"}
                       </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {(() => {
+                        const seq = getActiveForContact(c.id);
+                        if (!seq) {
+                          return <span className="text-muted-foreground text-xs">—</span>;
+                        }
+                        if (seq.status === "pending") {
+                          return (
+                            <span className="text-primary text-xs">
+                              Step {seq.sequence_step}
+                              {seq.next_send_at ? ` · ${formatShortDate(seq.next_send_at)}` : ""}
+                            </span>
+                          );
+                        }
+                        if (seq.status === "completed") {
+                          return <span className="text-emerald-600 text-xs font-medium">Done ✓</span>;
+                        }
+                        if (seq.status === "paused") {
+                          return <span className="text-amber-600 text-xs">Paused</span>;
+                        }
+                        if (seq.status === "unsubscribed") {
+                          return <span className="text-muted-foreground/60 text-xs">Opted out</span>;
+                        }
+                        return <span className="text-muted-foreground text-xs">{seq.status}</span>;
+                      })()}
                     </td>
                     <td className="px-3 py-2.5 text-[11px] font-medium text-warning">
                       {c.value > 0 ? `$${c.value}/mo` : "—"}
