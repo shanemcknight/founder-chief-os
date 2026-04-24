@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   BookOpen,
@@ -29,7 +29,6 @@ import {
   Building2,
   ListChecks,
   Search,
-  BarChart2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -71,7 +70,7 @@ const salesSubItems = [
   { label: "Contacts", path: "/sales/contacts", icon: Users },
   { label: "Companies", path: "/sales/companies", icon: Building2 },
   { label: "Tasks", path: "/sales/tasks", icon: ListChecks },
-  { label: "Analytics", path: "/sales/analytics", icon: BarChart2 },
+  { label: "Analytics", path: "/sales/analytics", icon: BarChart3 },
   { label: "Prospects", path: "/sales/prospects", icon: Search },
 ];
 
@@ -111,6 +110,11 @@ export default function DashboardSidebar() {
   const [agentsOpen, setAgentsOpen] = useState(isAgentsActive);
   const [salesOpen, setSalesOpen] = useState(isSalesActive);
   const [reportsOpen, setReportsOpen] = useState(isReportsActive);
+
+  // Auto-expand SALES on /sales/* routes; collapse when navigating away
+  useEffect(() => {
+    setSalesOpen(isSalesActive);
+  }, [isSalesActive]);
 
   const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
   const initials = displayName
@@ -288,9 +292,11 @@ export default function DashboardSidebar() {
           </div>
         )}
 
-        {/* SALES — expandable */}
-        <button
-          onClick={() => setSalesOpen(!salesOpen)}
+        {/* SALES — navigates AND expands */}
+        <NavLink
+          to="/sales"
+          end
+          onClick={() => setSalesOpen(true)}
           className={cn(
             "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150",
             isSalesActive
@@ -300,31 +306,40 @@ export default function DashboardSidebar() {
         >
           <Target size={16} />
           <span className="flex-1 text-left">SALES</span>
-          <ChevronRight size={14} className={cn("opacity-50 transition-transform duration-200", salesOpen && "rotate-90")} />
-        </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setSalesOpen(!salesOpen);
+            }}
+            className="p-0.5 -m-0.5"
+            aria-label="Toggle sales submenu"
+          >
+            <ChevronRight size={14} className={cn("opacity-50 transition-transform duration-200", salesOpen && "rotate-90")} />
+          </button>
+        </NavLink>
 
         {salesOpen && (
           <div className="ml-3 pl-3 border-l border-border/40 space-y-0.5 py-1">
             {salesSubItems.map((item) => {
               const Icon = item.icon;
-              const isActive = item.exact
-                ? location.pathname === item.path
-                : location.pathname === item.path;
+              const isActive = location.pathname === item.path;
               return (
-                <NavLink
+                <button
                   key={item.path}
-                  to={item.path}
-                  end={item.exact}
+                  type="button"
+                  onClick={() => navigate(item.path)}
                   className={cn(
-                    "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] transition-colors duration-150",
+                    "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] transition-colors duration-150 text-left",
                     isActive
                       ? "text-primary bg-primary/10 font-medium border-l-2 border-primary -ml-[2px] pl-[10px]"
-                      : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
                   <Icon size={14} />
                   <span className="flex-1">{item.label}</span>
-                </NavLink>
+                </button>
               );
             })}
           </div>

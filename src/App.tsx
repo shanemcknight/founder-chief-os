@@ -12,7 +12,6 @@ import PipelinePage from "./pages/sales/PipelinePage";
 import ContactsPage from "./pages/sales/ContactsPage";
 import CompaniesPage from "./pages/sales/CompaniesPage";
 import TasksPage from "./pages/sales/TasksPage";
-import AnalyticsPage from "./pages/sales/AnalyticsPage";
 import ProspectsPage from "./pages/sales/ProspectsPage";
 import SalesDashboardPage from "./pages/sales/SalesDashboardPage";
 import PublishPage from "./pages/PublishPage";
@@ -110,7 +109,6 @@ const App = () => (
                 <Route path="contacts" element={<ContactsPage />} />
                 <Route path="companies" element={<CompaniesPage />} />
                 <Route path="tasks" element={<TasksPage />} />
-                <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="prospects" element={<ProspectsPage />} />
               </Route>
               <Route path="/publish" element={<PublishPage />} />
