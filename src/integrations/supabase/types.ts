@@ -557,6 +557,8 @@ export type Database = {
           created_at: string | null
           delay_days: number | null
           id: string
+          send_window_end: number
+          send_window_start: number
           sequence_name: string
           sequence_step: number
           subject: string
@@ -568,6 +570,8 @@ export type Database = {
           created_at?: string | null
           delay_days?: number | null
           id?: string
+          send_window_end?: number
+          send_window_start?: number
           sequence_name: string
           sequence_step: number
           subject: string
@@ -579,6 +583,8 @@ export type Database = {
           created_at?: string | null
           delay_days?: number | null
           id?: string
+          send_window_end?: number
+          send_window_start?: number
           sequence_name?: string
           sequence_step?: number
           subject?: string
@@ -1440,7 +1446,9 @@ export type Database = {
           byok_active: boolean
           email_monthly_limit: number
           emails_sent_this_month: number
+          emails_sent_today: number
           id: string
+          last_daily_reset: string
           plan_tier: string
           updated_at: string | null
           user_id: string
@@ -1452,7 +1460,9 @@ export type Database = {
           byok_active?: boolean
           email_monthly_limit?: number
           emails_sent_this_month?: number
+          emails_sent_today?: number
           id?: string
+          last_daily_reset?: string
           plan_tier?: string
           updated_at?: string | null
           user_id: string
@@ -1464,7 +1474,9 @@ export type Database = {
           byok_active?: boolean
           email_monthly_limit?: number
           emails_sent_this_month?: number
+          emails_sent_today?: number
           id?: string
+          last_daily_reset?: string
           plan_tier?: string
           updated_at?: string | null
           user_id?: string
