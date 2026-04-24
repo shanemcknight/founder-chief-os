@@ -2,3 +2,9 @@ project_id = "cdaywezuktrlkunhqtil"
 
 [functions.send-sequence-email]
 verify_jwt = false
+
+[functions.unsubscribe]
+verify_jwt = false
+
+[functions.resend-webhook]
+verify_jwt = false
