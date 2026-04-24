@@ -186,7 +186,11 @@ export default function ContactsPage() {
                           return <span className="text-emerald-600 text-xs font-medium">Done ✓</span>;
                         }
                         if (seq.status === "paused") {
-                          return <span className="text-amber-600 text-xs">Paused</span>;
+                          return (
+                            <span className="text-amber-600 text-xs">
+                              {limitReached ? "Limit reached" : "Paused"}
+                            </span>
+                          );
                         }
                         if (seq.status === "unsubscribed") {
                           return <span className="text-muted-foreground/60 text-xs">Opted out</span>;
