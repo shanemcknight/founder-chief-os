@@ -324,24 +324,22 @@ export default function DashboardSidebar() {
           <div className="ml-3 pl-3 border-l border-border/40 space-y-0.5 py-1">
             {salesSubItems.map((item) => {
               const Icon = item.icon;
-              const isActive = item.exact
-                ? location.pathname === item.path
-                : location.pathname === item.path;
+              const isActive = location.pathname === item.path;
               return (
-                <NavLink
+                <button
                   key={item.path}
-                  to={item.path}
-                  end={item.exact}
+                  type="button"
+                  onClick={() => navigate(item.path)}
                   className={cn(
-                    "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] transition-colors duration-150",
+                    "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] transition-colors duration-150 text-left",
                     isActive
                       ? "text-primary bg-primary/10 font-medium border-l-2 border-primary -ml-[2px] pl-[10px]"
-                      : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
                   <Icon size={14} />
                   <span className="flex-1">{item.label}</span>
-                </NavLink>
+                </button>
               );
             })}
           </div>
