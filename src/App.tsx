@@ -14,6 +14,7 @@ import CompaniesPage from "./pages/sales/CompaniesPage";
 import TasksPage from "./pages/sales/TasksPage";
 import ProspectsPage from "./pages/sales/ProspectsPage";
 import SalesDashboardPage from "./pages/sales/SalesDashboardPage";
+import SequencesPage from "./pages/sales/SequencesPage";
 import PublishPage from "./pages/PublishPage";
 import ChiefPage from "./pages/ChiefPage";
 import AgentsLayout from "./pages/agents/AgentsLayout";
@@ -110,6 +111,7 @@ const App = () => (
                 <Route path="companies" element={<CompaniesPage />} />
                 <Route path="tasks" element={<TasksPage />} />
                 <Route path="prospects" element={<ProspectsPage />} />
+                <Route path="sequences" element={<SequencesPage />} />
               </Route>
               <Route path="/publish" element={<PublishPage />} />
               <Route path="/chief" element={<ChiefPage />} />
