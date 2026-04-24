@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { X, Mail, Phone, MapPin, Building2, Plus, Check, Trash2 } from "lucide-react";
 import { useCrm } from "@/contexts/CrmContext";
 import { useEmailSequences } from "@/hooks/useEmailSequences";
+import { useUserUsage, nextResetDate } from "@/hooks/useUserUsage";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import SequenceEnrollmentModal from "@/components/sales/SequenceEnrollmentModal";
@@ -30,6 +32,7 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
   const [taskDue, setTaskDue] = useState("");
   const [notesDraft, setNotesDraft] = useState(contact?.notes || "");
   const { getActiveForContact, getHistoryForContact, refresh: refreshSequences } = useEmailSequences();
+  const { usage } = useUserUsage();
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [confirmUnenroll, setConfirmUnenroll] = useState(false);
 
