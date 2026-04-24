@@ -292,9 +292,11 @@ export default function DashboardSidebar() {
           </div>
         )}
 
-        {/* SALES — expandable */}
-        <button
-          onClick={() => setSalesOpen(!salesOpen)}
+        {/* SALES — navigates AND expands */}
+        <NavLink
+          to="/sales"
+          end
+          onClick={() => setSalesOpen(true)}
           className={cn(
             "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150",
             isSalesActive
@@ -304,8 +306,19 @@ export default function DashboardSidebar() {
         >
           <Target size={16} />
           <span className="flex-1 text-left">SALES</span>
-          <ChevronRight size={14} className={cn("opacity-50 transition-transform duration-200", salesOpen && "rotate-90")} />
-        </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setSalesOpen(!salesOpen);
+            }}
+            className="p-0.5 -m-0.5"
+            aria-label="Toggle sales submenu"
+          >
+            <ChevronRight size={14} className={cn("opacity-50 transition-transform duration-200", salesOpen && "rotate-90")} />
+          </button>
+        </NavLink>
 
         {salesOpen && (
           <div className="ml-3 pl-3 border-l border-border/40 space-y-0.5 py-1">
