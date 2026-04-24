@@ -458,6 +458,15 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
           )}
         </div>
       </aside>
+
+      {enrollOpen && (
+        <SequenceEnrollmentModal
+          contactId={contact.id}
+          pipelineId={contact.pipeline_id || null}
+          onClose={() => setEnrollOpen(false)}
+          onEnrolled={() => refreshSequences()}
+        />
+      )}
     </>
   );
 }
