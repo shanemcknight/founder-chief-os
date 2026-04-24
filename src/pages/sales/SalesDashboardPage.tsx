@@ -110,7 +110,7 @@ export default function SalesDashboardPage() {
       if (pipelines.length === 0) navigate("/sales/pipeline");
       else setShowAdd(true);
     } },
-    { title: "Find Prospects", desc: "Search Apollo for new leads", icon: Search, onClick: () => navigate("/sales/prospects") },
+    { title: "Find Prospects", desc: "Scrape real websites for fresh leads", icon: Search, onClick: () => navigate("/sales/prospects") },
     { title: "View Tasks", desc: "Follow-ups and reminders", icon: ListChecks, onClick: () => navigate("/sales/tasks") },
   ];
 
