@@ -173,7 +173,7 @@ export default function ProspectsPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-2 flex-wrap">
         <h1 className="text-lg font-bold text-foreground">Find New Prospects</h1>
-        <span className="text-[9px] text-muted-foreground border border-border rounded px-1.5 py-0.5">powered by Apollo</span>
+        <span className="text-[9px] text-muted-foreground border border-border rounded px-1.5 py-0.5">powered by Outscraper</span>
         <button
           onClick={() => setSettingsOpen(true)}
           className="ml-auto inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md px-2.5 py-1 transition-colors"
