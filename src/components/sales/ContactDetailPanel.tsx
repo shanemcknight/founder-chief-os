@@ -1,12 +1,12 @@
 import { useEffect, useState, useMemo } from "react";
 import { X, Mail, Phone, MapPin, Building2, Plus, Check, Trash2 } from "lucide-react";
-import { useCrm, STAGES, Stage } from "@/contexts/CrmContext";
+import { useCrm } from "@/contexts/CrmContext";
 import { cn } from "@/lib/utils";
 
 type Tab = "overview" | "activity" | "tasks" | "notes";
 
 export default function ContactDetailPanel({ contactId, onClose }: { contactId: string; onClose: () => void }) {
-  const { contacts, companies, activities, tasks, updateContact, logActivity, createTask, toggleTask, deleteTask } = useCrm();
+  const { contacts, companies, activities, tasks, updateContact, logActivity, createTask, toggleTask, deleteTask, pipelines } = useCrm();
   const contact = contacts.find((c) => c.id === contactId);
   const company = contact?.company_id ? companies.find((c) => c.id === contact.company_id) : null;
   const [tab, setTab] = useState<Tab>("overview");
