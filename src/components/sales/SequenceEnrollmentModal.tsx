@@ -161,26 +161,31 @@ export default function SequenceEnrollmentModal({
               </div>
 
               {selectedSteps.length > 0 && (
-                <div className="bg-muted/30 border border-border rounded-lg p-3 space-y-1">
-                  {selectedSteps.map((s, idx) => {
-                    const label =
-                      idx === 0
-                        ? "sends immediately"
-                        : `Day ${(s.delay_days ?? 7) * (idx === 1 ? 1 : 1)}`;
-                    // Cumulative delay: each step's delay_days is days after previous
-                    return (
-                      <p
-                        key={s.id}
-                        className="text-[11px] text-muted-foreground"
-                      >
-                        Step {s.sequence_step} —{" "}
-                        {idx === 0
-                          ? "sends immediately"
-                          : `Day ${s.delay_days ?? 7}`}{" "}
-                        · {s.subject || "(no subject)"}
-                      </p>
-                    );
-                  })}
+                <div className="space-y-2 mt-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Sequence Preview
+                  </p>
+                  <div className="bg-muted/30 border border-border rounded-lg p-3 space-y-1">
+                    {(() => {
+                      let cumulative = 0;
+                      return selectedSteps.map((s, idx) => {
+                        if (idx > 0) cumulative += s.delay_days ?? 7;
+                        const dayLabel =
+                          idx === 0
+                            ? "Day 0 (sends on start date)"
+                            : `Day ${cumulative}`;
+                        return (
+                          <p
+                            key={s.id}
+                            className="text-[11px] text-muted-foreground"
+                          >
+                            Step {s.sequence_step} — {dayLabel} ·{" "}
+                            {s.subject || "(no subject)"}
+                          </p>
+                        );
+                      });
+                    })()}
+                  </div>
                 </div>
               )}
             </>
