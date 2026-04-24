@@ -1304,6 +1304,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_email_settings: {
+        Row: {
+          created_at: string
+          domain_verified: boolean
+          from_email: string | null
+          from_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain_verified?: boolean
+          from_email?: string | null
+          from_name?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          domain_verified?: boolean
+          from_email?: string | null
+          from_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_integrations: {
         Row: {
           connected_at: string
