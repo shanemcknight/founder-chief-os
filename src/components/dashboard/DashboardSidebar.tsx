@@ -111,6 +111,11 @@ export default function DashboardSidebar() {
   const [salesOpen, setSalesOpen] = useState(isSalesActive);
   const [reportsOpen, setReportsOpen] = useState(isReportsActive);
 
+  // Auto-expand SALES on /sales/* routes; collapse when navigating away
+  useEffect(() => {
+    setSalesOpen(isSalesActive);
+  }, [isSalesActive]);
+
   const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
   const initials = displayName
     .split(" ")
