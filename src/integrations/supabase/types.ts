@@ -269,6 +269,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          pipeline_id: string | null
           stage: string
           tags: string[]
           title: string | null
@@ -285,6 +286,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          pipeline_id?: string | null
           stage?: string
           tags?: string[]
           title?: string | null
@@ -301,6 +303,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          pipeline_id?: string | null
           stage?: string
           tags?: string[]
           title?: string | null
@@ -313,6 +316,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
             referencedColumns: ["id"]
           },
         ]
@@ -594,6 +604,42 @@ export type Database = {
           message?: string | null
           read?: boolean
           type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pipelines: {
+        Row: {
+          color: string
+          created_at: string
+          description: string
+          id: string
+          name: string
+          sort_order: number
+          stages: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          sort_order?: number
+          stages?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          stages?: Json
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
