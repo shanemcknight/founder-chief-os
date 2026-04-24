@@ -49,7 +49,7 @@ export default function SequencesPage() {
   const refresh = async () => {
     if (!user) return;
     setLoading(true);
-    const [tpl, enr, key] = await Promise.all([
+    const [tpl, enr, ping] = await Promise.all([
       supabase
         .from("email_templates" as any)
         .select("*")
@@ -59,16 +59,17 @@ export default function SequencesPage() {
         .from("email_sequences" as any)
         .select("sequence_name")
         .neq("status", "completed"),
-      supabase
-        .from("api_keys")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("service", "resend")
-        .maybeSingle(),
+      // Ping the sender — it returns 500 with "RESEND_API_KEY not configured"
+      // if the platform secret is missing. Any other response means it's set.
+      supabase.functions.invoke("send-sequence-email", { body: {} }),
     ]);
     setTemplates(((tpl.data as any[]) || []) as EmailTemplate[]);
     setEnrollments(((enr.data as any[]) || []) as EnrollmentRow[]);
-    setHasResendKey(!!key.data);
+    const pingErr: any = (ping as any)?.error;
+    const missingKey =
+      typeof pingErr?.message === "string" &&
+      pingErr.message.toLowerCase().includes("resend_api_key");
+    setHasResendKey(!missingKey);
     setLoading(false);
   };
 
@@ -270,16 +271,8 @@ export default function SequencesPage() {
         <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 mb-6 flex items-center gap-3">
           <AlertCircle className="w-4 h-4 text-warning shrink-0" />
           <p className="text-sm text-foreground">
-            Add your Resend API key in Prospects → Settings to start sending sequences.
+            Email sending is not yet configured. Contact support to enable sequences.
           </p>
-          <a
-            href="https://resend.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-primary hover:underline ml-auto whitespace-nowrap"
-          >
-            Get a free Resend key →
-          </a>
         </div>
       )}
 
