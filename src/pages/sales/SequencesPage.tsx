@@ -47,6 +47,43 @@ export default function SequencesPage() {
   // Delete confirm
   const [deleteName, setDeleteName] = useState<string | null>(null);
 
+  // Test send state per step index
+  const [testState, setTestState] = useState<Record<number, TestState>>({});
+
+  const sendTest = async (idx: number, step: StepDraft) => {
+    if (!step.subject.trim() || !step.body_text.trim()) {
+      toast.error("Subject and plain text body are required to send a test");
+      return;
+    }
+    setTestState((s) => ({ ...s, [idx]: "sending" }));
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "send-test-email",
+        {
+          body: {
+            subject: step.subject,
+            body_text: step.body_text,
+            body_html: step.body_html || "",
+          },
+        }
+      );
+      if (error || (data as any)?.error) {
+        throw new Error((data as any)?.error || error?.message || "Send failed");
+      }
+      setTestState((s) => ({ ...s, [idx]: "sent" }));
+      toast.success(`Test email sent to ${(data as any)?.sent_to || "you"}`);
+      setTimeout(() => {
+        setTestState((s) => ({ ...s, [idx]: "idle" }));
+      }, 3000);
+    } catch (e: any) {
+      console.error(e);
+      setTestState((s) => ({ ...s, [idx]: "error" }));
+      setTimeout(() => {
+        setTestState((s) => ({ ...s, [idx]: "idle" }));
+      }, 4000);
+    }
+  };
+
   // ---------- Load ----------
   const refresh = async () => {
     if (!user) return;
