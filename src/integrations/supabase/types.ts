@@ -586,6 +586,38 @@ export type Database = {
         }
         Relationships: []
       }
+      email_unsubscribes: {
+        Row: {
+          contact_id: string | null
+          email: string
+          id: string
+          unsubscribed_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          email: string
+          id?: string
+          unsubscribed_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          email?: string
+          id?: string
+          unsubscribed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_unsubscribes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emails: {
         Row: {
           account_email: string | null
