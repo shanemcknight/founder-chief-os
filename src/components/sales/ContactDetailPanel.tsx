@@ -1,7 +1,20 @@
 import { useEffect, useState, useMemo } from "react";
 import { X, Mail, Phone, MapPin, Building2, Plus, Check, Trash2 } from "lucide-react";
 import { useCrm } from "@/contexts/CrmContext";
+import { useEmailSequences } from "@/hooks/useEmailSequences";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import SequenceEnrollmentModal from "@/components/sales/SequenceEnrollmentModal";
 import { cn } from "@/lib/utils";
+
+function formatDateLong(iso: string | null) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 type Tab = "overview" | "activity" | "tasks" | "notes";
 
