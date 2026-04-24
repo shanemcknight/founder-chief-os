@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Search } from "lucide-react";
 import { useCrm, PIPELINE_COLORS } from "@/contexts/CrmContext";
 import { useEmailSequences } from "@/hooks/useEmailSequences";
+import { useUserUsage } from "@/hooks/useUserUsage";
 import { cn } from "@/lib/utils";
 
 function formatShortDate(iso: string | null) {
@@ -20,6 +21,8 @@ function colorDot(color: string) {
 export default function ContactsPage() {
   const { contacts, companies, loading, setSelectedContactId, pipelines } = useCrm();
   const { getActiveForContact } = useEmailSequences();
+  const { usage } = useUserUsage();
+  const limitReached = !!usage && (usage.emails_sent_this_month ?? 0) >= (usage.email_monthly_limit ?? 0);
   const [search, setSearch] = useState("");
   const [pipelineFilter, setPipelineFilter] = useState<string>(ALL);
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -183,7 +186,11 @@ export default function ContactsPage() {
                           return <span className="text-emerald-600 text-xs font-medium">Done ✓</span>;
                         }
                         if (seq.status === "paused") {
-                          return <span className="text-amber-600 text-xs">Paused</span>;
+                          return (
+                            <span className="text-amber-600 text-xs">
+                              {limitReached ? "Limit reached" : "Paused"}
+                            </span>
+                          );
                         }
                         if (seq.status === "unsubscribed") {
                           return <span className="text-muted-foreground/60 text-xs">Opted out</span>;
