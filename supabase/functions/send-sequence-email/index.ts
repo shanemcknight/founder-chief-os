@@ -1,21 +1,29 @@
+// Tier-aware sender: enforces per-tier monthly email limits from user_usage.
 // Sends due sequence emails via Resend using the platform RESEND_API_KEY.
-// Reads each user's from_name / from_email from user_email_settings.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
+const FROM_ADDR = "MythosHQ Outreach <outreach@mythoshq.io>";
+const MAX_PER_RUN = 500;
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
   if (!RESEND_API_KEY) {
-    return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "RESEND_API_KEY not configured" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 
   const supabase = createClient(
@@ -30,7 +38,9 @@ Deno.serve(async (req) => {
     .from("email_sequences")
     .select("*")
     .eq("status", "pending")
-    .lte("next_send_at", nowIso);
+    .lte("next_send_at", nowIso)
+    .order("next_send_at", { ascending: true })
+    .limit(MAX_PER_RUN);
 
   if (seqErr) {
     console.error("Sequence fetch error:", seqErr);
@@ -41,21 +51,45 @@ Deno.serve(async (req) => {
   }
 
   let sent = 0;
-  let skipped = 0;
-  let failed = 0;
+  let skipped_limit = 0;
+  let skipped_no_email = 0;
+  let errors = 0;
 
   for (const seq of dueSeqs || []) {
     try {
+      // a. Fetch usage row
+      const { data: usage } = await supabase
+        .from("user_usage")
+        .select("emails_sent_this_month, email_monthly_limit")
+        .eq("user_id", seq.user_id)
+        .maybeSingle();
+
+      // b. CHECK LIMIT
+      if (
+        usage &&
+        (usage.emails_sent_this_month ?? 0) >=
+          (usage.email_monthly_limit ?? 0)
+      ) {
+        await supabase
+          .from("email_sequences")
+          .update({ status: "paused" })
+          .eq("id", seq.id);
+        skipped_limit++;
+        continue;
+      }
+
+      // c. Fetch contact
       const { data: contact } = await supabase
         .from("contacts")
         .select("email, name")
         .eq("id", seq.contact_id)
         .maybeSingle();
       if (!contact?.email) {
-        skipped++;
+        skipped_no_email++;
         continue;
       }
 
+      // d. Fetch matching template
       const { data: tpl } = await supabase
         .from("email_templates")
         .select("*")
@@ -64,24 +98,14 @@ Deno.serve(async (req) => {
         .eq("sequence_step", seq.sequence_step)
         .maybeSingle();
       if (!tpl) {
-        skipped++;
+        await supabase
+          .from("email_sequences")
+          .update({ status: "completed" })
+          .eq("id", seq.id);
         continue;
       }
 
-      const { data: settings } = await supabase
-        .from("user_email_settings")
-        .select("from_name, from_email")
-        .eq("user_id", seq.user_id)
-        .maybeSingle();
-
-      if (!settings?.from_email) {
-        skipped++;
-        continue;
-      }
-
-      const fromName = settings.from_name || "Outreach";
-      const fromAddr = `${fromName} <${settings.from_email}>`;
-
+      // e. Send via Resend
       const resp = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -89,7 +113,7 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: fromAddr,
+          from: FROM_ADDR,
           to: contact.email,
           subject: tpl.subject,
           text: tpl.body_text,
@@ -99,11 +123,20 @@ Deno.serve(async (req) => {
 
       if (!resp.ok) {
         const errText = await resp.text();
-        console.error(`Resend send failed for sequence ${seq.id}:`, errText);
-        failed++;
+        console.error(
+          `Resend send failed for sequence ${seq.id} contact ${seq.contact_id}:`,
+          errText
+        );
+        errors++;
         continue;
       }
 
+      // f. Increment counter
+      await supabase.rpc("increment_email_count", {
+        _user_id: seq.user_id,
+      });
+
+      // Check next step
       const nextStep = (seq.sequence_step || 1) + 1;
       const { data: nextTpl } = await supabase
         .from("email_templates")
@@ -117,7 +150,9 @@ Deno.serve(async (req) => {
 
       if (nextTpl) {
         const delayDays = nextTpl.delay_days ?? 7;
-        const nextSend = new Date(Date.now() + delayDays * 86400000).toISOString();
+        const nextSend = new Date(
+          Date.now() + delayDays * 86400000
+        ).toISOString();
         await supabase
           .from("email_sequences")
           .update({
@@ -135,13 +170,22 @@ Deno.serve(async (req) => {
       }
       sent++;
     } catch (e) {
-      console.error("send loop error:", e);
-      failed++;
+      console.error("send loop error for sequence", seq.id, e);
+      errors++;
     }
   }
 
   return new Response(
-    JSON.stringify({ sent, skipped, failed, processed: (dueSeqs || []).length }),
-    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    JSON.stringify({
+      processed: (dueSeqs || []).length,
+      sent,
+      skipped_limit,
+      skipped_no_email,
+      errors,
+    }),
+    {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    }
   );
 });
