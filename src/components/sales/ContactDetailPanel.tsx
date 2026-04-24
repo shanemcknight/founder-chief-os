@@ -181,6 +181,11 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
     return () => window.removeEventListener("keydown", handler);
   }, [onClose, prevId, nextId, setSelectedContactId]);
 
+  const leadSource = useMemo(() => {
+    if (!contact) return "";
+    return contact.tags.find((t) => LEAD_SOURCES.map(s => s.toLowerCase()).includes(t.toLowerCase())) || "";
+  }, [contact]);
+
   if (!contact) return null;
 
   const emailType = detectEmailType(contact.email);
@@ -205,10 +210,6 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
   const removeTag = (t: string) => {
     updateContact(contact.id, { tags: contact.tags.filter((x) => x !== t) });
   };
-
-  const leadSource = useMemo(() => {
-    return contact.tags.find((t) => LEAD_SOURCES.map(s => s.toLowerCase()).includes(t.toLowerCase())) || "";
-  }, [contact.tags]);
 
   const setLeadSource = (src: string) => {
     const cleaned = contact.tags.filter((t) => !LEAD_SOURCES.map(s => s.toLowerCase()).includes(t.toLowerCase()));
