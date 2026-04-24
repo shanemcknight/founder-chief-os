@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Search } from "lucide-react";
 import { useCrm, PIPELINE_COLORS } from "@/contexts/CrmContext";
 import { useEmailSequences } from "@/hooks/useEmailSequences";
+import { useUserUsage } from "@/hooks/useUserUsage";
 import { cn } from "@/lib/utils";
 
 function formatShortDate(iso: string | null) {
