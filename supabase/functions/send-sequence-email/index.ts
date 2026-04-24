@@ -1,5 +1,8 @@
 // Tier-aware sender: enforces per-tier monthly email limits from user_usage.
 // Sends due sequence emails via Resend using the platform RESEND_API_KEY.
+// - Skips and unsubscribes recipients in email_unsubscribes
+// - Replaces merge fields (e.g. {{first_name}}) in subject + body
+// - Appends a one-click unsubscribe link to every send
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -10,6 +13,45 @@ const corsHeaders = {
 
 const FROM_ADDR = "MythosHQ Outreach <outreach@mythoshq.io>";
 const MAX_PER_RUN = 500;
+
+// ---- merge field replacement ----
+type MergeContact = {
+  name?: string | null;
+  email?: string | null;
+  location?: string | null;
+  company?: string | null;
+  website?: string | null;
+};
+
+function applyMergeFields(template: string, contact: MergeContact): string {
+  const parts = (contact.name || "").trim().split(/\s+/).filter(Boolean);
+  const firstName = parts[0] || "";
+  const lastName = parts.slice(1).join(" ") || "";
+  return template
+    .replace(/{{first_name}}/g, firstName)
+    .replace(/{{last_name}}/g, lastName)
+    .replace(/{{full_name}}/g, contact.name || "")
+    .replace(/{{company}}/g, contact.company || "")
+    .replace(/{{city}}/g, contact.location?.split(",")[0]?.trim() || "")
+    .replace(/{{email}}/g, contact.email || "")
+    .replace(/{{website}}/g, contact.website || "");
+}
+
+// ---- HMAC for unsubscribe URL ----
+async function hmacHex(secret: string, message: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
@@ -26,8 +68,11 @@ Deno.serve(async (req) => {
     );
   }
 
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const UNSUBSCRIBE_SECRET = Deno.env.get("UNSUBSCRIBE_SECRET") || "";
+
   const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
+    SUPABASE_URL,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false } }
   );
@@ -53,18 +98,19 @@ Deno.serve(async (req) => {
   let sent = 0;
   let skipped_limit = 0;
   let skipped_no_email = 0;
+  let skipped_unsubscribed = 0;
   let errors = 0;
 
   for (const seq of dueSeqs || []) {
     try {
-      // a. Fetch usage row
+      // Fetch usage row
       const { data: usage } = await supabase
         .from("user_usage")
         .select("emails_sent_this_month, email_monthly_limit")
         .eq("user_id", seq.user_id)
         .maybeSingle();
 
-      // b. CHECK LIMIT
+      // CHECK LIMIT
       if (
         usage &&
         (usage.emails_sent_this_month ?? 0) >=
@@ -78,10 +124,10 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // c. Fetch contact
+      // Fetch contact + company (for merge fields)
       const { data: contact } = await supabase
         .from("contacts")
-        .select("email, name")
+        .select("id, email, name, location, company_id")
         .eq("id", seq.contact_id)
         .maybeSingle();
       if (!contact?.email) {
@@ -89,7 +135,44 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // d. Fetch matching template
+      // Check unsubscribes BEFORE sending
+      const { data: unsub } = await supabase
+        .from("email_unsubscribes")
+        .select("id")
+        .eq("user_id", seq.user_id)
+        .eq("email", contact.email)
+        .limit(1);
+      if (unsub && unsub.length > 0) {
+        await supabase
+          .from("email_sequences")
+          .update({ status: "unsubscribed" })
+          .eq("id", seq.id);
+        skipped_unsubscribed++;
+        continue;
+      }
+
+      // Resolve company name + website (if any)
+      let companyName = "";
+      let companyWebsite = "";
+      if (contact.company_id) {
+        const { data: company } = await supabase
+          .from("companies")
+          .select("name, website")
+          .eq("id", contact.company_id)
+          .maybeSingle();
+        companyName = company?.name || "";
+        companyWebsite = company?.website || "";
+      }
+
+      const mergeData: MergeContact = {
+        name: contact.name,
+        email: contact.email,
+        location: contact.location,
+        company: companyName,
+        website: companyWebsite,
+      };
+
+      // Fetch matching template
       const { data: tpl } = await supabase
         .from("email_templates")
         .select("*")
@@ -105,7 +188,28 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // e. Send via Resend
+      // Apply merge fields
+      const subject = applyMergeFields(tpl.subject || "", mergeData);
+      let bodyText = applyMergeFields(tpl.body_text || "", mergeData);
+      let bodyHtml = tpl.body_html
+        ? applyMergeFields(tpl.body_html, mergeData)
+        : "";
+
+      // Build unsubscribe URL + append footer
+      const token = UNSUBSCRIBE_SECRET
+        ? await hmacHex(
+            UNSUBSCRIBE_SECRET,
+            `${contact.id}:${seq.user_id}`,
+          )
+        : "";
+      const unsubscribeUrl = `${SUPABASE_URL}/functions/v1/unsubscribe?contact_id=${contact.id}&user_id=${seq.user_id}&token=${token}`;
+
+      bodyText = `${bodyText}\n\n---\nTo unsubscribe from these emails, visit: ${unsubscribeUrl}`;
+      if (bodyHtml) {
+        bodyHtml = `${bodyHtml}<hr style="margin-top:32px;border:none;border-top:1px solid #eee" /><p style="font-size:11px;color:#888;text-align:center;margin-top:12px">Don't want to receive these emails? <a href="${unsubscribeUrl}" style="color:#888;text-decoration:underline">Unsubscribe</a></p>`;
+      }
+
+      // Send via Resend
       const resp = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -115,9 +219,13 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           from: FROM_ADDR,
           to: contact.email,
-          subject: tpl.subject,
-          text: tpl.body_text,
-          html: tpl.body_html || undefined,
+          subject,
+          text: bodyText,
+          html: bodyHtml || undefined,
+          headers: {
+            "List-Unsubscribe": `<${unsubscribeUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
         }),
       });
 
@@ -131,7 +239,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // f. Increment counter
+      // Increment counter
       await supabase.rpc("increment_email_count", {
         _user_id: seq.user_id,
       });
@@ -181,6 +289,7 @@ Deno.serve(async (req) => {
       sent,
       skipped_limit,
       skipped_no_email,
+      skipped_unsubscribed,
       errors,
     }),
     {
