@@ -70,6 +70,7 @@ const salesSubItems = [
   { label: "Contacts", path: "/sales/contacts", icon: Users },
   { label: "Companies", path: "/sales/companies", icon: Building2 },
   { label: "Tasks", path: "/sales/tasks", icon: ListChecks },
+  { label: "Analytics", path: "/sales/analytics", icon: BarChart3 },
   { label: "Prospects", path: "/sales/prospects", icon: Search },
 ];
 
