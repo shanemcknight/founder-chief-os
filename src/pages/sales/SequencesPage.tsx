@@ -600,6 +600,63 @@ export default function SequencesPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Test send */}
+                    <div className="mt-3">
+                      {(() => {
+                        const state = testState[idx] ?? "idle";
+                        const base =
+                          "text-xs px-3 py-1.5 rounded-lg border transition-colors inline-flex items-center gap-1.5";
+                        if (state === "sending") {
+                          return (
+                            <button
+                              type="button"
+                              disabled
+                              className={`${base} border-border text-muted-foreground opacity-70`}
+                            >
+                              <span className="inline-block w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                              Sending…
+                            </button>
+                          );
+                        }
+                        if (state === "sent") {
+                          return (
+                            <button
+                              type="button"
+                              disabled
+                              className={`${base} border-emerald-500/30 bg-emerald-500/10 text-emerald-600`}
+                            >
+                              Sent ✓
+                            </button>
+                          );
+                        }
+                        if (state === "error") {
+                          return (
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => sendTest(idx, s)}
+                                className={`${base} border-border text-muted-foreground hover:text-foreground`}
+                              >
+                                Send test email ↗
+                              </button>
+                              <span className="text-[11px] text-destructive">
+                                Failed to send — check your email settings.
+                              </span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => sendTest(idx, s)}
+                            className={`${base} border-border text-muted-foreground hover:text-foreground`}
+                          >
+                            Send test email ↗
+                          </button>
+                        );
+                      })()}
+                    </div>
                   </div>
                 ))}
               </div>
