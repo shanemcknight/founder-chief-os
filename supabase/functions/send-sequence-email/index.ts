@@ -435,6 +435,7 @@ Deno.serve(async (req) => {
       skipped_no_email,
       skipped_unsubscribed,
       skipped_step_window,
+      skipped_unverified_domain,
       errors,
     }),
     {
