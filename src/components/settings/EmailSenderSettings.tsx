@@ -47,6 +47,9 @@ export default function EmailSenderSettings() {
   const [fromName, setFromName] = useState("");
   const [fromEmail, setFromEmail] = useState("");
   const [verified, setVerified] = useState(false);
+  const [timezone, setTimezone] = useState("America/Los_Angeles");
+  const [startHour, setStartHour] = useState(9);
+  const [endHour, setEndHour] = useState(16);
   const [records, setRecords] = useState<DnsRecord[]>([]);
 
   useEffect(() => {
@@ -55,7 +58,7 @@ export default function EmailSenderSettings() {
       setLoading(true);
       const { data } = await supabase
         .from("user_email_settings")
-        .select("from_name, from_email, domain_verified")
+        .select("from_name, from_email, domain_verified, timezone, send_window_start_hour, send_window_end_hour")
         .eq("user_id", user.id)
         .maybeSingle();
       if (data) {
@@ -63,8 +66,10 @@ export default function EmailSenderSettings() {
         setFromName(s.from_name || "");
         setFromEmail(s.from_email || "");
         setVerified(!!s.domain_verified);
+        setTimezone(s.timezone || "America/Los_Angeles");
+        setStartHour(s.send_window_start_hour ?? 9);
+        setEndHour(s.send_window_end_hour ?? 16);
       } else {
-        // Insert a default row so the user has a record to edit
         await supabase
           .from("user_email_settings")
           .insert({ user_id: user.id, from_name: "My Business" });
@@ -85,6 +90,10 @@ export default function EmailSenderSettings() {
       toast.error("Please enter a valid email address");
       return;
     }
+    if (startHour < 0 || startHour > 23 || endHour < 1 || endHour > 24 || startHour >= endHour) {
+      toast.error("Earliest send hour must be before latest send hour (0–24).");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from("user_email_settings")
@@ -93,6 +102,9 @@ export default function EmailSenderSettings() {
           user_id: user.id,
           from_name: fromName.trim(),
           from_email: fromEmail.trim() || null,
+          timezone,
+          send_window_start_hour: startHour,
+          send_window_end_hour: endHour,
         },
         { onConflict: "user_id" }
       );
