@@ -226,6 +226,9 @@ export default function SequenceEnrollmentModal({
                   min={today}
                   className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
                 />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Will fire between {winStart}:00–{winEnd}:00 in {tz} (Mon–Fri only).
+                </p>
               </div>
 
               {selectedSteps.length > 0 && (
