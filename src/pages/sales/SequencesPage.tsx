@@ -33,6 +33,7 @@ type TestState = "idle" | "sending" | "sent" | "error";
 
 export default function SequencesPage() {
   const { user } = useAuth();
+  const { activePipelineId } = useCrm();
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([]);
