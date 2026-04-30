@@ -226,7 +226,7 @@ export default function SequenceEnrollmentModal({
           </button>
           <button
             onClick={enroll}
-            disabled={!selectedName || submitting}
+            disabled={!selectedName || submitting || !hasEmail}
             className="bg-primary text-primary-foreground px-5 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition disabled:opacity-50"
           >
             {submitting ? "Enrolling…" : "Enroll"}
