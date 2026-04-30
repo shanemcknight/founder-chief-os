@@ -37,9 +37,7 @@ export default function PipelinePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPipeline, setEditingPipeline] = useState<Pipeline | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  const [pipelineDropdownOpen, setPipelineDropdownOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Auto-select first pipeline once loaded; honor ?pipeline= query
   useEffect(() => {
@@ -53,15 +51,14 @@ export default function PipelinePage() {
     }
   }, [pipelines, searchParams, activePipelineId]);
 
-  // Close menus on outside click
+  // Close pipeline action menu on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpenId(null);
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setPipelineDropdownOpen(false);
     };
-    if (menuOpenId || pipelineDropdownOpen) document.addEventListener("mousedown", handler);
+    if (menuOpenId) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpenId, pipelineDropdownOpen]);
+  }, [menuOpenId]);
 
   const activePipeline = useMemo(
     () => pipelines.find((p) => p.id === activePipelineId) || null,
