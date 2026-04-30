@@ -11,7 +11,7 @@ function formatShortDate(iso: string | null) {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-type SortKey = "name" | "stage" | "value" | "last_contacted_at";
+type SortKey = "name" | "email" | "stage" | "value" | "last_contacted_at" | "created_at";
 const ALL = "__all__";
 
 function colorDot(color: string) {
