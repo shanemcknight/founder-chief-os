@@ -331,6 +331,7 @@ Deno.serve(async (req) => {
       }
 
       // Send via Resend
+      const fromAddr = await resolveFrom(seq.user_id);
       const resp = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -338,7 +339,7 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: FROM_ADDR,
+          from: fromAddr,
           to: contact.email,
           subject,
           text: bodyText,
