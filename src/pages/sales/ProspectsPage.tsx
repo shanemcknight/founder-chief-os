@@ -1,16 +1,18 @@
-import { useEffect, useState } from "react";
-import { Search, Settings } from "lucide-react";
+import { useEffect, useState, KeyboardEvent } from "react";
+import { Search, Settings, Loader2 } from "lucide-react";
 import { useCrm } from "@/contexts/CrmContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 
-const mockProspects = [
-  { biz: "The Interval Bar & Café", loc: "Long Now Foundation, SF", contact: "Maria Santos", title: "Bar Manager", email: "maria@theinterval.org" },
-  { biz: "Trick Dog", loc: "Mission District, SF", contact: "Scott Baird", title: "Owner", email: "scott@trickdogbar.com" },
-  { biz: "Smuggler's Cove", loc: "Hayes Valley, SF", contact: "Martin Cate", title: "Owner", email: "martin@smugglerscovesf.com" },
-];
+interface Prospect {
+  biz: string;
+  loc: string;
+  contact: string;
+  title: string;
+  email: string;
+}
 
 type DupState =
   | { kind: "unknown" }
@@ -27,18 +29,26 @@ export default function ProspectsPage() {
   const [pipelineId, setPipelineId] = useState<string>("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [dupState, setDupState] = useState<Record<string, DupState>>({});
+  const [query, setQuery] = useState("bar owners San Francisco");
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [results, setResults] = useState<Prospect[]>([]);
 
   useEffect(() => {
     if (!pipelineId && pipelines.length > 0) setPipelineId(pipelines[0].id);
   }, [pipelines, pipelineId]);
 
-  // Pre-check duplicates on mount so the row UI reflects state immediately.
+  // Recompute duplicate state whenever results change.
   useEffect(() => {
-    if (!user) return;
+    if (!user || results.length === 0) {
+      setDupState({});
+      return;
+    }
     let cancelled = false;
     (async () => {
       const next: Record<string, DupState> = {};
-      for (const p of mockProspects) {
+      for (const p of results) {
         if (!p.email) {
           next[p.biz] = { kind: "no_email" };
           continue;
@@ -58,14 +68,45 @@ export default function ProspectsPage() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, results]);
+
+  const runSearch = async () => {
+    const q = query.trim();
+    if (!q) {
+      toast.error("Enter a search query");
+      return;
+    }
+    setSearching(true);
+    setSearchError(null);
+    setHasSearched(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("prospect-search", {
+        body: { query: q },
+      });
+      if (error) throw new Error(error.message || "Search failed");
+      if (data?.error) throw new Error(data.error);
+      setResults(Array.isArray(data?.prospects) ? data.prospects : []);
+    } catch (err: any) {
+      setResults([]);
+      setSearchError(err?.message || "Search failed");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const onSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runSearch();
+    }
+  };
 
   const viewExisting = (contactId: string) => {
     setSelectedContactId(contactId);
     navigate("/sales/contacts");
   };
 
-  const addToPipeline = async (p: (typeof mockProspects)[number]) => {
+  const addToPipeline = async (p: Prospect) => {
     if (!pipelineId) {
       toast.error("Create a pipeline first");
       return;
@@ -125,7 +166,7 @@ export default function ProspectsPage() {
     let duplicates = 0;
     let noEmail = 0;
 
-    for (const p of mockProspects) {
+    for (const p of results) {
       if (!p.email) {
         noEmail++;
         setDupState((s) => ({ ...s, [p.biz]: { kind: "no_email" } }));
@@ -184,14 +225,27 @@ export default function ProspectsPage() {
         </button>
       </div>
 
-      <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="text"
-          defaultValue="bar owners San Francisco"
-          className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-          placeholder="Search by city, business type, or keyword..."
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={onSearchKeyDown}
+            disabled={searching}
+            className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-60"
+            placeholder="Search by city, business type, or keyword..."
+          />
+        </div>
+        <button
+          onClick={runSearch}
+          disabled={searching || !query.trim()}
+          className="text-xs font-medium bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+        >
+          {searching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+          {searching ? "Searching…" : "Search"}
+        </button>
       </div>
 
       {pipelines.length === 0 ? (
@@ -223,57 +277,85 @@ export default function ProspectsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {mockProspects.map((p) => {
-          const state = dupState[p.biz] ?? { kind: "unknown" as const };
-          const isDup = state.kind === "duplicate";
-          const isNoEmail = state.kind === "no_email";
-          return (
-            <div key={p.biz} className="bg-card border border-border rounded-lg p-4">
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <p className="text-xs font-semibold text-foreground">{p.biz}</p>
-                {isDup && (
-                  <span className="bg-warning/10 text-warning text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap">
-                    Already in CRM
-                  </span>
-                )}
-                {isNoEmail && (
-                  <span className="bg-muted text-muted-foreground text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap">
-                    No email
-                  </span>
+      {searching ? (
+        <div className="bg-card border border-border rounded-lg p-8 text-center">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground mx-auto mb-2" />
+          <p className="text-xs text-muted-foreground">Scraping the web for fresh leads…</p>
+        </div>
+      ) : searchError ? (
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+          <p className="text-xs font-semibold text-destructive mb-1">Search failed</p>
+          <p className="text-[11px] text-destructive/90">{searchError}</p>
+          {searchError.toLowerCase().includes("api key") && (
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="mt-2 text-[11px] text-primary hover:underline"
+            >
+              Open Discovery Settings →
+            </button>
+          )}
+        </div>
+      ) : hasSearched && results.length === 0 ? (
+        <div className="bg-card border border-border rounded-lg p-8 text-center">
+          <p className="text-xs text-muted-foreground">No prospects found for that query. Try a different search.</p>
+        </div>
+      ) : !hasSearched ? (
+        <div className="bg-card border border-border rounded-lg p-8 text-center">
+          <p className="text-xs text-muted-foreground">Enter a search above and press Enter to find prospects.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {results.map((p) => {
+            const state = dupState[p.biz] ?? { kind: "unknown" as const };
+            const isDup = state.kind === "duplicate";
+            const isNoEmail = state.kind === "no_email" || !p.email;
+            return (
+              <div key={p.biz} className="bg-card border border-border rounded-lg p-4">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <p className="text-xs font-semibold text-foreground">{p.biz}</p>
+                  {isDup && (
+                    <span className="bg-warning/10 text-warning text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap">
+                      Already in CRM
+                    </span>
+                  )}
+                  {isNoEmail && !isDup && (
+                    <span className="bg-muted text-muted-foreground text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap">
+                      No email
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground mb-2">{p.loc}</p>
+                <p className="text-[11px] text-foreground">{p.contact || "—"}</p>
+                <p className="text-[10px] text-muted-foreground mb-1">{p.title || ""}</p>
+                <p className="text-[10px] text-muted-foreground font-mono mb-3">
+                  {p.email || "—"}
+                </p>
+
+                {isDup ? (
+                  <button
+                    onClick={() => viewExisting(state.contactId)}
+                    className="w-full text-xs text-primary border border-primary/20 py-1.5 rounded-md hover:bg-primary/10 transition-colors"
+                  >
+                    View in CRM →
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => addToPipeline(p)}
+                    disabled={adding === p.contact || !pipelineId || isNoEmail}
+                    className="w-full text-[11px] font-medium bg-primary text-primary-foreground py-1.5 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    {adding === p.contact
+                      ? "Adding..."
+                      : isNoEmail
+                        ? "No email — can't add"
+                        : "Add to CRM"}
+                  </button>
                 )}
               </div>
-              <p className="text-[10px] text-muted-foreground mb-2">{p.loc}</p>
-              <p className="text-[11px] text-foreground">{p.contact}</p>
-              <p className="text-[10px] text-muted-foreground mb-1">{p.title}</p>
-              <p className="text-[10px] text-muted-foreground font-mono mb-3">
-                {p.email || "—"}
-              </p>
-
-              {isDup ? (
-                <button
-                  onClick={() => viewExisting(state.contactId)}
-                  className="w-full text-xs text-primary border border-primary/20 py-1.5 rounded-md hover:bg-primary/10 transition-colors"
-                >
-                  View in CRM →
-                </button>
-              ) : (
-                <button
-                  onClick={() => addToPipeline(p)}
-                  disabled={adding === p.contact || !pipelineId || isNoEmail}
-                  className="w-full text-[11px] font-medium bg-primary text-primary-foreground py-1.5 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
-                >
-                  {adding === p.contact
-                    ? "Adding..."
-                    : isNoEmail
-                      ? "No email — can't add"
-                      : "Add to CRM"}
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {settingsOpen && user && (
         <DiscoverySettingsModal userId={user.id} onClose={() => setSettingsOpen(false)} />
