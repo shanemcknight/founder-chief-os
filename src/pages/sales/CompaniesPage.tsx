@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import { Building2, Plus } from "lucide-react";
 import { useCrm } from "@/contexts/CrmContext";
+import PipelineSelector from "@/components/sales/PipelineSelector";
 
 export default function CompaniesPage() {
-  const { companies, contacts, loading, createCompany, setSelectedContactId } = useCrm();
+  const { companies, contacts, loading, createCompany, setSelectedContactId, activePipelineId } = useCrm();
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newIndustry, setNewIndustry] = useState("");
