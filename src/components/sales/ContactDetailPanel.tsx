@@ -21,7 +21,7 @@ function formatDateLong(iso: string | null) {
 type Tab = "overview" | "activity" | "tasks" | "notes";
 
 export default function ContactDetailPanel({ contactId, onClose }: { contactId: string; onClose: () => void }) {
-  const { contacts, companies, activities, tasks, updateContact, logActivity, createTask, toggleTask, deleteTask, pipelines } = useCrm();
+  const { contacts, companies, activities, tasks, updateContact, logActivity, createTask, toggleTask, deleteTask, pipelines, createCompany } = useCrm();
   const contact = contacts.find((c) => c.id === contactId);
   const company = contact?.company_id ? companies.find((c) => c.id === contact.company_id) : null;
   const contactPipeline = contact?.pipeline_id ? pipelines.find((p) => p.id === contact.pipeline_id) : null;
