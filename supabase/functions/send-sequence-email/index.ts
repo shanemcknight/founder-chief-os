@@ -467,6 +467,34 @@ Deno.serve(async (req) => {
           .update({ status: "completed", last_sent_at: sentAt })
           .eq("id", seq.id);
       }
+
+      console.log("send ok", {
+        seq_id: seq.id,
+        user_id: seq.user_id,
+        contact_id: seq.contact_id,
+        step: seq.sequence_step,
+        tz: tzInfo.timezone,
+        local_hour: localHour,
+        sent_at: sentAt,
+      });
+
+      // Activity log entry (best-effort; ignore failures)
+      await supabase.from("activity_log").insert({
+        user_id: seq.user_id,
+        action_type: "sequence_email_sent",
+        description: `Sent ${seq.sequence_name} step ${seq.sequence_step} to ${contact.email}`,
+        metadata: {
+          sequence_id: seq.id,
+          sequence_name: seq.sequence_name,
+          sequence_step: seq.sequence_step,
+          contact_id: seq.contact_id,
+          contact_email: contact.email,
+          sent_at_utc: sentAt,
+          local_hour: localHour,
+          timezone: tzInfo.timezone,
+        },
+      });
+
       sent++;
     } catch (e) {
       console.error("send loop error for sequence", seq.id, e);
@@ -483,6 +511,8 @@ Deno.serve(async (req) => {
       skipped_no_email,
       skipped_unsubscribed,
       skipped_step_window,
+      skipped_local_window,
+      skipped_weekend,
       skipped_unverified_domain,
       errors,
     }),
