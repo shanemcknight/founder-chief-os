@@ -12,14 +12,14 @@ interface Prospect {
   contact: string;
   title: string;
   email: string;
+  emails: string[];
 }
 
 type DupState =
   | { kind: "unknown" }
   | { kind: "checking" }
   | { kind: "duplicate"; contactId: string }
-  | { kind: "available" }
-  | { kind: "no_email" };
+  | { kind: "available" };
 
 export default function ProspectsPage() {
   const { createCompany, createContact, setSelectedContactId, pipelines } = useCrm();
@@ -49,10 +49,7 @@ export default function ProspectsPage() {
     (async () => {
       const next: Record<string, DupState> = {};
       for (const p of results) {
-        if (!p.email) {
-          next[p.biz] = { kind: "no_email" };
-          continue;
-        }
+        if (!p.email) continue;
         const { data } = await supabase
           .from("contacts")
           .select("id")
@@ -164,14 +161,9 @@ export default function ProspectsPage() {
 
     let added = 0;
     let duplicates = 0;
-    let noEmail = 0;
 
     for (const p of results) {
-      if (!p.email) {
-        noEmail++;
-        setDupState((s) => ({ ...s, [p.biz]: { kind: "no_email" } }));
-        continue;
-      }
+      if (!p.email) continue;
       const { data: existing } = await supabase
         .from("contacts")
         .select("id")
@@ -206,7 +198,7 @@ export default function ProspectsPage() {
     }
 
     toast.success(
-      `${added} added · ${duplicates} duplicate${duplicates === 1 ? "" : "s"} skipped · ${noEmail} had no email`
+      `${added} added · ${duplicates} duplicate${duplicates === 1 ? "" : "s"} skipped`
     );
   };
 
@@ -297,7 +289,7 @@ export default function ProspectsPage() {
         </div>
       ) : hasSearched && results.length === 0 ? (
         <div className="bg-card border border-border rounded-lg p-8 text-center">
-          <p className="text-xs text-muted-foreground">No prospects found for that query. Try a different search.</p>
+          <p className="text-xs text-muted-foreground">No prospects with email addresses found for this search. Try a different city or business type.</p>
         </div>
       ) : !hasSearched ? (
         <div className="bg-card border border-border rounded-lg p-8 text-center">
@@ -308,7 +300,9 @@ export default function ProspectsPage() {
           {results.map((p) => {
             const state = dupState[p.biz] ?? { kind: "unknown" as const };
             const isDup = state.kind === "duplicate";
-            const isNoEmail = state.kind === "no_email" || !p.email;
+            const emailList = p.emails && p.emails.length > 0 ? p.emails : (p.email ? [p.email] : []);
+            const primaryEmail = emailList[0] || "";
+            const extraCount = Math.max(0, emailList.length - 1);
             return (
               <div key={p.biz} className="bg-card border border-border rounded-lg p-4">
                 <div className="flex items-start justify-between gap-2 mb-1">
@@ -318,18 +312,20 @@ export default function ProspectsPage() {
                       Already in CRM
                     </span>
                   )}
-                  {isNoEmail && !isDup && (
-                    <span className="bg-muted text-muted-foreground text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap">
-                      No email
-                    </span>
-                  )}
                 </div>
                 <p className="text-[10px] text-muted-foreground mb-2">{p.loc}</p>
                 <p className="text-[11px] text-foreground">{p.contact || "—"}</p>
                 <p className="text-[10px] text-muted-foreground mb-1">{p.title || ""}</p>
-                <p className="text-[10px] text-muted-foreground font-mono mb-3">
-                  {p.email || "—"}
-                </p>
+                <div className="flex items-center gap-1.5 mb-3">
+                  <p className="text-[11px] text-foreground font-mono truncate" title={emailList.join(", ")}>
+                    {primaryEmail}
+                  </p>
+                  {extraCount > 0 && (
+                    <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                      +{extraCount} more
+                    </span>
+                  )}
+                </div>
 
                 {isDup ? (
                   <button
@@ -341,14 +337,10 @@ export default function ProspectsPage() {
                 ) : (
                   <button
                     onClick={() => addToPipeline(p)}
-                    disabled={adding === p.contact || !pipelineId || isNoEmail}
+                    disabled={adding === p.contact || !pipelineId}
                     className="w-full text-[11px] font-medium bg-primary text-primary-foreground py-1.5 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
                   >
-                    {adding === p.contact
-                      ? "Adding..."
-                      : isNoEmail
-                        ? "No email — can't add"
-                        : "Add to CRM"}
+                    {adding === p.contact ? "Adding..." : "Add to CRM"}
                   </button>
                 )}
               </div>

@@ -12,6 +12,7 @@ interface Prospect {
   contact: string;
   title: string;
   email: string;
+  emails: string[];
 }
 
 Deno.serve(async (req) => {
@@ -66,10 +67,13 @@ Deno.serve(async (req) => {
     }
 
     // Call Outscraper Google Maps search (synchronous wait for results)
+    // enrichment=domains_service runs the Emails & Contacts Scraper on each result.
     const url = new URL("https://api.app.outscraper.com/maps/search-v3");
     url.searchParams.set("query", query);
     url.searchParams.set("limit", "20");
     url.searchParams.set("async", "false");
+    url.searchParams.append("enrichment", "domains_service");
+    url.searchParams.set("dropEmailDuplicates", "true");
 
     const res = await fetch(url.toString(), {
       headers: { "X-API-KEY": apiKey },
@@ -92,11 +96,35 @@ Deno.serve(async (req) => {
 
     const prospects: Prospect[] = rawList
       .map((r: any) => {
-        const email =
-          r.email_1 ||
-          (Array.isArray(r.emails) ? r.emails[0] : "") ||
-          r.email ||
-          "";
+        // Collect emails from all known shapes returned by Outscraper enrichment.
+        const collected: string[] = [];
+        const pushAll = (v: any) => {
+          if (!v) return;
+          if (Array.isArray(v)) {
+            for (const item of v) {
+              if (typeof item === "string") collected.push(item);
+              else if (item && typeof item === "object") {
+                if (typeof item.value === "string") collected.push(item.value);
+                else if (typeof item.email === "string") collected.push(item.email);
+              }
+            }
+          } else if (typeof v === "string") {
+            collected.push(v);
+          }
+        };
+        pushAll(r.emails_validated);
+        pushAll(r.emails);
+        for (let i = 1; i <= 10; i++) pushAll(r[`email_${i}`]);
+        pushAll(r.email);
+
+        const emails = Array.from(
+          new Set(
+            collected
+              .map((e) => (typeof e === "string" ? e.trim().toLowerCase() : ""))
+              .filter((e) => e && /.+@.+\..+/.test(e))
+          )
+        );
+
         const contact =
           r.owner_name ||
           r.contact_name ||
@@ -110,10 +138,11 @@ Deno.serve(async (req) => {
             [r.city, r.state, r.country].filter(Boolean).join(", "),
           contact,
           title: r.owner_title || (contact ? "Owner" : ""),
-          email,
+          email: emails[0] || "",
+          emails,
         };
       })
-      .filter((p) => p.biz);
+      .filter((p) => p.biz && p.emails.length > 0);
 
     return json({ prospects });
   } catch (err) {
