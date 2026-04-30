@@ -250,17 +250,9 @@ export default function ProspectsPage() {
           </Link>
         </div>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <label className="text-[11px] text-muted-foreground">Add to pipeline:</label>
-          <select
-            value={pipelineId}
-            onChange={(e) => setPipelineId(e.target.value)}
-            className="bg-card border border-border rounded-md px-2 py-1.5 text-xs text-foreground"
-          >
-            {pipelines.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <PipelineSelector allowAll={false} />
           <button
             onClick={addAll}
             disabled={!pipelineId}
