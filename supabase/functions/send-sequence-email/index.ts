@@ -89,25 +89,33 @@ Deno.serve(async (req) => {
 
   const now = new Date();
   const nowIso = now.toISOString();
-  const utcDay = now.getUTCDay(); // 0 Sun .. 6 Sat
-  const utcHour = now.getUTCHours();
-  const isWeekend = utcDay === 0 || utcDay === 6;
-  const todayStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+  const todayStr = now.toISOString().slice(0, 10); // YYYY-MM-DD (UTC, used for daily roll-over key)
 
-  // Global business-hours gate (Mon-Fri 08:00-17:00 UTC).
-  // Per-step send_window_start/end is also enforced below.
-  if (isWeekend || utcHour < 8 || utcHour >= 17) {
-    return new Response(
-      JSON.stringify({
-        skipped_business_hours: true,
-        utc_day: utcDay,
-        utc_hour: utcHour,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+  // Compute {hour, day} in an arbitrary IANA timezone using Intl (no deps).
+  // day: 0 Sun .. 6 Sat
+  function getLocalParts(d: Date, tz: string): { hour: number; day: number } {
+    try {
+      const fmt = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        weekday: "short",
+        hour: "numeric",
+        hour12: false,
+      });
+      const parts = fmt.formatToParts(d);
+      const hourStr = parts.find((p) => p.type === "hour")?.value ?? "0";
+      const wk = parts.find((p) => p.type === "weekday")?.value ?? "Mon";
+      const dayMap: Record<string, number> = {
+        Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+      };
+      // Intl returns "24" for midnight in some locales; normalize.
+      let hour = parseInt(hourStr, 10);
+      if (Number.isNaN(hour)) hour = 0;
+      if (hour === 24) hour = 0;
+      return { hour, day: dayMap[wk] ?? 1 };
+    } catch (_e) {
+      // Fallback: treat as UTC if tz string is bad
+      return { hour: d.getUTCHours(), day: d.getUTCDay() };
+    }
   }
 
   const { data: dueSeqs, error: seqErr } = await supabase
