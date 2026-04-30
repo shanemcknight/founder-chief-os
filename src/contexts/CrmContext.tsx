@@ -96,6 +96,8 @@ type CrmContextValue = {
   pipelines: Pipeline[];
   selectedContactId: string | null;
   setSelectedContactId: (id: string | null) => void;
+  activePipelineId: string | null; // null = "All Pipelines"
+  setActivePipelineId: (id: string | null) => void;
   createContact: (data: Partial<Contact> & { name: string }) => Promise<Contact | null>;
   updateContact: (id: string, patch: Partial<Contact>) => Promise<void>;
   deleteContact: (id: string) => Promise<void>;
@@ -127,6 +129,17 @@ export function CrmProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<CrmTask[]>([]);
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [activePipelineId, setActivePipelineIdState] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const stored = sessionStorage.getItem("sales.activePipelineId");
+    return stored && stored !== "__all__" ? stored : null;
+  });
+  const setActivePipelineId = useCallback((id: string | null) => {
+    setActivePipelineIdState(id);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("sales.activePipelineId", id ?? "__all__");
+    }
+  }, []);
 
   // Initial load
   useEffect(() => {
@@ -357,6 +370,8 @@ export function CrmProvider({ children }: { children: ReactNode }) {
         pipelines,
         selectedContactId,
         setSelectedContactId,
+        activePipelineId,
+        setActivePipelineId,
         createContact,
         updateContact,
         deleteContact,

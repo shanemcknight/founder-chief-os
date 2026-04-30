@@ -1,8 +1,10 @@
 import { useMemo, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, LayoutGrid, UserPlus, Search, ListChecks, Clock, Activity as ActivityIcon, ChevronDown } from "lucide-react";
+import { ArrowRight, LayoutGrid, UserPlus, Search, ListChecks, Clock, Activity as ActivityIcon } from "lucide-react";
 import { useCrm, PIPELINE_COLORS } from "@/contexts/CrmContext";
 import { cn } from "@/lib/utils";
+import PipelineSelector from "@/components/sales/PipelineSelector";
+import AddContactDialog from "@/components/sales/AddContactDialog";
 
 function isToday(iso: string | null): boolean {
   if (!iso) return false;
@@ -30,29 +32,12 @@ const ALL = "__all__";
 
 export default function SalesDashboardPage() {
   const navigate = useNavigate();
-  const { contacts, activities, tasks, loading, setSelectedContactId, createContact, pipelines } = useCrm();
-  const [showAdd, setShowAdd] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newPipelineId, setNewPipelineId] = useState<string>("");
-  const [viewPipelineId, setViewPipelineId] = useState<string>(ALL);
-
-  // Default the dashboard view to first pipeline once loaded
-  useEffect(() => {
-    if (viewPipelineId === ALL && pipelines.length > 0) {
-      setViewPipelineId(pipelines[0].id);
-    }
-  }, [pipelines, viewPipelineId]);
-
-  // Auto-select pipeline for new contact form
-  useEffect(() => {
-    if (!newPipelineId && pipelines.length > 0) {
-      setNewPipelineId(pipelines[0].id);
-    }
-  }, [pipelines, newPipelineId]);
+  const { contacts, activities, tasks, loading, setSelectedContactId, pipelines, activePipelineId } = useCrm();
+  const [addOpen, setAddOpen] = useState(false);
 
   const viewPipeline = useMemo(
-    () => pipelines.find((p) => p.id === viewPipelineId) || null,
-    [pipelines, viewPipelineId]
+    () => pipelines.find((p) => p.id === activePipelineId) || null,
+    [pipelines, activePipelineId]
   );
 
   const stageSummary = useMemo(() => {
@@ -88,27 +73,11 @@ export default function SalesDashboardPage() {
     [contacts, viewPipeline]
   );
 
-  const handleAdd = async () => {
-    if (!newName.trim()) return;
-    if (pipelines.length > 0 && !newPipelineId) return;
-    const pipeline = pipelines.find((p) => p.id === newPipelineId);
-    const c = await createContact({
-      name: newName.trim(),
-      pipeline_id: newPipelineId || null,
-      stage: pipeline?.stages[0] || "New Lead",
-    });
-    if (c) {
-      setNewName("");
-      setShowAdd(false);
-      setSelectedContactId(c.id);
-    }
-  };
-
   const quickActions = [
     { title: "View Pipeline", desc: "See contacts across all stages", icon: LayoutGrid, onClick: () => navigate("/sales/pipeline") },
     { title: "Add Contact", desc: "Create a new sales contact", icon: UserPlus, onClick: () => {
       if (pipelines.length === 0) navigate("/sales/pipeline");
-      else setShowAdd(true);
+      else setAddOpen(true);
     } },
     { title: "Find Prospects", desc: "Scrape real websites for fresh leads", icon: Search, onClick: () => navigate("/sales/prospects") },
     { title: "View Tasks", desc: "Follow-ups and reminders", icon: ListChecks, onClick: () => navigate("/sales/tasks") },
@@ -121,58 +90,8 @@ export default function SalesDashboardPage() {
         <p className="text-sm text-muted-foreground">Your pipeline at a glance.</p>
       </div>
 
-      {showAdd && (
-        <div className="bg-card border border-border rounded-lg p-3 flex items-center gap-2 flex-wrap">
-          <input
-            autoFocus
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            placeholder="Contact name (e.g., Jane Doe — Acme Co)"
-            className="flex-1 min-w-[200px] bg-background border border-border rounded-md px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
-          {pipelines.length > 0 && (
-            <select
-              value={newPipelineId}
-              onChange={(e) => setNewPipelineId(e.target.value)}
-              className="bg-background border border-border rounded-md px-2 py-1.5 text-xs text-foreground"
-            >
-              {pipelines.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          )}
-          <button onClick={handleAdd} className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/90">
-            Create
-          </button>
-          <button onClick={() => setShowAdd(false)} className="text-xs text-muted-foreground hover:text-foreground px-2">
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {/* Pipeline view selector */}
-      {pipelines.length > 0 && (
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-muted-foreground">Viewing pipeline:</span>
-          <div className="relative">
-            <select
-              value={viewPipelineId}
-              onChange={(e) => setViewPipelineId(e.target.value)}
-              className="appearance-none bg-card border border-border rounded-md pl-3 pr-8 py-1.5 text-xs font-medium text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/50"
-            >
-              <option value={ALL}>All pipelines</option>
-              {pipelines.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-            <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          </div>
-          {viewPipeline && (
-            <span className={cn("w-2 h-2 rounded-full", colorDot(viewPipeline.color))} />
-          )}
-        </div>
-      )}
+      {/* Unified pipeline selector */}
+      <PipelineSelector />
 
       {/* Pipeline stage summary */}
       {pipelines.length === 0 ? (
@@ -328,6 +247,7 @@ export default function SalesDashboardPage() {
           )}
         </div>
       </div>
+      <AddContactDialog open={addOpen} onClose={() => setAddOpen(false)} />
     </div>
   );
 }

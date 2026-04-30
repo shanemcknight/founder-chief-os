@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
-import { Search } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { useCrm, PIPELINE_COLORS } from "@/contexts/CrmContext";
 import { useEmailSequences } from "@/hooks/useEmailSequences";
 import { useUserUsage } from "@/hooks/useUserUsage";
 import { cn } from "@/lib/utils";
+import PipelineSelector from "@/components/sales/PipelineSelector";
+import AddContactDialog from "@/components/sales/AddContactDialog";
 
 function formatShortDate(iso: string | null) {
   if (!iso) return "";
@@ -12,27 +14,26 @@ function formatShortDate(iso: string | null) {
 }
 
 type SortKey = "name" | "email" | "stage" | "value" | "last_contacted_at" | "created_at";
-const ALL = "__all__";
 
 function colorDot(color: string) {
   return PIPELINE_COLORS.find((c) => c.key === color)?.className || "bg-primary";
 }
 
 export default function ContactsPage() {
-  const { contacts, companies, loading, setSelectedContactId, pipelines } = useCrm();
+  const { contacts, companies, loading, setSelectedContactId, pipelines, activePipelineId } = useCrm();
   const { getActiveForContact } = useEmailSequences();
   const { usage } = useUserUsage();
   const limitReached = !!usage && (usage.emails_sent_this_month ?? 0) >= (usage.email_monthly_limit ?? 0);
   const [search, setSearch] = useState("");
-  const [pipelineFilter, setPipelineFilter] = useState<string>(ALL);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [addOpen, setAddOpen] = useState(false);
 
   const sorted = useMemo(() => {
     const q = search.toLowerCase();
     const filtered = contacts.filter(
       (c) =>
-        (pipelineFilter === ALL || c.pipeline_id === pipelineFilter) &&
+        (activePipelineId === null || c.pipeline_id === activePipelineId) &&
         (!q ||
           c.name.toLowerCase().includes(q) ||
           (c.email || "").toLowerCase().includes(q) ||
@@ -45,7 +46,7 @@ export default function ContactsPage() {
       if (av > bv) return sortDir === "asc" ? 1 : -1;
       return 0;
     });
-  }, [contacts, search, sortKey, sortDir, pipelineFilter]);
+  }, [contacts, search, sortKey, sortDir, activePipelineId]);
 
   const toggleSort = (k: SortKey) => {
     if (k === sortKey) setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -70,52 +71,37 @@ export default function ContactsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-lg font-bold text-foreground">Contacts</h1>
-        <div className="relative flex-1 max-w-sm">
-          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search contacts..."
-            className="w-full bg-background border border-border rounded-md pl-7 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
+        <div className="flex items-center gap-2 flex-1 max-w-md">
+          <div className="relative flex-1">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search contacts..."
+              className="w-full bg-background border border-border rounded-md pl-7 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            />
+          </div>
+          <button
+            onClick={() => setAddOpen(true)}
+            disabled={pipelines.length === 0}
+            className="text-xs font-medium bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors flex items-center gap-1 whitespace-nowrap disabled:opacity-50"
+          >
+            <Plus size={12} /> Add Contact
+          </button>
         </div>
       </div>
 
-      {/* Pipeline filter chips */}
-      {pipelines.length > 0 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto -mx-1 px-1">
-          <button
-            onClick={() => setPipelineFilter(ALL)}
-            className={cn(
-              "flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border whitespace-nowrap transition-colors",
-              pipelineFilter === ALL ? "bg-primary/10 text-primary border-primary/30" : "bg-card text-muted-foreground border-border hover:text-foreground"
-            )}
-          >
-            All Pipelines
-            <span className="text-[9px] opacity-70">{contacts.length}</span>
-          </button>
-          {pipelines.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setPipelineFilter(p.id)}
-              className={cn(
-                "flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border whitespace-nowrap transition-colors",
-                pipelineFilter === p.id ? "bg-primary/10 text-primary border-primary/30" : "bg-card text-muted-foreground border-border hover:text-foreground"
-              )}
-            >
-              <span className={cn("w-1.5 h-1.5 rounded-full", colorDot(p.color))} />
-              {p.name}
-              <span className="text-[9px] opacity-70">{pipelineCount(p.id)}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Unified pipeline selector */}
+      <PipelineSelector />
 
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading...</p>
       ) : sorted.length === 0 ? (
         <div className="bg-card border border-border rounded-lg p-8 text-center">
-          <p className="text-xs text-muted-foreground">No contacts yet. Add one from the Pipeline.</p>
+          <p className="text-xs text-muted-foreground">
+            No contacts yet. Click + Add Contact above, or import from{" "}
+            <a href="/sales/prospects" className="text-primary hover:underline">Prospects</a>.
+          </p>
         </div>
       ) : (
         <div className="bg-card border border-border rounded-lg overflow-hidden">
@@ -210,6 +196,7 @@ export default function ContactsPage() {
           </table>
         </div>
       )}
+      <AddContactDialog open={addOpen} onClose={() => setAddOpen(false)} />
     </div>
   );
 }

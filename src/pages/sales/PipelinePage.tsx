@@ -4,6 +4,7 @@ import { MapPin, Clock, Search, Plus, Layers, MoreHorizontal, Pencil, Copy, Tras
 import { useCrm, Pipeline, PIPELINE_COLORS } from "@/contexts/CrmContext";
 import { cn } from "@/lib/utils";
 import PipelineModal from "@/components/sales/PipelineModal";
+import PipelineSelector from "@/components/sales/PipelineSelector";
 
 function daysAgo(iso: string | null): number {
   if (!iso) return 0;
@@ -18,6 +19,7 @@ export default function PipelinePage() {
   const {
     contacts, companies, loading, updateContact, createContact, createCompany, setSelectedContactId,
     pipelines, deletePipeline, duplicatePipeline,
+    activePipelineId, setActivePipelineId,
   } = useCrm();
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
@@ -31,13 +33,11 @@ export default function PipelinePage() {
     city: "",
     website: "",
   });
-  const [activePipelineId, setActivePipelineId] = useState<string | null>(null);
+  // activePipelineId comes from CrmContext (shared across SALES sub-pages)
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPipeline, setEditingPipeline] = useState<Pipeline | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  const [pipelineDropdownOpen, setPipelineDropdownOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Auto-select first pipeline once loaded; honor ?pipeline= query
   useEffect(() => {
@@ -51,15 +51,14 @@ export default function PipelinePage() {
     }
   }, [pipelines, searchParams, activePipelineId]);
 
-  // Close menus on outside click
+  // Close pipeline action menu on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpenId(null);
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setPipelineDropdownOpen(false);
     };
-    if (menuOpenId || pipelineDropdownOpen) document.addEventListener("mousedown", handler);
+    if (menuOpenId) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpenId, pipelineDropdownOpen]);
+  }, [menuOpenId]);
 
   const activePipeline = useMemo(
     () => pipelines.find((p) => p.id === activePipelineId) || null,
@@ -213,51 +212,7 @@ export default function PipelinePage() {
 
       {/* Pipeline selector */}
       <div className="flex items-center gap-2 flex-wrap">
-        <div ref={dropdownRef} className="relative">
-          <button
-            onClick={() => setPipelineDropdownOpen((v) => !v)}
-            className="flex items-center gap-2 px-3 py-2 text-xs bg-card border border-border rounded-md hover:border-primary/50 transition-colors min-w-[200px]"
-          >
-            {activePipeline ? (
-              <>
-                <span className={cn("w-2 h-2 rounded-full", colorDot(activePipeline.color))} />
-                <span className="font-semibold text-foreground">{activePipeline.name}</span>
-                <span className="text-[9px] font-semibold bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                  {pipelineContactCount(activePipeline.id)}
-                </span>
-              </>
-            ) : (
-              <span className="text-muted-foreground">Select pipeline</span>
-            )}
-            <ChevronDown size={12} className="ml-auto text-muted-foreground" />
-          </button>
-          {pipelineDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 z-20 bg-popover border border-border rounded-md shadow-lg py-1 min-w-[240px] max-h-[320px] overflow-y-auto">
-              {pipelines.map((p) => {
-                const isActive = p.id === activePipelineId;
-                const count = pipelineContactCount(p.id);
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => {
-                      setActivePipelineId(p.id);
-                      setPipelineDropdownOpen(false);
-                    }}
-                    className={cn(
-                      "w-full text-left flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted",
-                      isActive ? "text-primary font-semibold bg-primary/5" : "text-foreground"
-                    )}
-                  >
-                    <span className={cn("w-2 h-2 rounded-full", colorDot(p.color))} />
-                    <span className="flex-1 truncate">{p.name}</span>
-                    <span className="text-[9px] font-semibold bg-muted text-muted-foreground px-1.5 py-0.5 rounded">{count}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
+        <PipelineSelector allowAll={false} />
         {activePipeline && (
           <div className="relative">
             <button

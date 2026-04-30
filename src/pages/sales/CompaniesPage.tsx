@@ -1,17 +1,23 @@
 import { useState, useMemo } from "react";
 import { Building2, Plus } from "lucide-react";
 import { useCrm } from "@/contexts/CrmContext";
+import PipelineSelector from "@/components/sales/PipelineSelector";
 
 export default function CompaniesPage() {
-  const { companies, contacts, loading, createCompany, setSelectedContactId } = useCrm();
+  const { companies, contacts, loading, createCompany, setSelectedContactId, activePipelineId } = useCrm();
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newIndustry, setNewIndustry] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  const filteredContacts = useMemo(
+    () => (activePipelineId === null ? contacts : contacts.filter((c) => c.pipeline_id === activePipelineId)),
+    [contacts, activePipelineId]
+  );
+
   const stats = useMemo(() => {
     const map = new Map<string, { count: number; pipeline: number }>();
-    contacts.forEach((c) => {
+    filteredContacts.forEach((c) => {
       if (!c.company_id) return;
       const cur = map.get(c.company_id) || { count: 0, pipeline: 0 };
       cur.count++;
@@ -19,7 +25,12 @@ export default function CompaniesPage() {
       map.set(c.company_id, cur);
     });
     return map;
-  }, [contacts]);
+  }, [filteredContacts]);
+
+  const visibleCompanies = useMemo(
+    () => (activePipelineId === null ? companies : companies.filter((co) => stats.has(co.id))),
+    [companies, activePipelineId, stats]
+  );
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
