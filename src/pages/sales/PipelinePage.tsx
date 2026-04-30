@@ -187,73 +187,96 @@ export default function PipelinePage() {
         </div>
       </div>
 
-      {/* Pipeline tabs */}
-      <div className="border-b border-border overflow-x-auto">
-        <div className="flex items-end gap-1 min-w-max">
-          {pipelines.map((p) => {
-            const isActive = p.id === activePipelineId;
-            const count = pipelineContactCount(p.id);
-            return (
-              <div key={p.id} className="relative">
-                <button
-                  onClick={() => setActivePipelineId(p.id)}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 text-xs transition-colors border-b-2 -mb-px",
-                    isActive
-                      ? "text-primary border-primary bg-primary/5 font-semibold"
-                      : "text-muted-foreground border-transparent hover:text-foreground"
-                  )}
-                >
-                  <span className={cn("w-2 h-2 rounded-full", colorDot(p.color))} />
-                  <span>{p.name}</span>
-                  <span className="text-[9px] font-semibold bg-muted text-muted-foreground px-1.5 py-0.5 rounded">{count}</span>
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpenId(menuOpenId === p.id ? null : p.id);
-                    }}
-                    className="ml-1 text-muted-foreground hover:text-foreground p-0.5 rounded"
-                  >
-                    <MoreHorizontal size={12} />
-                  </span>
-                </button>
-                {menuOpenId === p.id && (
-                  <div
-                    ref={menuRef}
-                    className="absolute top-full right-0 mt-1 z-20 bg-popover border border-border rounded-md shadow-lg py-1 min-w-[140px]"
-                  >
-                    <button
-                      onClick={() => openEdit(p)}
-                      className="w-full text-left text-[11px] text-foreground px-3 py-1.5 hover:bg-muted flex items-center gap-2"
-                    >
-                      <Pencil size={11} /> Edit
-                    </button>
-                    <button
-                      onClick={() => handleDuplicate(p)}
-                      className="w-full text-left text-[11px] text-foreground px-3 py-1.5 hover:bg-muted flex items-center gap-2"
-                    >
-                      <Copy size={11} /> Duplicate
-                    </button>
-                    <button
-                      onClick={() => handleDelete(p)}
-                      className="w-full text-left text-[11px] text-destructive px-3 py-1.5 hover:bg-muted flex items-center gap-2"
-                    >
-                      <Trash2 size={11} /> Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+      {/* Pipeline selector */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div ref={dropdownRef} className="relative">
           <button
-            onClick={openCreate}
-            className="flex items-center gap-1 px-3 py-2 text-xs text-muted-foreground hover:text-primary border-b-2 border-transparent -mb-px"
+            onClick={() => setPipelineDropdownOpen((v) => !v)}
+            className="flex items-center gap-2 px-3 py-2 text-xs bg-card border border-border rounded-md hover:border-primary/50 transition-colors min-w-[200px]"
           >
-            <Plus size={12} /> New Pipeline
+            {activePipeline ? (
+              <>
+                <span className={cn("w-2 h-2 rounded-full", colorDot(activePipeline.color))} />
+                <span className="font-semibold text-foreground">{activePipeline.name}</span>
+                <span className="text-[9px] font-semibold bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                  {pipelineContactCount(activePipeline.id)}
+                </span>
+              </>
+            ) : (
+              <span className="text-muted-foreground">Select pipeline</span>
+            )}
+            <ChevronDown size={12} className="ml-auto text-muted-foreground" />
           </button>
+          {pipelineDropdownOpen && (
+            <div className="absolute top-full left-0 mt-1 z-20 bg-popover border border-border rounded-md shadow-lg py-1 min-w-[240px] max-h-[320px] overflow-y-auto">
+              {pipelines.map((p) => {
+                const isActive = p.id === activePipelineId;
+                const count = pipelineContactCount(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setActivePipelineId(p.id);
+                      setPipelineDropdownOpen(false);
+                    }}
+                    className={cn(
+                      "w-full text-left flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted",
+                      isActive ? "text-primary font-semibold bg-primary/5" : "text-foreground"
+                    )}
+                  >
+                    <span className={cn("w-2 h-2 rounded-full", colorDot(p.color))} />
+                    <span className="flex-1 truncate">{p.name}</span>
+                    <span className="text-[9px] font-semibold bg-muted text-muted-foreground px-1.5 py-0.5 rounded">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
+
+        {activePipeline && (
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpenId(menuOpenId === activePipeline.id ? null : activePipeline.id)}
+              className="p-2 text-muted-foreground hover:text-foreground border border-border rounded-md hover:border-primary/50 transition-colors"
+              aria-label="Pipeline actions"
+            >
+              <MoreHorizontal size={12} />
+            </button>
+            {menuOpenId === activePipeline.id && (
+              <div
+                ref={menuRef}
+                className="absolute top-full left-0 mt-1 z-20 bg-popover border border-border rounded-md shadow-lg py-1 min-w-[140px]"
+              >
+                <button
+                  onClick={() => openEdit(activePipeline)}
+                  className="w-full text-left text-[11px] text-foreground px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                >
+                  <Pencil size={11} /> Edit
+                </button>
+                <button
+                  onClick={() => handleDuplicate(activePipeline)}
+                  className="w-full text-left text-[11px] text-foreground px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                >
+                  <Copy size={11} /> Duplicate
+                </button>
+                <button
+                  onClick={() => handleDelete(activePipeline)}
+                  className="w-full text-left text-[11px] text-destructive px-3 py-1.5 hover:bg-muted flex items-center gap-2"
+                >
+                  <Trash2 size={11} /> Delete
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          onClick={openCreate}
+          className="flex items-center gap-1 px-3 py-2 text-xs text-muted-foreground hover:text-primary border border-border rounded-md hover:border-primary/50 transition-colors"
+        >
+          <Plus size={12} /> New Pipeline
+        </button>
       </div>
 
       {showAdd && activePipeline && (
