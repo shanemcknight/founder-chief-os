@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
+import PipelineSelector from "@/components/sales/PipelineSelector";
 
 interface Prospect {
   biz: string;
