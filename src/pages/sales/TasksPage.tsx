@@ -39,7 +39,7 @@ export default function TasksPage() {
       else upcoming.push(t);
     });
     return { overdue, today, upcoming, completed };
-  }, [tasks]);
+  }, [filteredTasks]);
 
   const Section = ({ title, items, accent }: { title: string; items: typeof tasks; accent?: "destructive" | "primary" }) => (
     <div>
