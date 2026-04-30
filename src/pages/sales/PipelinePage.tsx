@@ -304,24 +304,47 @@ export default function PipelinePage() {
       </div>
 
       {showAdd && activePipeline && (
-        <div className="bg-card border border-border rounded-lg p-3 flex items-center gap-2">
-          <input
-            autoFocus
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            placeholder="Contact name (e.g., Jane Doe — Acme Co)"
-            className="flex-1 bg-background border border-border rounded-md px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
-          <span className="text-[10px] text-muted-foreground">
-            → {activePipeline.name}
-          </span>
-          <button onClick={handleAdd} className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/90">
-            Create
-          </button>
-          <button onClick={() => setShowAdd(false)} className="text-xs text-muted-foreground hover:text-foreground px-2">
-            Cancel
-          </button>
+        <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-foreground">
+              New contact <span className="text-muted-foreground font-normal">→ {activePipeline.name}</span>
+            </p>
+            <button onClick={() => setShowAdd(false)} className="text-xs text-muted-foreground hover:text-foreground">
+              Cancel
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { key: "name", label: "Contact Name *", placeholder: "Jane Doe", type: "text" },
+              { key: "email", label: "Email *", placeholder: "jane@acmebar.com", type: "email" },
+              { key: "company", label: "Company", placeholder: "Acme Bar & Grill", type: "text" },
+              { key: "phone", label: "Phone", placeholder: "(555) 123-4567", type: "tel" },
+              { key: "city", label: "City", placeholder: "Austin, TX", type: "text" },
+              { key: "website", label: "Website", placeholder: "https://acmebar.com", type: "url" },
+            ].map((f) => (
+              <div key={f.key}>
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{f.label}</label>
+                <input
+                  autoFocus={f.key === "name"}
+                  type={f.type}
+                  value={(newContact as any)[f.key]}
+                  onChange={(e) => setNewContact((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                  onKeyDown={(e) => e.key === "Enter" && canCreate && handleAdd()}
+                  placeholder={f.placeholder}
+                  className="mt-1 w-full bg-background border border-border rounded-md px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              onClick={handleAdd}
+              disabled={!canCreate}
+              className="text-xs font-medium bg-primary text-primary-foreground px-4 py-1.5 rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Create
+            </button>
+          </div>
         </div>
       )}
 
