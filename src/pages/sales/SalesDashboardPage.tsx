@@ -90,58 +90,8 @@ export default function SalesDashboardPage() {
         <p className="text-sm text-muted-foreground">Your pipeline at a glance.</p>
       </div>
 
-      {showAdd && (
-        <div className="bg-card border border-border rounded-lg p-3 flex items-center gap-2 flex-wrap">
-          <input
-            autoFocus
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            placeholder="Contact name (e.g., Jane Doe — Acme Co)"
-            className="flex-1 min-w-[200px] bg-background border border-border rounded-md px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
-          {pipelines.length > 0 && (
-            <select
-              value={newPipelineId}
-              onChange={(e) => setNewPipelineId(e.target.value)}
-              className="bg-background border border-border rounded-md px-2 py-1.5 text-xs text-foreground"
-            >
-              {pipelines.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          )}
-          <button onClick={handleAdd} className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/90">
-            Create
-          </button>
-          <button onClick={() => setShowAdd(false)} className="text-xs text-muted-foreground hover:text-foreground px-2">
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {/* Pipeline view selector */}
-      {pipelines.length > 0 && (
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-muted-foreground">Viewing pipeline:</span>
-          <div className="relative">
-            <select
-              value={viewPipelineId}
-              onChange={(e) => setViewPipelineId(e.target.value)}
-              className="appearance-none bg-card border border-border rounded-md pl-3 pr-8 py-1.5 text-xs font-medium text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/50"
-            >
-              <option value={ALL}>All pipelines</option>
-              {pipelines.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-            <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          </div>
-          {viewPipeline && (
-            <span className={cn("w-2 h-2 rounded-full", colorDot(viewPipeline.color))} />
-          )}
-        </div>
-      )}
+      {/* Unified pipeline selector */}
+      <PipelineSelector />
 
       {/* Pipeline stage summary */}
       {pipelines.length === 0 ? (
