@@ -12,7 +12,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM_ADDR = "MythosHQ Outreach <outreach@mythoshq.io>";
+const FALLBACK_FROM = "MythosHQ Outreach <noreply@mythoshq.io>";
 const MAX_PER_RUN = 500;
 
 // Per-tier daily send limits
@@ -137,6 +137,25 @@ Deno.serve(async (req) => {
     }
   >();
   const dailyBlocked = new Set<string>();
+  const fromCache = new Map<string, string>();
+
+  async function resolveFrom(userId: string): Promise<string> {
+    const cached = fromCache.get(userId);
+    if (cached) return cached;
+    const { data: settings } = await supabase
+      .from("user_email_settings")
+      .select("from_name, from_email")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const from =
+      settings?.from_email && settings?.from_name
+        ? `${settings.from_name} <${settings.from_email}>`
+        : settings?.from_email
+          ? settings.from_email
+          : FALLBACK_FROM;
+    fromCache.set(userId, from);
+    return from;
+  }
 
   let sent = 0;
   let skipped_limit = 0;
@@ -312,6 +331,7 @@ Deno.serve(async (req) => {
       }
 
       // Send via Resend
+      const fromAddr = await resolveFrom(seq.user_id);
       const resp = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -319,7 +339,7 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: FROM_ADDR,
+          from: fromAddr,
           to: contact.email,
           subject,
           text: bodyText,

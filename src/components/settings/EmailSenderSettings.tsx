@@ -44,6 +44,12 @@ export default function EmailSenderSettings() {
         setFromName(s.from_name || "");
         setFromEmail(s.from_email || "");
         setVerified(!!s.domain_verified);
+      } else {
+        // Insert a default row so the user has a record to edit
+        await supabase
+          .from("user_email_settings")
+          .insert({ user_id: user.id, from_name: "My Business" });
+        setFromName("My Business");
       }
       setLoading(false);
     })();
@@ -53,6 +59,11 @@ export default function EmailSenderSettings() {
     if (!user) return;
     if (!fromName.trim()) {
       toast.error("From name is required");
+      return;
+    }
+    const trimmedEmail = fromEmail.trim();
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      toast.error("Please enter a valid email address");
       return;
     }
     setSaving(true);
