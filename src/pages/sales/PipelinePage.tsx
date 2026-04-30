@@ -18,6 +18,7 @@ export default function PipelinePage() {
   const {
     contacts, companies, loading, updateContact, createContact, createCompany, setSelectedContactId,
     pipelines, deletePipeline, duplicatePipeline,
+    activePipelineId, setActivePipelineId,
   } = useCrm();
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
@@ -31,7 +32,7 @@ export default function PipelinePage() {
     city: "",
     website: "",
   });
-  const [activePipelineId, setActivePipelineId] = useState<string | null>(null);
+  // activePipelineId comes from CrmContext (shared across SALES sub-pages)
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPipeline, setEditingPipeline] = useState<Pipeline | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
