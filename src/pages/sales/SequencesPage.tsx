@@ -102,7 +102,7 @@ export default function SequencesPage() {
         .order("sequence_step", { ascending: true }),
       supabase
         .from("email_sequences" as any)
-        .select("sequence_name")
+        .select("sequence_name, pipeline_id")
         .neq("status", "completed"),
       // Ping the sender — it returns 500 with "RESEND_API_KEY not configured"
       // if the platform secret is missing. Any other response means it's set.
