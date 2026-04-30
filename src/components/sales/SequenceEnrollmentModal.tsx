@@ -38,6 +38,25 @@ export default function SequenceEnrollmentModal({
   const today = new Date().toISOString().slice(0, 10);
   const [startDate, setStartDate] = useState<string>(today);
   const [submitting, setSubmitting] = useState(false);
+  const [tz, setTz] = useState<string>("America/Los_Angeles");
+  const [winStart, setWinStart] = useState<number>(9);
+  const [winEnd, setWinEnd] = useState<number>(16);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("user_email_settings")
+        .select("timezone, send_window_start_hour, send_window_end_hour")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        setTz((data as any).timezone || "America/Los_Angeles");
+        setWinStart((data as any).send_window_start_hour ?? 9);
+        setWinEnd((data as any).send_window_end_hour ?? 16);
+      }
+    })();
+  }, [user]);
 
   useEffect(() => {
     let cancelled = false;
