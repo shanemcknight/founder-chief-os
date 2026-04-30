@@ -16,7 +16,7 @@ function colorDot(color: string) {
 
 export default function PipelinePage() {
   const {
-    contacts, companies, loading, updateContact, createContact, setSelectedContactId,
+    contacts, companies, loading, updateContact, createContact, createCompany, setSelectedContactId,
     pipelines, deletePipeline, duplicatePipeline,
   } = useCrm();
   const [searchParams] = useSearchParams();
