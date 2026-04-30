@@ -352,11 +352,11 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Per-step send window (defaults 8-17 UTC). Skip without state change so
-      // the next hourly tick can pick it up.
-      const winStart = tpl.send_window_start ?? 8;
-      const winEnd = tpl.send_window_end ?? 17;
-      if (utcHour < winStart || utcHour >= winEnd) {
+      // Per-step send window (template-level override, evaluated in user's local tz).
+      // Defaults to the account window if template doesn't restrict further.
+      const winStart = tpl.send_window_start ?? tzInfo.windowStart;
+      const winEnd = tpl.send_window_end ?? tzInfo.windowEnd;
+      if (localHour < winStart || localHour >= winEnd) {
         skipped_step_window++;
         continue;
       }
