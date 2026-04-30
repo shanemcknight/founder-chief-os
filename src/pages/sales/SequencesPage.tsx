@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, Mail, Plus, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCrm } from "@/contexts/CrmContext";
+import PipelineSelector from "@/components/sales/PipelineSelector";
 import { toast } from "sonner";
 
 type EmailTemplate = {
@@ -16,7 +18,7 @@ type EmailTemplate = {
   created_at: string;
 };
 
-type EnrollmentRow = { sequence_name: string };
+type EnrollmentRow = { sequence_name: string; pipeline_id: string | null };
 
 type StepDraft = {
   id?: string; // existing template id (if loaded from db)
