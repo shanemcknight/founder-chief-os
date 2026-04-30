@@ -1,16 +1,18 @@
-import { useEffect, useState } from "react";
-import { Search, Settings } from "lucide-react";
+import { useEffect, useState, KeyboardEvent } from "react";
+import { Search, Settings, Loader2 } from "lucide-react";
 import { useCrm } from "@/contexts/CrmContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 
-const mockProspects = [
-  { biz: "The Interval Bar & Café", loc: "Long Now Foundation, SF", contact: "Maria Santos", title: "Bar Manager", email: "maria@theinterval.org" },
-  { biz: "Trick Dog", loc: "Mission District, SF", contact: "Scott Baird", title: "Owner", email: "scott@trickdogbar.com" },
-  { biz: "Smuggler's Cove", loc: "Hayes Valley, SF", contact: "Martin Cate", title: "Owner", email: "martin@smugglerscovesf.com" },
-];
+interface Prospect {
+  biz: string;
+  loc: string;
+  contact: string;
+  title: string;
+  email: string;
+}
 
 type DupState =
   | { kind: "unknown" }
