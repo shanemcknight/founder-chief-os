@@ -166,7 +166,7 @@ export default function ProspectsPage() {
     let duplicates = 0;
     let noEmail = 0;
 
-    for (const p of mockProspects) {
+    for (const p of results) {
       if (!p.email) {
         noEmail++;
         setDupState((s) => ({ ...s, [p.biz]: { kind: "no_email" } }));
