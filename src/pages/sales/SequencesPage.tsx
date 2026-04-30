@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, Mail, Plus, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCrm } from "@/contexts/CrmContext";
+import PipelineSelector from "@/components/sales/PipelineSelector";
 import { toast } from "sonner";
 
 type EmailTemplate = {
@@ -16,7 +18,7 @@ type EmailTemplate = {
   created_at: string;
 };
 
-type EnrollmentRow = { sequence_name: string };
+type EnrollmentRow = { sequence_name: string; pipeline_id: string | null };
 
 type StepDraft = {
   id?: string; // existing template id (if loaded from db)
@@ -31,6 +33,7 @@ type TestState = "idle" | "sending" | "sent" | "error";
 
 export default function SequencesPage() {
   const { user } = useAuth();
+  const { activePipelineId } = useCrm();
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([]);
@@ -99,7 +102,7 @@ export default function SequencesPage() {
         .order("sequence_step", { ascending: true }),
       supabase
         .from("email_sequences" as any)
-        .select("sequence_name")
+        .select("sequence_name, pipeline_id")
         .neq("status", "completed"),
       // Ping the sender — it returns 500 with "RESEND_API_KEY not configured"
       // if the platform secret is missing. Any other response means it's set.
@@ -129,12 +132,15 @@ export default function SequencesPage() {
       map.set(t.sequence_name, arr);
     }
     for (const [, arr] of map) arr.sort((a, b) => a.sequence_step - b.sequence_step);
+    const filteredEnrollments = activePipelineId
+      ? enrollments.filter((e) => e.pipeline_id === activePipelineId)
+      : enrollments;
     return Array.from(map.entries()).map(([name, items]) => ({
       name,
       steps: items,
-      enrolled: enrollments.filter((e) => e.sequence_name === name).length,
+      enrolled: filteredEnrollments.filter((e) => e.sequence_name === name).length,
     }));
-  }, [templates, enrollments]);
+  }, [templates, enrollments, activePipelineId]);
 
   // ---------- Modal ----------
   const openNew = () => {
@@ -295,17 +301,20 @@ export default function SequencesPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-6 gap-3 flex-wrap">
         <div>
           <h1 className="text-lg font-bold">Email Sequences</h1>
           <p className="text-sm text-muted-foreground">Automate your outreach</p>
         </div>
-        <button
-          onClick={openNew}
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1 hover:opacity-90 transition"
-        >
-          New Sequence <Plus className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <PipelineSelector />
+          <button
+            onClick={openNew}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1 hover:opacity-90 transition"
+          >
+            New Sequence <Plus className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* No Resend key warning */}

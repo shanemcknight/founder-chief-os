@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
+import PipelineSelector from "@/components/sales/PipelineSelector";
 
 interface Prospect {
   biz: string;
@@ -22,11 +23,10 @@ type DupState =
   | { kind: "available" };
 
 export default function ProspectsPage() {
-  const { createCompany, createContact, setSelectedContactId, pipelines } = useCrm();
+  const { createCompany, createContact, setSelectedContactId, pipelines, activePipelineId, setActivePipelineId } = useCrm();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [adding, setAdding] = useState<string | null>(null);
-  const [pipelineId, setPipelineId] = useState<string>("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [dupState, setDupState] = useState<Record<string, DupState>>({});
   const [query, setQuery] = useState("bar owners San Francisco");
@@ -35,9 +35,11 @@ export default function ProspectsPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [results, setResults] = useState<Prospect[]>([]);
 
+  // Ensure a pipeline is always selected on this page (no "All Pipelines").
   useEffect(() => {
-    if (!pipelineId && pipelines.length > 0) setPipelineId(pipelines[0].id);
-  }, [pipelines, pipelineId]);
+    if (!activePipelineId && pipelines.length > 0) setActivePipelineId(pipelines[0].id);
+  }, [pipelines, activePipelineId, setActivePipelineId]);
+  const pipelineId = activePipelineId || (pipelines[0]?.id ?? "");
 
   // Recompute duplicate state whenever results change.
   useEffect(() => {
@@ -248,17 +250,9 @@ export default function ProspectsPage() {
           </Link>
         </div>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <label className="text-[11px] text-muted-foreground">Add to pipeline:</label>
-          <select
-            value={pipelineId}
-            onChange={(e) => setPipelineId(e.target.value)}
-            className="bg-card border border-border rounded-md px-2 py-1.5 text-xs text-foreground"
-          >
-            {pipelines.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <PipelineSelector allowAll={false} />
           <button
             onClick={addAll}
             disabled={!pipelineId}

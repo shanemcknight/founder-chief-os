@@ -2,9 +2,19 @@ import { useMemo } from "react";
 import { Check } from "lucide-react";
 import { useCrm } from "@/contexts/CrmContext";
 import { cn } from "@/lib/utils";
+import PipelineSelector from "@/components/sales/PipelineSelector";
 
 export default function TasksPage() {
-  const { tasks, contacts, loading, toggleTask, setSelectedContactId } = useCrm();
+  const { tasks, contacts, loading, toggleTask, setSelectedContactId, activePipelineId } = useCrm();
+
+  const filteredTasks = useMemo(() => {
+    if (!activePipelineId) return tasks;
+    const contactPipelineMap = new Map(contacts.map((c) => [c.id, c.pipeline_id]));
+    return tasks.filter((t) => {
+      if (!t.contact_id) return false;
+      return contactPipelineMap.get(t.contact_id) === activePipelineId;
+    });
+  }, [tasks, contacts, activePipelineId]);
 
   const groups = useMemo(() => {
     const now = Date.now();
@@ -14,7 +24,7 @@ export default function TasksPage() {
     const upcoming: typeof tasks = [];
     const overdue: typeof tasks = [];
     const completed: typeof tasks = [];
-    tasks.forEach((t) => {
+    filteredTasks.forEach((t) => {
       if (t.completed) {
         completed.push(t);
         return;
@@ -29,7 +39,7 @@ export default function TasksPage() {
       else upcoming.push(t);
     });
     return { overdue, today, upcoming, completed };
-  }, [tasks]);
+  }, [filteredTasks]);
 
   const Section = ({ title, items, accent }: { title: string; items: typeof tasks; accent?: "destructive" | "primary" }) => (
     <div>
@@ -79,7 +89,10 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-bold text-foreground">Tasks</h1>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h1 className="text-lg font-bold text-foreground">Tasks</h1>
+        <PipelineSelector />
+      </div>
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading...</p>
       ) : (
