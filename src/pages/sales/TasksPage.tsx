@@ -89,7 +89,10 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-bold text-foreground">Tasks</h1>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h1 className="text-lg font-bold text-foreground">Tasks</h1>
+        <PipelineSelector />
+      </div>
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading...</p>
       ) : (
