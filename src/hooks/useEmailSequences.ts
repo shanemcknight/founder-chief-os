@@ -52,8 +52,12 @@ export function useEmailSequences() {
   // Realtime: keep in sync as enrollments change
   useEffect(() => {
     if (!user) return;
+    // Unique channel name per hook instance to avoid "cannot add callbacks after subscribe"
+    // errors when multiple components mount this hook simultaneously (e.g. ContactsPage list
+    // + ContactDetailPanel) and would otherwise reuse the same channel name.
+    const channelName = `email_sequences_${user.id}_${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel(`email_sequences_${user.id}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
