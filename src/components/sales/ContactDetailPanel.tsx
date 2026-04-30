@@ -86,28 +86,13 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {tab === "overview" && (
             <>
-              <div className="space-y-2">
-                {contact.email && (
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <Mail size={12} /> <span className="text-foreground">{contact.email}</span>
-                  </div>
-                )}
-                {contact.phone && (
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <Phone size={12} /> <span className="text-foreground">{contact.phone}</span>
-                  </div>
-                )}
-                {company && (
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <Building2 size={12} /> <span className="text-foreground">{company.name}</span>
-                  </div>
-                )}
-                {contact.location && (
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <MapPin size={12} /> <span className="text-foreground">{contact.location}</span>
-                  </div>
-                )}
-              </div>
+              <ContactInfoFields
+                contact={contact}
+                company={company}
+                companies={companies}
+                updateContact={updateContact}
+                createCompany={(name: string) => createCompany({ name })}
+              />
 
               <div>
                 <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Pipeline</label>
@@ -146,16 +131,6 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
                     <option value="">Assign a pipeline first</option>
                   )}
                 </select>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Value (monthly)</label>
-                <input
-                  type="number"
-                  value={contact.value}
-                  onChange={(e) => updateContact(contact.id, { value: Number(e.target.value) || 0 })}
-                  className="mt-1 w-full bg-background border border-border rounded-md px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-                />
               </div>
 
               <div>
