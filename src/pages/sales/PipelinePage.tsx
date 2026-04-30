@@ -1,6 +1,6 @@
 import { useState, useMemo, DragEvent, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { MapPin, Clock, Search, Plus, Layers, MoreHorizontal, Pencil, Copy, Trash2 } from "lucide-react";
+import { MapPin, Clock, Search, Plus, Layers, MoreHorizontal, Pencil, Copy, Trash2, ChevronDown } from "lucide-react";
 import { useCrm, Pipeline, PIPELINE_COLORS } from "@/contexts/CrmContext";
 import { cn } from "@/lib/utils";
 import PipelineModal from "@/components/sales/PipelineModal";
