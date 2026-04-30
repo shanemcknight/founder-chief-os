@@ -225,14 +225,27 @@ export default function ProspectsPage() {
         </button>
       </div>
 
-      <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="text"
-          defaultValue="bar owners San Francisco"
-          className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-          placeholder="Search by city, business type, or keyword..."
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={onSearchKeyDown}
+            disabled={searching}
+            className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-60"
+            placeholder="Search by city, business type, or keyword..."
+          />
+        </div>
+        <button
+          onClick={runSearch}
+          disabled={searching || !query.trim()}
+          className="text-xs font-medium bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+        >
+          {searching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+          {searching ? "Searching…" : "Search"}
+        </button>
       </div>
 
       {pipelines.length === 0 ? (
