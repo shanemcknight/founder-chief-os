@@ -146,6 +146,9 @@ export default function ContactsPage() {
                       <p className="text-xs font-semibold text-foreground">{c.name}</p>
                       {c.title && <p className="text-[10px] text-muted-foreground">{c.title}</p>}
                     </td>
+                    <td className="px-3 py-2.5 text-[11px] text-muted-foreground">
+                      {c.email ? <span className="text-foreground">{c.email}</span> : "—"}
+                    </td>
                     <td className="px-3 py-2.5 text-[11px] text-muted-foreground">{company?.name || "—"}</td>
                     <td className="px-3 py-2.5 text-[11px] text-muted-foreground">
                       {pipeline ? (
@@ -197,12 +200,8 @@ export default function ContactsPage() {
                         return <span className="text-muted-foreground text-xs">{seq.status}</span>;
                       })()}
                     </td>
-                    <td className="px-3 py-2.5 text-[11px] font-medium text-warning">
-                      {c.value > 0 ? `$${c.value}/mo` : "—"}
-                    </td>
-                    <td className="px-3 py-2.5 text-[11px] text-muted-foreground">{c.location || "—"}</td>
                     <td className="px-3 py-2.5 text-[11px] text-muted-foreground">
-                      {c.last_contacted_at ? new Date(c.last_contacted_at).toLocaleDateString() : "—"}
+                      {c.created_at ? new Date(c.created_at).toLocaleDateString() : "—"}
                     </td>
                   </tr>
                 );
