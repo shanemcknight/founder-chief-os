@@ -284,12 +284,24 @@ export default function ProspectsPage() {
 
 /* ---------------- Discovery Settings Modal ---------------- */
 
-function DiscoverySettingsModal({
+type ServiceKey = "outscraper" | "apollo";
+
+function ApiKeyField({
   userId,
-  onClose,
+  service,
+  label,
+  required,
+  helpText,
+  helpLink,
+  placeholder,
 }: {
   userId: string;
-  onClose: () => void;
+  service: ServiceKey;
+  label: string;
+  required: boolean;
+  helpText: string;
+  helpLink: { href: string; text: string };
+  placeholder: string;
 }) {
   const [loading, setLoading] = useState(true);
   const [savedKey, setSavedKey] = useState<string | null>(null);
@@ -304,7 +316,7 @@ function DiscoverySettingsModal({
         .from("api_keys")
         .select("id, api_key")
         .eq("user_id", userId)
-        .eq("service", "resend")
+        .eq("service", service)
         .maybeSingle();
       if (data) {
         setSavedKey(data.api_key as string);
@@ -315,16 +327,14 @@ function DiscoverySettingsModal({
       }
       setLoading(false);
     })();
-  }, [userId]);
+  }, [userId, service]);
 
-  const masked = savedKey
-    ? `re_••••${savedKey.slice(-4)}`
-    : "";
+  const masked = savedKey ? `••••${savedKey.slice(-4)}` : "";
 
   const save = async () => {
     const trimmed = keyInput.trim();
     if (!trimmed) {
-      toast.error("Enter a Resend API key");
+      toast.error(`Enter a ${label}`);
       return;
     }
     setSaving(true);
@@ -341,7 +351,7 @@ function DiscoverySettingsModal({
     } else {
       const { data, error } = await supabase
         .from("api_keys")
-        .insert({ user_id: userId, service: "resend", api_key: trimmed })
+        .insert({ user_id: userId, service, api_key: trimmed })
         .select()
         .single();
       if (error) {
@@ -355,9 +365,90 @@ function DiscoverySettingsModal({
     setKeyInput("");
     setEditing(false);
     setSaving(false);
-    toast.success("Resend API key saved");
+    toast.success(`${label} saved`);
   };
 
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-sm font-semibold text-foreground">
+          {label}
+          {required ? (
+            <span className="ml-2 text-[10px] font-medium text-primary uppercase tracking-wider">Required</span>
+          ) : (
+            <span className="ml-2 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Optional</span>
+          )}
+        </label>
+        <a
+          href={helpLink.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary text-xs hover:underline"
+        >
+          {helpLink.text}
+        </a>
+      </div>
+
+      {loading ? (
+        <p className="text-xs text-muted-foreground">Loading…</p>
+      ) : savedKey && !editing ? (
+        <div className="flex items-center justify-between bg-muted/30 border border-border rounded-lg px-3 py-2">
+          <span className="text-xs font-mono text-foreground">{masked}</span>
+          <button
+            onClick={() => {
+              setEditing(true);
+              setKeyInput("");
+            }}
+            className="text-primary text-xs hover:underline"
+          >
+            Update
+          </button>
+        </div>
+      ) : (
+        <input
+          type="password"
+          value={keyInput}
+          onChange={(e) => setKeyInput(e.target.value)}
+          placeholder={placeholder}
+          className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm font-mono"
+        />
+      )}
+
+      <p className="text-[11px] text-muted-foreground mt-2">{helpText}</p>
+
+      {(editing || !savedKey) && (
+        <div className="flex justify-end gap-2 mt-3">
+          {savedKey && (
+            <button
+              onClick={() => {
+                setEditing(false);
+                setKeyInput("");
+              }}
+              className="border border-border px-3 py-1.5 rounded-lg text-xs hover:bg-muted/50"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            onClick={save}
+            disabled={saving}
+            className="bg-primary text-primary-foreground px-4 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition disabled:opacity-50"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DiscoverySettingsModal({
+  userId,
+  onClose,
+}: {
+  userId: string;
+  onClose: () => void;
+}) {
   return (
     <div
       className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4"
@@ -378,83 +469,26 @@ function DiscoverySettingsModal({
         </div>
 
         <div className="p-5 space-y-5">
-          {/* Existing Apollo placeholder section */}
-          <div>
-            <p className="text-sm font-semibold text-foreground">Apollo</p>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Prospect search is powered by Apollo. No additional setup required.
-            </p>
-          </div>
+          <ApiKeyField
+            userId={userId}
+            service="outscraper"
+            label="Outscraper API Key"
+            required
+            placeholder="Your Outscraper API key"
+            helpText="Primary search engine. Scrapes real websites for fresh leads with verified emails."
+            helpLink={{ href: "https://outscraper.com", text: "Get a key at outscraper.com →" }}
+          />
 
-          {/* Divider */}
           <div className="border-t border-border pt-5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Email Sending
-            </p>
-
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-sm font-semibold text-foreground">Resend API Key</label>
-              <a
-                href="https://resend.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary text-xs hover:underline"
-              >
-                Get a free key at resend.com →
-              </a>
-            </div>
-
-            {loading ? (
-              <p className="text-xs text-muted-foreground">Loading…</p>
-            ) : savedKey && !editing ? (
-              <div className="flex items-center justify-between bg-muted/30 border border-border rounded-lg px-3 py-2">
-                <span className="text-xs font-mono text-foreground">{masked}</span>
-                <button
-                  onClick={() => {
-                    setEditing(true);
-                    setKeyInput("");
-                  }}
-                  className="text-primary text-xs hover:underline"
-                >
-                  Update
-                </button>
-              </div>
-            ) : (
-              <input
-                type="password"
-                value={keyInput}
-                onChange={(e) => setKeyInput(e.target.value)}
-                placeholder="re_xxxxxxxxxxxx"
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm font-mono"
-              />
-            )}
-
-            <p className="text-[11px] text-muted-foreground mt-2">
-              Sends emails from your sequences. Free tier: 3,000 emails/month.
-            </p>
-
-            {(editing || !savedKey) && (
-              <div className="flex justify-end gap-2 mt-3">
-                {savedKey && (
-                  <button
-                    onClick={() => {
-                      setEditing(false);
-                      setKeyInput("");
-                    }}
-                    className="border border-border px-3 py-1.5 rounded-lg text-xs hover:bg-muted/50"
-                  >
-                    Cancel
-                  </button>
-                )}
-                <button
-                  onClick={save}
-                  disabled={saving}
-                  className="bg-primary text-primary-foreground px-4 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition disabled:opacity-50"
-                >
-                  {saving ? "Saving…" : "Save"}
-                </button>
-              </div>
-            )}
+            <ApiKeyField
+              userId={userId}
+              service="apollo"
+              label="Apollo API Key"
+              required={false}
+              placeholder="Your Apollo API key"
+              helpText="Secondary search engine. Useful for B2B SaaS contact discovery."
+              helpLink={{ href: "https://apollo.io", text: "Get a key at apollo.io →" }}
+            />
           </div>
         </div>
       </div>
