@@ -29,18 +29,26 @@ export default function ProspectsPage() {
   const [pipelineId, setPipelineId] = useState<string>("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [dupState, setDupState] = useState<Record<string, DupState>>({});
+  const [query, setQuery] = useState("bar owners San Francisco");
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [results, setResults] = useState<Prospect[]>([]);
 
   useEffect(() => {
     if (!pipelineId && pipelines.length > 0) setPipelineId(pipelines[0].id);
   }, [pipelines, pipelineId]);
 
-  // Pre-check duplicates on mount so the row UI reflects state immediately.
+  // Recompute duplicate state whenever results change.
   useEffect(() => {
-    if (!user) return;
+    if (!user || results.length === 0) {
+      setDupState({});
+      return;
+    }
     let cancelled = false;
     (async () => {
       const next: Record<string, DupState> = {};
-      for (const p of mockProspects) {
+      for (const p of results) {
         if (!p.email) {
           next[p.biz] = { kind: "no_email" };
           continue;
@@ -60,7 +68,38 @@ export default function ProspectsPage() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, results]);
+
+  const runSearch = async () => {
+    const q = query.trim();
+    if (!q) {
+      toast.error("Enter a search query");
+      return;
+    }
+    setSearching(true);
+    setSearchError(null);
+    setHasSearched(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("prospect-search", {
+        body: { query: q },
+      });
+      if (error) throw new Error(error.message || "Search failed");
+      if (data?.error) throw new Error(data.error);
+      setResults(Array.isArray(data?.prospects) ? data.prospects : []);
+    } catch (err: any) {
+      setResults([]);
+      setSearchError(err?.message || "Search failed");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const onSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runSearch();
+    }
+  };
 
   const viewExisting = (contactId: string) => {
     setSelectedContactId(contactId);
