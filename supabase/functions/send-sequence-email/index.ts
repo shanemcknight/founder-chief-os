@@ -12,7 +12,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM_ADDR = "MythosHQ Outreach <outreach@mythoshq.io>";
+const FALLBACK_FROM = "MythosHQ Outreach <noreply@mythoshq.io>";
 const MAX_PER_RUN = 500;
 
 // Per-tier daily send limits
