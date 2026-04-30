@@ -8,7 +8,26 @@ type Settings = {
   from_name: string;
   from_email: string | null;
   domain_verified: boolean;
+  timezone: string;
+  send_window_start_hour: number;
+  send_window_end_hour: number;
 };
+
+const TIMEZONES = [
+  { value: "America/Los_Angeles", label: "Pacific Time (Los Angeles)" },
+  { value: "America/Denver", label: "Mountain Time (Denver)" },
+  { value: "America/Phoenix", label: "Mountain Time — no DST (Phoenix)" },
+  { value: "America/Chicago", label: "Central Time (Chicago)" },
+  { value: "America/New_York", label: "Eastern Time (New York)" },
+  { value: "America/Anchorage", label: "Alaska Time" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time" },
+  { value: "UTC", label: "UTC" },
+  { value: "Europe/London", label: "London" },
+  { value: "Europe/Paris", label: "Paris / Berlin / Madrid" },
+  { value: "Asia/Singapore", label: "Singapore" },
+  { value: "Asia/Tokyo", label: "Tokyo" },
+  { value: "Australia/Sydney", label: "Sydney" },
+];
 
 type DnsRecord = {
   record: string;
