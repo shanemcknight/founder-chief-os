@@ -137,6 +137,25 @@ Deno.serve(async (req) => {
     }
   >();
   const dailyBlocked = new Set<string>();
+  const fromCache = new Map<string, string>();
+
+  async function resolveFrom(userId: string): Promise<string> {
+    const cached = fromCache.get(userId);
+    if (cached) return cached;
+    const { data: settings } = await supabase
+      .from("user_email_settings")
+      .select("from_name, from_email")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const from =
+      settings?.from_email && settings?.from_name
+        ? `${settings.from_name} <${settings.from_email}>`
+        : settings?.from_email
+          ? settings.from_email
+          : FALLBACK_FROM;
+    fromCache.set(userId, from);
+    return from;
+  }
 
   let sent = 0;
   let skipped_limit = 0;
