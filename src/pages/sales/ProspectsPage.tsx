@@ -12,14 +12,14 @@ interface Prospect {
   contact: string;
   title: string;
   email: string;
+  emails: string[];
 }
 
 type DupState =
   | { kind: "unknown" }
   | { kind: "checking" }
   | { kind: "duplicate"; contactId: string }
-  | { kind: "available" }
-  | { kind: "no_email" };
+  | { kind: "available" };
 
 export default function ProspectsPage() {
   const { createCompany, createContact, setSelectedContactId, pipelines } = useCrm();
