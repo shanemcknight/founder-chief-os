@@ -23,11 +23,10 @@ type DupState =
   | { kind: "available" };
 
 export default function ProspectsPage() {
-  const { createCompany, createContact, setSelectedContactId, pipelines } = useCrm();
+  const { createCompany, createContact, setSelectedContactId, pipelines, activePipelineId, setActivePipelineId } = useCrm();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [adding, setAdding] = useState<string | null>(null);
-  const [pipelineId, setPipelineId] = useState<string>("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [dupState, setDupState] = useState<Record<string, DupState>>({});
   const [query, setQuery] = useState("bar owners San Francisco");
@@ -36,9 +35,11 @@ export default function ProspectsPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [results, setResults] = useState<Prospect[]>([]);
 
+  // Ensure a pipeline is always selected on this page (no "All Pipelines").
   useEffect(() => {
-    if (!pipelineId && pipelines.length > 0) setPipelineId(pipelines[0].id);
-  }, [pipelines, pipelineId]);
+    if (!activePipelineId && pipelines.length > 0) setActivePipelineId(pipelines[0].id);
+  }, [pipelines, activePipelineId, setActivePipelineId]);
+  const pipelineId = activePipelineId || (pipelines[0]?.id ?? "");
 
   // Recompute duplicate state whenever results change.
   useEffect(() => {
