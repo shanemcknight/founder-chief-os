@@ -4,6 +4,7 @@ import { MapPin, Clock, Search, Plus, Layers, MoreHorizontal, Pencil, Copy, Tras
 import { useCrm, Pipeline, PIPELINE_COLORS } from "@/contexts/CrmContext";
 import { cn } from "@/lib/utils";
 import PipelineModal from "@/components/sales/PipelineModal";
+import PipelineSelector from "@/components/sales/PipelineSelector";
 
 function daysAgo(iso: string | null): number {
   if (!iso) return 0;
