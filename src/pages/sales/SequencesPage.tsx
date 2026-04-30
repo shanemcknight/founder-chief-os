@@ -301,17 +301,20 @@ export default function SequencesPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-6 gap-3 flex-wrap">
         <div>
           <h1 className="text-lg font-bold">Email Sequences</h1>
           <p className="text-sm text-muted-foreground">Automate your outreach</p>
         </div>
-        <button
-          onClick={openNew}
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1 hover:opacity-90 transition"
-        >
-          New Sequence <Plus className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <PipelineSelector />
+          <button
+            onClick={openNew}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1 hover:opacity-90 transition"
+          >
+            New Sequence <Plus className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* No Resend key warning */}
