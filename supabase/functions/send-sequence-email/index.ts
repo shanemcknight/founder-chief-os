@@ -1,5 +1,6 @@
 // Tier-aware sender: enforces per-tier monthly + daily email limits and a
-// business-hours sending window (Mon-Fri 08:00-17:00 UTC by default).
+// business-hours sending window evaluated in EACH USER'S local timezone
+// (from user_email_settings.timezone). Mon-Fri only.
 // Sends due sequence emails via Resend using the platform RESEND_API_KEY.
 // - Skips and unsubscribes recipients in email_unsubscribes
 // - Replaces merge fields (e.g. {{first_name}}) in subject + body
@@ -88,25 +89,33 @@ Deno.serve(async (req) => {
 
   const now = new Date();
   const nowIso = now.toISOString();
-  const utcDay = now.getUTCDay(); // 0 Sun .. 6 Sat
-  const utcHour = now.getUTCHours();
-  const isWeekend = utcDay === 0 || utcDay === 6;
-  const todayStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+  const todayStr = now.toISOString().slice(0, 10); // YYYY-MM-DD (UTC, used for daily roll-over key)
 
-  // Global business-hours gate (Mon-Fri 08:00-17:00 UTC).
-  // Per-step send_window_start/end is also enforced below.
-  if (isWeekend || utcHour < 8 || utcHour >= 17) {
-    return new Response(
-      JSON.stringify({
-        skipped_business_hours: true,
-        utc_day: utcDay,
-        utc_hour: utcHour,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+  // Compute {hour, day} in an arbitrary IANA timezone using Intl (no deps).
+  // day: 0 Sun .. 6 Sat
+  function getLocalParts(d: Date, tz: string): { hour: number; day: number } {
+    try {
+      const fmt = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        weekday: "short",
+        hour: "numeric",
+        hour12: false,
+      });
+      const parts = fmt.formatToParts(d);
+      const hourStr = parts.find((p) => p.type === "hour")?.value ?? "0";
+      const wk = parts.find((p) => p.type === "weekday")?.value ?? "Mon";
+      const dayMap: Record<string, number> = {
+        Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+      };
+      // Intl returns "24" for midnight in some locales; normalize.
+      let hour = parseInt(hourStr, 10);
+      if (Number.isNaN(hour)) hour = 0;
+      if (hour === 24) hour = 0;
+      return { hour, day: dayMap[wk] ?? 1 };
+    } catch (_e) {
+      // Fallback: treat as UTC if tz string is bad
+      return { hour: d.getUTCHours(), day: d.getUTCDay() };
+    }
   }
 
   const { data: dueSeqs, error: seqErr } = await supabase
@@ -137,16 +146,23 @@ Deno.serve(async (req) => {
     }
   >();
   const dailyBlocked = new Set<string>();
-  const fromCache = new Map<string, { from: string; verified: boolean }>();
+  type FromInfo = {
+    from: string;
+    verified: boolean;
+    timezone: string;
+    windowStart: number;
+    windowEnd: number;
+  };
+  const fromCache = new Map<string, FromInfo>();
 
-  async function resolveFrom(
-    userId: string,
-  ): Promise<{ from: string; verified: boolean }> {
+  async function resolveFrom(userId: string): Promise<FromInfo> {
     const cached = fromCache.get(userId);
     if (cached) return cached;
     const { data: settings } = await supabase
       .from("user_email_settings")
-      .select("from_name, from_email, domain_verified")
+      .select(
+        "from_name, from_email, domain_verified, timezone, send_window_start_hour, send_window_end_hour"
+      )
       .eq("user_id", userId)
       .maybeSingle();
     const from =
@@ -155,7 +171,13 @@ Deno.serve(async (req) => {
         : settings?.from_email
           ? settings.from_email
           : FALLBACK_FROM;
-    const result = { from, verified: !!settings?.domain_verified };
+    const result: FromInfo = {
+      from,
+      verified: !!settings?.domain_verified,
+      timezone: settings?.timezone || "America/Los_Angeles",
+      windowStart: settings?.send_window_start_hour ?? 9,
+      windowEnd: settings?.send_window_end_hour ?? 16,
+    };
     fromCache.set(userId, result);
     return result;
   }
@@ -167,13 +189,39 @@ Deno.serve(async (req) => {
   let skipped_no_email = 0;
   let skipped_unsubscribed = 0;
   let skipped_step_window = 0;
+  let skipped_local_window = 0;
+  let skipped_weekend = 0;
   let errors = 0;
+
+  console.log("send-sequence-email tick", {
+    nowIso,
+    due_count: (dueSeqs || []).length,
+  });
 
   for (const seq of dueSeqs || []) {
     try {
       // Skip remaining sequences for users already over their daily cap
       if (dailyBlocked.has(seq.user_id)) {
         skipped_daily_limit++;
+        continue;
+      }
+
+      // Per-user timezone gate: weekday + business-hours window in user's local tz.
+      const tzInfo = await resolveFrom(seq.user_id);
+      const { hour: localHour, day: localDay } = getLocalParts(now, tzInfo.timezone);
+      if (localDay === 0 || localDay === 6) {
+        skipped_weekend++;
+        continue;
+      }
+      if (localHour < tzInfo.windowStart || localHour >= tzInfo.windowEnd) {
+        console.log("skip local window", {
+          seq_id: seq.id,
+          user_id: seq.user_id,
+          tz: tzInfo.timezone,
+          local_hour: localHour,
+          window: [tzInfo.windowStart, tzInfo.windowEnd],
+        });
+        skipped_local_window++;
         continue;
       }
 
@@ -304,11 +352,11 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Per-step send window (defaults 8-17 UTC). Skip without state change so
-      // the next hourly tick can pick it up.
-      const winStart = tpl.send_window_start ?? 8;
-      const winEnd = tpl.send_window_end ?? 17;
-      if (utcHour < winStart || utcHour >= winEnd) {
+      // Per-step send window (template-level override, evaluated in user's local tz).
+      // Defaults to the account window if template doesn't restrict further.
+      const winStart = tpl.send_window_start ?? tzInfo.windowStart;
+      const winEnd = tpl.send_window_end ?? tzInfo.windowEnd;
+      if (localHour < winStart || localHour >= winEnd) {
         skipped_step_window++;
         continue;
       }
@@ -419,6 +467,34 @@ Deno.serve(async (req) => {
           .update({ status: "completed", last_sent_at: sentAt })
           .eq("id", seq.id);
       }
+
+      console.log("send ok", {
+        seq_id: seq.id,
+        user_id: seq.user_id,
+        contact_id: seq.contact_id,
+        step: seq.sequence_step,
+        tz: tzInfo.timezone,
+        local_hour: localHour,
+        sent_at: sentAt,
+      });
+
+      // Activity log entry (best-effort; ignore failures)
+      await supabase.from("activity_log").insert({
+        user_id: seq.user_id,
+        action_type: "sequence_email_sent",
+        description: `Sent ${seq.sequence_name} step ${seq.sequence_step} to ${contact.email}`,
+        metadata: {
+          sequence_id: seq.id,
+          sequence_name: seq.sequence_name,
+          sequence_step: seq.sequence_step,
+          contact_id: seq.contact_id,
+          contact_email: contact.email,
+          sent_at_utc: sentAt,
+          local_hour: localHour,
+          timezone: tzInfo.timezone,
+        },
+      });
+
       sent++;
     } catch (e) {
       console.error("send loop error for sequence", seq.id, e);
@@ -435,6 +511,8 @@ Deno.serve(async (req) => {
       skipped_no_email,
       skipped_unsubscribed,
       skipped_step_window,
+      skipped_local_window,
+      skipped_weekend,
       skipped_unverified_domain,
       errors,
     }),

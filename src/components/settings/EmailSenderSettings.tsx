@@ -8,7 +8,26 @@ type Settings = {
   from_name: string;
   from_email: string | null;
   domain_verified: boolean;
+  timezone: string;
+  send_window_start_hour: number;
+  send_window_end_hour: number;
 };
+
+const TIMEZONES = [
+  { value: "America/Los_Angeles", label: "Pacific Time (Los Angeles)" },
+  { value: "America/Denver", label: "Mountain Time (Denver)" },
+  { value: "America/Phoenix", label: "Mountain Time — no DST (Phoenix)" },
+  { value: "America/Chicago", label: "Central Time (Chicago)" },
+  { value: "America/New_York", label: "Eastern Time (New York)" },
+  { value: "America/Anchorage", label: "Alaska Time" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time" },
+  { value: "UTC", label: "UTC" },
+  { value: "Europe/London", label: "London" },
+  { value: "Europe/Paris", label: "Paris / Berlin / Madrid" },
+  { value: "Asia/Singapore", label: "Singapore" },
+  { value: "Asia/Tokyo", label: "Tokyo" },
+  { value: "Australia/Sydney", label: "Sydney" },
+];
 
 type DnsRecord = {
   record: string;
@@ -28,6 +47,9 @@ export default function EmailSenderSettings() {
   const [fromName, setFromName] = useState("");
   const [fromEmail, setFromEmail] = useState("");
   const [verified, setVerified] = useState(false);
+  const [timezone, setTimezone] = useState("America/Los_Angeles");
+  const [startHour, setStartHour] = useState(9);
+  const [endHour, setEndHour] = useState(16);
   const [records, setRecords] = useState<DnsRecord[]>([]);
 
   useEffect(() => {
@@ -36,7 +58,7 @@ export default function EmailSenderSettings() {
       setLoading(true);
       const { data } = await supabase
         .from("user_email_settings")
-        .select("from_name, from_email, domain_verified")
+        .select("from_name, from_email, domain_verified, timezone, send_window_start_hour, send_window_end_hour")
         .eq("user_id", user.id)
         .maybeSingle();
       if (data) {
@@ -44,8 +66,10 @@ export default function EmailSenderSettings() {
         setFromName(s.from_name || "");
         setFromEmail(s.from_email || "");
         setVerified(!!s.domain_verified);
+        setTimezone(s.timezone || "America/Los_Angeles");
+        setStartHour(s.send_window_start_hour ?? 9);
+        setEndHour(s.send_window_end_hour ?? 16);
       } else {
-        // Insert a default row so the user has a record to edit
         await supabase
           .from("user_email_settings")
           .insert({ user_id: user.id, from_name: "My Business" });
@@ -66,6 +90,10 @@ export default function EmailSenderSettings() {
       toast.error("Please enter a valid email address");
       return;
     }
+    if (startHour < 0 || startHour > 23 || endHour < 1 || endHour > 24 || startHour >= endHour) {
+      toast.error("Earliest send hour must be before latest send hour (0–24).");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from("user_email_settings")
@@ -74,6 +102,9 @@ export default function EmailSenderSettings() {
           user_id: user.id,
           from_name: fromName.trim(),
           from_email: fromEmail.trim() || null,
+          timezone,
+          send_window_start_hour: startHour,
+          send_window_end_hour: endHour,
         },
         { onConflict: "user_id" }
       );
@@ -173,6 +204,72 @@ export default function EmailSenderSettings() {
           <p className="text-[11px] text-muted-foreground mt-1">
             The email address your sequences send from.
           </p>
+        </div>
+
+        <div className="border-t border-border pt-4">
+          <h3 className="text-xs font-semibold text-foreground mb-1">Sending Window</h3>
+          <p className="text-[11px] text-muted-foreground mb-3">
+            Sequences only fire Mon–Fri between these hours in your local timezone.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-3">
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                Timezone
+              </label>
+              <select
+                value={TIMEZONES.some((t) => t.value === timezone) ? timezone : "__custom"}
+                onChange={(e) => {
+                  if (e.target.value !== "__custom") setTimezone(e.target.value);
+                  else setTimezone("");
+                }}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
+              >
+                {TIMEZONES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+                <option value="__custom">Other (enter IANA name)</option>
+              </select>
+              {!TIMEZONES.some((t) => t.value === timezone) && (
+                <input
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  placeholder="e.g. America/Toronto"
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm mt-2"
+                />
+              )}
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                Earliest send hour
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={startHour}
+                onChange={(e) => setStartHour(parseInt(e.target.value || "0", 10))}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">0–23 (local)</p>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                Latest send hour
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={24}
+                value={endHour}
+                onChange={(e) => setEndHour(parseInt(e.target.value || "0", 10))}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">1–24 (local, exclusive)</p>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 pt-1">

@@ -6,6 +6,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCrm } from "@/contexts/CrmContext";
 import { toast } from "sonner";
 
+// Convert {YYYY-MM-DD, hour} interpreted in IANA tz → UTC ISO string.
+function zonedDateToUtcIso(dateStr: string, hour: number, tz: string): string {
+  const naiveUtc = new Date(`${dateStr}T${String(hour).padStart(2, "0")}:00:00Z`);
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  });
+  const parts = fmt.formatToParts(naiveUtc).reduce<Record<string, string>>((a, p) => {
+    if (p.type !== "literal") a[p.type] = p.value;
+    return a;
+  }, {});
+  const asTz = Date.UTC(
+    parseInt(parts.year), parseInt(parts.month) - 1, parseInt(parts.day),
+    parseInt(parts.hour) % 24, parseInt(parts.minute), parseInt(parts.second),
+  );
+  const offsetMs = asTz - naiveUtc.getTime();
+  return new Date(naiveUtc.getTime() - offsetMs).toISOString();
+}
+
 type TemplateRow = {
   id: string;
   user_id: string;
@@ -38,6 +58,25 @@ export default function SequenceEnrollmentModal({
   const today = new Date().toISOString().slice(0, 10);
   const [startDate, setStartDate] = useState<string>(today);
   const [submitting, setSubmitting] = useState(false);
+  const [tz, setTz] = useState<string>("America/Los_Angeles");
+  const [winStart, setWinStart] = useState<number>(9);
+  const [winEnd, setWinEnd] = useState<number>(16);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("user_email_settings")
+        .select("timezone, send_window_start_hour, send_window_end_hour")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        setTz((data as any).timezone || "America/Los_Angeles");
+        setWinStart((data as any).send_window_start_hour ?? 9);
+        setWinEnd((data as any).send_window_end_hour ?? 16);
+      }
+    })();
+  }, [user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,7 +139,7 @@ export default function SequenceEnrollmentModal({
       return;
     }
 
-    const next = new Date(`${startDate}T09:00:00`).toISOString();
+    const next = zonedDateToUtcIso(startDate, winStart, tz);
     const { error } = await supabase.from("email_sequences" as any).insert({
       user_id: user.id,
       contact_id: contactId,
@@ -187,6 +226,9 @@ export default function SequenceEnrollmentModal({
                   min={today}
                   className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
                 />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Will fire between {winStart}:00–{winEnd}:00 in {tz} (Mon–Fri only).
+                </p>
               </div>
 
               {selectedSteps.length > 0 && (
