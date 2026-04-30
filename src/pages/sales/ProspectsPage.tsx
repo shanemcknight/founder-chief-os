@@ -106,7 +106,7 @@ export default function ProspectsPage() {
     navigate("/sales/contacts");
   };
 
-  const addToPipeline = async (p: (typeof mockProspects)[number]) => {
+  const addToPipeline = async (p: Prospect) => {
     if (!pipelineId) {
       toast.error("Create a pipeline first");
       return;
