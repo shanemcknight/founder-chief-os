@@ -98,14 +98,20 @@ export default function EmailSenderSettings() {
         body: { from_email: fromEmail.trim() },
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
-      if (res.error) throw res.error;
-      const result = res.data as { verified: boolean; records: DnsRecord[]; status: string };
+      // supabase-js puts the parsed body in res.data even on non-2xx
+      const payload: any = res.data || {};
+      if (res.error || payload?.error) {
+        const msg = payload?.error || res.error?.message || "Verification failed";
+        const details = payload?.details ? ` — ${payload.details}` : "";
+        throw new Error(`${msg}${details}`);
+      }
+      const result = payload as { verified: boolean; records: DnsRecord[]; status: string };
       setVerified(!!result.verified);
       setRecords(result.records || []);
       if (result.verified) toast.success("Domain verified ✓");
       else toast.message("Verification pending — add the DNS records below");
     } catch (e: any) {
-      console.error(e);
+      console.error("verify-resend-domain failed:", e);
       toast.error(e?.message || "Verification check failed");
     } finally {
       setVerifying(false);

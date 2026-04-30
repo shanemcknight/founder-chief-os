@@ -1,6 +1,7 @@
 // Sends a one-off test email to the authenticated user using a template's
 // subject + body, with placeholder merge values applied. Subject is prefixed
 // with "[TEST] " so it's clearly a test in the inbox.
+// Uses the per-user from address from user_email_settings (matches send-sequence-email).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -9,7 +10,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const FROM_ADDR = "MythosHQ Outreach <outreach@mythoshq.io>";
+const FALLBACK_FROM = "MythosHQ Outreach <noreply@mythoshq.io>";
 
 const PLACEHOLDERS: Record<string, string> = {
   first_name: "Alex",
@@ -29,6 +30,13 @@ function applyPlaceholders(template: string): string {
   return out;
 }
 
+function jsonError(message: string, details: unknown, status = 500) {
+  return new Response(
+    JSON.stringify({ error: message, details }),
+    { status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
@@ -36,21 +44,12 @@ Deno.serve(async (req) => {
   try {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "RESEND_API_KEY not configured" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return jsonError("RESEND_API_KEY not configured", "Missing platform secret RESEND_API_KEY");
     }
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonError("Unauthorized", "Missing or malformed Authorization header", 401);
     }
 
     const supabase = createClient(
@@ -59,25 +58,14 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } =
-      await supabase.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData?.user) {
+      return jsonError("Unauthorized", userErr?.message || "Could not resolve user", 401);
     }
-
-    const userEmail = (claimsData.claims as any).email as string | undefined;
+    const userEmail = userData.user.email;
+    const userId = userData.user.id;
     if (!userEmail) {
-      return new Response(
-        JSON.stringify({ error: "No email on user account" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return jsonError("No email on user account", "User has no email address", 400);
     }
 
     const body = await req.json().catch(() => ({}));
@@ -86,14 +74,25 @@ Deno.serve(async (req) => {
     const bodyHtmlIn = typeof body?.body_html === "string" ? body.body_html : "";
 
     if (!subjectIn.trim() || !bodyTextIn.trim()) {
-      return new Response(
-        JSON.stringify({ error: "Subject and plain text body are required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+      return jsonError(
+        "Subject and plain text body are required",
+        "Provide both subject and body_text",
+        400,
       );
     }
+
+    // Resolve from address from user_email_settings (mirrors send-sequence-email).
+    const { data: settings } = await supabase
+      .from("user_email_settings")
+      .select("from_name, from_email")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const fromAddr =
+      settings?.from_email && settings?.from_name
+        ? `${settings.from_name} <${settings.from_email}>`
+        : settings?.from_email
+          ? settings.from_email
+          : FALLBACK_FROM;
 
     const subject = `[TEST] ${applyPlaceholders(subjectIn)}`;
     const text = applyPlaceholders(bodyTextIn);
@@ -106,7 +105,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: FROM_ADDR,
+        from: fromAddr,
         to: userEmail,
         subject,
         text,
@@ -115,19 +114,13 @@ Deno.serve(async (req) => {
     });
 
     if (!resp.ok) {
-      const errText = await resp.text();
-      console.error("Test send failed:", errText);
-      return new Response(
-        JSON.stringify({ error: "Failed to send test email" }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      const errBody = await resp.text();
+      console.error("Resend POST /emails failed:", resp.status, errBody);
+      return jsonError("Failed to send test email", errBody);
     }
 
     return new Response(
-      JSON.stringify({ ok: true, sent_to: userEmail }),
+      JSON.stringify({ ok: true, sent_to: userEmail, from: fromAddr }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -135,9 +128,6 @@ Deno.serve(async (req) => {
     );
   } catch (e) {
     console.error("send-test-email error:", e);
-    return new Response(JSON.stringify({ error: "Internal error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonError("Internal error", String(e));
   }
 });

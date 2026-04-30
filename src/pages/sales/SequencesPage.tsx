@@ -78,6 +78,9 @@ export default function SequencesPage() {
     } catch (e: any) {
       console.error(e);
       setTestState((s) => ({ ...s, [idx]: "error" }));
+      const msg =
+        e?.message || "Failed to send test email. Check your domain settings.";
+      toast.error(msg);
       setTimeout(() => {
         setTestState((s) => ({ ...s, [idx]: "idle" }));
       }, 4000);

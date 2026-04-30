@@ -76,6 +76,21 @@ export default function SequenceEnrollmentModal({
   const enroll = async () => {
     if (!user || !selectedName) return;
     setSubmitting(true);
+
+    // Block if sending domain not verified
+    const { data: settings } = await supabase
+      .from("user_email_settings")
+      .select("domain_verified")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!settings?.domain_verified) {
+      setSubmitting(false);
+      toast.error(
+        "Your sending domain is not verified. Go to Settings → Email to verify.",
+      );
+      return;
+    }
+
     const next = new Date(`${startDate}T09:00:00`).toISOString();
     const { error } = await supabase.from("email_sequences" as any).insert({
       user_id: user.id,

@@ -7,24 +7,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function jsonError(message: string, details: unknown, status = 500) {
+  return new Response(
+    JSON.stringify({ error: message, details }),
+    { status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
-      return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonError("RESEND_API_KEY not configured", "Missing platform secret RESEND_API_KEY");
     }
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing auth" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonError("Unauthorized", "Missing auth header", 401);
     }
 
     const supabase = createClient(
@@ -35,36 +36,36 @@ Deno.serve(async (req) => {
 
     const { data: userData, error: userErr } = await supabase.auth.getUser();
     if (userErr || !userData.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonError("Unauthorized", userErr?.message || "No user", 401);
     }
     const userId = userData.user.id;
 
     const body = await req.json().catch(() => ({}));
     const fromEmail: string | undefined = body.from_email;
     if (!fromEmail || !fromEmail.includes("@")) {
-      return new Response(JSON.stringify({ error: "from_email required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonError("from_email required", "Provide a valid from_email like name@yourdomain.com", 400);
     }
 
     const domain = fromEmail.split("@")[1].toLowerCase();
 
-    // List domains in Resend account
+    // 1. List domains in Resend account
     const listRes = await fetch("https://api.resend.com/domains", {
       headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
     });
     const listJson = await listRes.json();
-    const existing = (listJson?.data || []).find(
-      (d: any) => d.name?.toLowerCase() === domain
+    if (!listRes.ok) {
+      console.error("Resend GET /domains failed", listRes.status, listJson);
+      return jsonError(
+        "Failed to list domains in Resend",
+        listJson?.message || JSON.stringify(listJson),
+      );
+    }
+
+    let domainRecord = (listJson?.data || []).find(
+      (d: any) => d.name?.toLowerCase() === domain,
     );
 
-    let domainRecord = existing;
-
-    // If not found, create it
+    // 2. If not found, create it
     if (!domainRecord) {
       const createRes = await fetch("https://api.resend.com/domains", {
         method: "POST",
@@ -76,41 +77,63 @@ Deno.serve(async (req) => {
       });
       domainRecord = await createRes.json();
       if (!createRes.ok) {
-        return new Response(JSON.stringify({ error: domainRecord?.message || "Failed to create domain", details: domainRecord }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.error("Resend POST /domains failed", createRes.status, domainRecord);
+        return jsonError(
+          "Failed to create domain in Resend",
+          domainRecord?.message || JSON.stringify(domainRecord),
+        );
       }
     }
 
-    // Fetch full record (records list lives on the GET-by-id endpoint)
+    // 3. Fetch full record (records list lives on the GET-by-id endpoint)
     const detailRes = await fetch(`https://api.resend.com/domains/${domainRecord.id}`, {
       headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
     });
     const detail = await detailRes.json();
+    if (!detailRes.ok) {
+      console.error("Resend GET /domains/:id failed", detailRes.status, detail);
+      return jsonError(
+        "Failed to fetch domain details from Resend",
+        detail?.message || JSON.stringify(detail),
+      );
+    }
 
-    const verified = detail?.status === "verified";
+    let status: string = detail?.status || "pending";
 
-    // Persist verification status
+    // 4. If pending / not_started, trigger verify
+    if (status !== "verified") {
+      const verifyRes = await fetch(
+        `https://api.resend.com/domains/${domainRecord.id}/verify`,
+        { method: "POST", headers: { Authorization: `Bearer ${RESEND_API_KEY}` } },
+      );
+      // Re-fetch detail to get latest status
+      const recheck = await fetch(`https://api.resend.com/domains/${domainRecord.id}`, {
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+      });
+      const recheckJson = await recheck.json();
+      if (recheck.ok) status = recheckJson?.status || status;
+    }
+
+    const verified = status === "verified";
+
+    // Persist verification status + domain id
     await supabase
       .from("user_email_settings")
-      .update({ domain_verified: verified })
+      .update({ domain_verified: verified, resend_domain_id: domainRecord.id })
       .eq("user_id", userId);
 
     return new Response(
       JSON.stringify({
         domain,
-        status: detail?.status || "pending",
+        domain_id: domainRecord.id,
+        status,
         verified,
         records: detail?.records || [],
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
     console.error("verify-resend-domain error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonError("Internal error during domain verification", String(err));
   }
 });

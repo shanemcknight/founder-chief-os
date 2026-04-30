@@ -137,14 +137,16 @@ Deno.serve(async (req) => {
     }
   >();
   const dailyBlocked = new Set<string>();
-  const fromCache = new Map<string, string>();
+  const fromCache = new Map<string, { from: string; verified: boolean }>();
 
-  async function resolveFrom(userId: string): Promise<string> {
+  async function resolveFrom(
+    userId: string,
+  ): Promise<{ from: string; verified: boolean }> {
     const cached = fromCache.get(userId);
     if (cached) return cached;
     const { data: settings } = await supabase
       .from("user_email_settings")
-      .select("from_name, from_email")
+      .select("from_name, from_email, domain_verified")
       .eq("user_id", userId)
       .maybeSingle();
     const from =
@@ -153,9 +155,11 @@ Deno.serve(async (req) => {
         : settings?.from_email
           ? settings.from_email
           : FALLBACK_FROM;
-    fromCache.set(userId, from);
-    return from;
+    const result = { from, verified: !!settings?.domain_verified };
+    fromCache.set(userId, result);
+    return result;
   }
+  let skipped_unverified_domain = 0;
 
   let sent = 0;
   let skipped_limit = 0;
@@ -330,8 +334,13 @@ Deno.serve(async (req) => {
         bodyHtml = `${bodyHtml}<hr style="margin-top:32px;border:none;border-top:1px solid #eee" /><p style="font-size:11px;color:#888;text-align:center;margin-top:12px">Don't want to receive these emails? <a href="${unsubscribeUrl}" style="color:#888;text-decoration:underline">Unsubscribe</a></p>`;
       }
 
-      // Send via Resend
-      const fromAddr = await resolveFrom(seq.user_id);
+      // Send via Resend (gate on verified domain)
+      const fromInfo = await resolveFrom(seq.user_id);
+      if (!fromInfo.verified) {
+        skipped_unverified_domain++;
+        continue;
+      }
+      const fromAddr = fromInfo.from;
       const resp = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -426,6 +435,7 @@ Deno.serve(async (req) => {
       skipped_no_email,
       skipped_unsubscribed,
       skipped_step_window,
+      skipped_unverified_domain,
       errors,
     }),
     {
