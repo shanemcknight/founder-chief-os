@@ -1365,6 +1365,9 @@ export type Database = {
           from_name: string
           id: string
           resend_domain_id: string | null
+          send_window_end_hour: number
+          send_window_start_hour: number
+          timezone: string
           updated_at: string
           user_id: string
         }
@@ -1375,6 +1378,9 @@ export type Database = {
           from_name?: string
           id?: string
           resend_domain_id?: string | null
+          send_window_end_hour?: number
+          send_window_start_hour?: number
+          timezone?: string
           updated_at?: string
           user_id: string
         }
@@ -1385,6 +1391,9 @@ export type Database = {
           from_name?: string
           id?: string
           resend_domain_id?: string | null
+          send_window_end_hour?: number
+          send_window_start_hour?: number
+          timezone?: string
           updated_at?: string
           user_id?: string
         }
