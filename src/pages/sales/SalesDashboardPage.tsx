@@ -247,6 +247,7 @@ export default function SalesDashboardPage() {
           )}
         </div>
       </div>
+      <AddContactDialog open={addOpen} onClose={() => setAddOpen(false)} />
     </div>
   );
 }
