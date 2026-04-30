@@ -123,13 +123,12 @@ export default function ContactsPage() {
             <thead className="border-b border-border bg-muted/30">
               <tr>
                 <Th k="name">Name</Th>
+                <Th k="email">Email</Th>
                 <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">Company</th>
                 <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">Pipeline</th>
                 <Th k="stage">Stage</Th>
                 <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">Sequence</th>
-                <Th k="value">Value</Th>
-                <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">Location</th>
-                <Th k="last_contacted_at">Last Contact</Th>
+                <Th k="created_at">Created</Th>
               </tr>
             </thead>
             <tbody>
