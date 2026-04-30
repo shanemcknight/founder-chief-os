@@ -1,8 +1,10 @@
 import { useMemo, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, LayoutGrid, UserPlus, Search, ListChecks, Clock, Activity as ActivityIcon, ChevronDown } from "lucide-react";
+import { ArrowRight, LayoutGrid, UserPlus, Search, ListChecks, Clock, Activity as ActivityIcon } from "lucide-react";
 import { useCrm, PIPELINE_COLORS } from "@/contexts/CrmContext";
 import { cn } from "@/lib/utils";
+import PipelineSelector from "@/components/sales/PipelineSelector";
+import AddContactDialog from "@/components/sales/AddContactDialog";
 
 function isToday(iso: string | null): boolean {
   if (!iso) return false;
