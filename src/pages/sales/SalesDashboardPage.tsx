@@ -32,29 +32,12 @@ const ALL = "__all__";
 
 export default function SalesDashboardPage() {
   const navigate = useNavigate();
-  const { contacts, activities, tasks, loading, setSelectedContactId, createContact, pipelines } = useCrm();
-  const [showAdd, setShowAdd] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newPipelineId, setNewPipelineId] = useState<string>("");
-  const [viewPipelineId, setViewPipelineId] = useState<string>(ALL);
-
-  // Default the dashboard view to first pipeline once loaded
-  useEffect(() => {
-    if (viewPipelineId === ALL && pipelines.length > 0) {
-      setViewPipelineId(pipelines[0].id);
-    }
-  }, [pipelines, viewPipelineId]);
-
-  // Auto-select pipeline for new contact form
-  useEffect(() => {
-    if (!newPipelineId && pipelines.length > 0) {
-      setNewPipelineId(pipelines[0].id);
-    }
-  }, [pipelines, newPipelineId]);
+  const { contacts, activities, tasks, loading, setSelectedContactId, pipelines, activePipelineId } = useCrm();
+  const [addOpen, setAddOpen] = useState(false);
 
   const viewPipeline = useMemo(
-    () => pipelines.find((p) => p.id === viewPipelineId) || null,
-    [pipelines, viewPipelineId]
+    () => pipelines.find((p) => p.id === activePipelineId) || null,
+    [pipelines, activePipelineId]
   );
 
   const stageSummary = useMemo(() => {
@@ -90,27 +73,11 @@ export default function SalesDashboardPage() {
     [contacts, viewPipeline]
   );
 
-  const handleAdd = async () => {
-    if (!newName.trim()) return;
-    if (pipelines.length > 0 && !newPipelineId) return;
-    const pipeline = pipelines.find((p) => p.id === newPipelineId);
-    const c = await createContact({
-      name: newName.trim(),
-      pipeline_id: newPipelineId || null,
-      stage: pipeline?.stages[0] || "New Lead",
-    });
-    if (c) {
-      setNewName("");
-      setShowAdd(false);
-      setSelectedContactId(c.id);
-    }
-  };
-
   const quickActions = [
     { title: "View Pipeline", desc: "See contacts across all stages", icon: LayoutGrid, onClick: () => navigate("/sales/pipeline") },
     { title: "Add Contact", desc: "Create a new sales contact", icon: UserPlus, onClick: () => {
       if (pipelines.length === 0) navigate("/sales/pipeline");
-      else setShowAdd(true);
+      else setAddOpen(true);
     } },
     { title: "Find Prospects", desc: "Scrape real websites for fresh leads", icon: Search, onClick: () => navigate("/sales/prospects") },
     { title: "View Tasks", desc: "Follow-ups and reminders", icon: ListChecks, onClick: () => navigate("/sales/tasks") },
