@@ -105,15 +105,32 @@ export default function PipelinePage() {
     setDragId(null);
   };
 
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newContact.email.trim());
+  const canCreate = newContact.name.trim().length > 0 && emailValid;
+
   const handleAdd = async () => {
-    if (!newName.trim() || !activePipelineId || !activePipeline) return;
+    if (!canCreate || !activePipelineId || !activePipeline) return;
+    let companyId: string | null = null;
+    if (newContact.company.trim()) {
+      const co = await createCompany({
+        name: newContact.company.trim(),
+        location: newContact.city.trim() || null,
+        website: newContact.website.trim() || null,
+      });
+      companyId = co?.id || null;
+    }
     const c = await createContact({
-      name: newName.trim(),
+      name: newContact.name.trim(),
+      email: newContact.email.trim(),
+      phone: newContact.phone.trim() || null,
+      location: newContact.city.trim() || null,
+      website: newContact.website.trim() || null,
+      company_id: companyId,
       pipeline_id: activePipelineId,
       stage: activePipeline.stages[0] || "New Lead",
     });
     if (c) {
-      setNewName("");
+      setNewContact({ name: "", email: "", company: "", phone: "", city: "", website: "" });
       setShowAdd(false);
       setSelectedContactId(c.id);
     }
