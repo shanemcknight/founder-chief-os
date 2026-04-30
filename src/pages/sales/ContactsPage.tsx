@@ -196,6 +196,7 @@ export default function ContactsPage() {
           </table>
         </div>
       )}
+      <AddContactDialog open={addOpen} onClose={() => setAddOpen(false)} />
     </div>
   );
 }
