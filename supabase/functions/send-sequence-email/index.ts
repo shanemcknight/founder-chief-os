@@ -137,14 +137,16 @@ Deno.serve(async (req) => {
     }
   >();
   const dailyBlocked = new Set<string>();
-  const fromCache = new Map<string, string>();
+  const fromCache = new Map<string, { from: string; verified: boolean }>();
 
-  async function resolveFrom(userId: string): Promise<string> {
+  async function resolveFrom(
+    userId: string,
+  ): Promise<{ from: string; verified: boolean }> {
     const cached = fromCache.get(userId);
     if (cached) return cached;
     const { data: settings } = await supabase
       .from("user_email_settings")
-      .select("from_name, from_email")
+      .select("from_name, from_email, domain_verified")
       .eq("user_id", userId)
       .maybeSingle();
     const from =
@@ -153,9 +155,11 @@ Deno.serve(async (req) => {
         : settings?.from_email
           ? settings.from_email
           : FALLBACK_FROM;
-    fromCache.set(userId, from);
-    return from;
+    const result = { from, verified: !!settings?.domain_verified };
+    fromCache.set(userId, result);
+    return result;
   }
+  let skipped_unverified_domain = 0;
 
   let sent = 0;
   let skipped_limit = 0;
