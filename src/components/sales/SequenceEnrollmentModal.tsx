@@ -119,7 +119,7 @@ export default function SequenceEnrollmentModal({
       return;
     }
 
-    const next = new Date(`${startDate}T09:00:00`).toISOString();
+    const next = zonedDateToUtcIso(startDate, winStart, tz);
     const { error } = await supabase.from("email_sequences" as any).insert({
       user_id: user.id,
       contact_id: contactId,
