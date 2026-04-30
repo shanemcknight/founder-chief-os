@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { X, Mail, Phone, MapPin, Building2, Plus, Check, Trash2 } from "lucide-react";
+import { X, Mail, Phone, MapPin, Building2, Plus, Check, Trash2, Globe, Pencil } from "lucide-react";
+import type { Contact, Company } from "@/contexts/CrmContext";
 import { useCrm } from "@/contexts/CrmContext";
 import { useEmailSequences } from "@/hooks/useEmailSequences";
 import { useUserUsage, nextResetDate } from "@/hooks/useUserUsage";
@@ -21,7 +22,7 @@ function formatDateLong(iso: string | null) {
 type Tab = "overview" | "activity" | "tasks" | "notes";
 
 export default function ContactDetailPanel({ contactId, onClose }: { contactId: string; onClose: () => void }) {
-  const { contacts, companies, activities, tasks, updateContact, logActivity, createTask, toggleTask, deleteTask, pipelines } = useCrm();
+  const { contacts, companies, activities, tasks, updateContact, logActivity, createTask, toggleTask, deleteTask, pipelines, createCompany } = useCrm();
   const contact = contacts.find((c) => c.id === contactId);
   const company = contact?.company_id ? companies.find((c) => c.id === contact.company_id) : null;
   const contactPipeline = contact?.pipeline_id ? pipelines.find((p) => p.id === contact.pipeline_id) : null;
@@ -86,28 +87,13 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {tab === "overview" && (
             <>
-              <div className="space-y-2">
-                {contact.email && (
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <Mail size={12} /> <span className="text-foreground">{contact.email}</span>
-                  </div>
-                )}
-                {contact.phone && (
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <Phone size={12} /> <span className="text-foreground">{contact.phone}</span>
-                  </div>
-                )}
-                {company && (
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <Building2 size={12} /> <span className="text-foreground">{company.name}</span>
-                  </div>
-                )}
-                {contact.location && (
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <MapPin size={12} /> <span className="text-foreground">{contact.location}</span>
-                  </div>
-                )}
-              </div>
+              <ContactInfoFields
+                contact={contact}
+                company={company}
+                companies={companies}
+                updateContact={updateContact}
+                createCompany={(name: string) => createCompany({ name })}
+              />
 
               <div>
                 <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Pipeline</label>
@@ -146,16 +132,6 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
                     <option value="">Assign a pipeline first</option>
                   )}
                 </select>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Value (monthly)</label>
-                <input
-                  type="number"
-                  value={contact.value}
-                  onChange={(e) => updateContact(contact.id, { value: Number(e.target.value) || 0 })}
-                  className="mt-1 w-full bg-background border border-border rounded-md px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-                />
               </div>
 
               <div>
@@ -496,5 +472,160 @@ export default function ContactDetailPanel({ contactId, onClose }: { contactId: 
         />
       )}
     </>
+  );
+}
+
+type ContactInfoFieldsProps = {
+  contact: Contact;
+  company: Company | null | undefined;
+  companies: Company[];
+  updateContact: (id: string, patch: Partial<Contact>) => Promise<void>;
+  createCompany: (name: string) => Promise<Company | null>;
+};
+
+function ContactInfoFields({ contact, company, companies, updateContact, createCompany }: ContactInfoFieldsProps) {
+  const fields: Array<{ key: "email" | "phone" | "location" | "website" | "company"; label: string; icon: any; placeholder: string; type: string }> = [
+    { key: "email", label: "Email", icon: Mail, placeholder: "name@business.com", type: "email" },
+    { key: "company", label: "Company", icon: Building2, placeholder: "Company name", type: "text" },
+    { key: "phone", label: "Phone", icon: Phone, placeholder: "(555) 123-4567", type: "tel" },
+    { key: "location", label: "City", icon: MapPin, placeholder: "City, State", type: "text" },
+    { key: "website", label: "Website", icon: Globe, placeholder: "https://example.com", type: "url" },
+  ];
+
+  return (
+    <div className="space-y-2">
+      {fields.map((f) => (
+        <InlineField
+          key={f.key}
+          icon={f.icon}
+          label={f.label}
+          placeholder={f.placeholder}
+          type={f.type}
+          renderLink={f.key === "website"}
+          value={
+            f.key === "company"
+              ? company?.name || ""
+              : ((contact as any)[f.key] as string) || ""
+          }
+          onSave={async (val) => {
+            const trimmed = val.trim();
+            if (f.key === "email" && trimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+              toast.error("Invalid email address");
+              return false;
+            }
+            if (f.key === "company") {
+              if (!trimmed) {
+                await updateContact(contact.id, { company_id: null });
+              } else {
+                const existing = companies.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
+                const co = existing || (await createCompany(trimmed));
+                await updateContact(contact.id, { company_id: co?.id || null });
+              }
+            } else {
+              await updateContact(contact.id, { [f.key]: trimmed || null } as any);
+            }
+            return true;
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function InlineField({
+  icon: Icon,
+  label,
+  value,
+  placeholder,
+  type,
+  renderLink,
+  onSave,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+  placeholder: string;
+  type: string;
+  renderLink?: boolean;
+  onSave: (v: string) => Promise<boolean>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+
+  useEffect(() => setDraft(value), [value]);
+
+  const commit = async () => {
+    if (draft === value) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    const ok = await onSave(draft);
+    setSaving(false);
+    if (ok) {
+      setEditing(false);
+      setSavedFlash(true);
+      toast.success(`${label} updated`);
+      setTimeout(() => setSavedFlash(false), 1500);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2 text-[11px]">
+        <Icon size={12} className="text-muted-foreground shrink-0" />
+        <input
+          autoFocus
+          type={type}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            if (e.key === "Escape") {
+              setDraft(value);
+              setEditing(false);
+            }
+          }}
+          placeholder={placeholder}
+          disabled={saving}
+          className="flex-1 bg-background border border-primary/50 rounded px-2 py-1 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className="group w-full flex items-center gap-2 text-[11px] text-left hover:bg-muted/30 rounded px-1 py-0.5 transition-colors"
+    >
+      <Icon size={12} className="text-muted-foreground shrink-0" />
+      {value ? (
+        renderLink ? (
+          <a
+            href={value.startsWith("http") ? value : `https://${value}`}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-primary hover:underline truncate"
+          >
+            {value}
+          </a>
+        ) : (
+          <span className="text-foreground truncate">{value}</span>
+        )
+      ) : (
+        <span className="text-muted-foreground italic">Add {label.toLowerCase()}</span>
+      )}
+      {savedFlash ? (
+        <Check size={11} className="text-emerald-500 shrink-0 ml-auto" />
+      ) : (
+        <Pencil size={10} className="text-muted-foreground/0 group-hover:text-muted-foreground shrink-0 ml-auto transition-colors" />
+      )}
+    </button>
   );
 }

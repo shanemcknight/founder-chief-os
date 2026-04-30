@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCrm } from "@/contexts/CrmContext";
 import { toast } from "sonner";
 
 type TemplateRow = {
@@ -28,6 +29,10 @@ export default function SequenceEnrollmentModal({
   onEnrolled: () => void;
 }) {
   const { user } = useAuth();
+  const { contacts } = useCrm();
+  const contact = contacts.find((c) => c.id === contactId);
+  const contactEmail = (contact?.email || "").trim();
+  const hasEmail = contactEmail.length > 0;
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [selectedName, setSelectedName] = useState<string>("");
   const today = new Date().toISOString().slice(0, 10);
@@ -75,6 +80,10 @@ export default function SequenceEnrollmentModal({
 
   const enroll = async () => {
     if (!user || !selectedName) return;
+    if (!hasEmail) {
+      toast.error("This contact needs an email address before it can be enrolled.");
+      return;
+    }
     setSubmitting(true);
 
     // Block if sending domain not verified
@@ -131,6 +140,11 @@ export default function SequenceEnrollmentModal({
         </div>
 
         <div className="p-5 space-y-4">
+          {!hasEmail && (
+            <div className="border border-rose-500/30 bg-rose-500/10 text-rose-400 text-xs rounded-lg p-3">
+              This contact needs an email address before it can be enrolled. Add an email in the contact details first.
+            </div>
+          )}
           {sequenceNames.length === 0 ? (
             <p className="text-xs text-muted-foreground">
               No sequences yet. Go to{" "}
@@ -216,7 +230,7 @@ export default function SequenceEnrollmentModal({
           </button>
           <button
             onClick={enroll}
-            disabled={!selectedName || submitting}
+            disabled={!selectedName || submitting || !hasEmail}
             className="bg-primary text-primary-foreground px-5 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition disabled:opacity-50"
           >
             {submitting ? "Enrolling…" : "Enroll"}

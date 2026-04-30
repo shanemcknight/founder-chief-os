@@ -63,6 +63,7 @@ export type Contact = {
   location: string | null;
   tags: string[];
   notes: string | null;
+  website: string | null;
   last_contacted_at: string | null;
   created_at: string;
 };

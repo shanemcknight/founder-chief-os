@@ -11,7 +11,7 @@ function formatShortDate(iso: string | null) {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-type SortKey = "name" | "stage" | "value" | "last_contacted_at";
+type SortKey = "name" | "email" | "stage" | "value" | "last_contacted_at" | "created_at";
 const ALL = "__all__";
 
 function colorDot(color: string) {
@@ -123,13 +123,12 @@ export default function ContactsPage() {
             <thead className="border-b border-border bg-muted/30">
               <tr>
                 <Th k="name">Name</Th>
+                <Th k="email">Email</Th>
                 <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">Company</th>
                 <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">Pipeline</th>
                 <Th k="stage">Stage</Th>
                 <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">Sequence</th>
-                <Th k="value">Value</Th>
-                <th className="text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2">Location</th>
-                <Th k="last_contacted_at">Last Contact</Th>
+                <Th k="created_at">Created</Th>
               </tr>
             </thead>
             <tbody>
@@ -146,6 +145,9 @@ export default function ContactsPage() {
                     <td className="px-3 py-2.5">
                       <p className="text-xs font-semibold text-foreground">{c.name}</p>
                       {c.title && <p className="text-[10px] text-muted-foreground">{c.title}</p>}
+                    </td>
+                    <td className="px-3 py-2.5 text-[11px] text-muted-foreground">
+                      {c.email ? <span className="text-foreground">{c.email}</span> : "—"}
                     </td>
                     <td className="px-3 py-2.5 text-[11px] text-muted-foreground">{company?.name || "—"}</td>
                     <td className="px-3 py-2.5 text-[11px] text-muted-foreground">
@@ -198,12 +200,8 @@ export default function ContactsPage() {
                         return <span className="text-muted-foreground text-xs">{seq.status}</span>;
                       })()}
                     </td>
-                    <td className="px-3 py-2.5 text-[11px] font-medium text-warning">
-                      {c.value > 0 ? `$${c.value}/mo` : "—"}
-                    </td>
-                    <td className="px-3 py-2.5 text-[11px] text-muted-foreground">{c.location || "—"}</td>
                     <td className="px-3 py-2.5 text-[11px] text-muted-foreground">
-                      {c.last_contacted_at ? new Date(c.last_contacted_at).toLocaleDateString() : "—"}
+                      {c.created_at ? new Date(c.created_at).toLocaleDateString() : "—"}
                     </td>
                   </tr>
                 );
