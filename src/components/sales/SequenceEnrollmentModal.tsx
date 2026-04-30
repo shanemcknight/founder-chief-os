@@ -29,6 +29,10 @@ export default function SequenceEnrollmentModal({
   onEnrolled: () => void;
 }) {
   const { user } = useAuth();
+  const { contacts } = useCrm();
+  const contact = contacts.find((c) => c.id === contactId);
+  const contactEmail = (contact?.email || "").trim();
+  const hasEmail = contactEmail.length > 0;
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [selectedName, setSelectedName] = useState<string>("");
   const today = new Date().toISOString().slice(0, 10);
