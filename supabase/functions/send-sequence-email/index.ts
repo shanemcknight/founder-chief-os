@@ -334,8 +334,13 @@ Deno.serve(async (req) => {
         bodyHtml = `${bodyHtml}<hr style="margin-top:32px;border:none;border-top:1px solid #eee" /><p style="font-size:11px;color:#888;text-align:center;margin-top:12px">Don't want to receive these emails? <a href="${unsubscribeUrl}" style="color:#888;text-decoration:underline">Unsubscribe</a></p>`;
       }
 
-      // Send via Resend
-      const fromAddr = await resolveFrom(seq.user_id);
+      // Send via Resend (gate on verified domain)
+      const fromInfo = await resolveFrom(seq.user_id);
+      if (!fromInfo.verified) {
+        skipped_unverified_domain++;
+        continue;
+      }
+      const fromAddr = fromInfo.from;
       const resp = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
