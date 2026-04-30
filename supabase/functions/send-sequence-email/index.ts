@@ -146,16 +146,23 @@ Deno.serve(async (req) => {
     }
   >();
   const dailyBlocked = new Set<string>();
-  const fromCache = new Map<string, { from: string; verified: boolean }>();
+  type FromInfo = {
+    from: string;
+    verified: boolean;
+    timezone: string;
+    windowStart: number;
+    windowEnd: number;
+  };
+  const fromCache = new Map<string, FromInfo>();
 
-  async function resolveFrom(
-    userId: string,
-  ): Promise<{ from: string; verified: boolean }> {
+  async function resolveFrom(userId: string): Promise<FromInfo> {
     const cached = fromCache.get(userId);
     if (cached) return cached;
     const { data: settings } = await supabase
       .from("user_email_settings")
-      .select("from_name, from_email, domain_verified")
+      .select(
+        "from_name, from_email, domain_verified, timezone, send_window_start_hour, send_window_end_hour"
+      )
       .eq("user_id", userId)
       .maybeSingle();
     const from =
@@ -164,7 +171,13 @@ Deno.serve(async (req) => {
         : settings?.from_email
           ? settings.from_email
           : FALLBACK_FROM;
-    const result = { from, verified: !!settings?.domain_verified };
+    const result: FromInfo = {
+      from,
+      verified: !!settings?.domain_verified,
+      timezone: settings?.timezone || "America/Los_Angeles",
+      windowStart: settings?.send_window_start_hour ?? 9,
+      windowEnd: settings?.send_window_end_hour ?? 16,
+    };
     fromCache.set(userId, result);
     return result;
   }
@@ -176,7 +189,14 @@ Deno.serve(async (req) => {
   let skipped_no_email = 0;
   let skipped_unsubscribed = 0;
   let skipped_step_window = 0;
+  let skipped_local_window = 0;
+  let skipped_weekend = 0;
   let errors = 0;
+
+  console.log("send-sequence-email tick", {
+    nowIso,
+    due_count: (dueSeqs || []).length,
+  });
 
   for (const seq of dueSeqs || []) {
     try {
