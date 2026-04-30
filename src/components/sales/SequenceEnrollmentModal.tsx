@@ -6,6 +6,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCrm } from "@/contexts/CrmContext";
 import { toast } from "sonner";
 
+// Convert {YYYY-MM-DD, hour} interpreted in IANA tz → UTC ISO string.
+function zonedDateToUtcIso(dateStr: string, hour: number, tz: string): string {
+  const naiveUtc = new Date(`${dateStr}T${String(hour).padStart(2, "0")}:00:00Z`);
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  });
+  const parts = fmt.formatToParts(naiveUtc).reduce<Record<string, string>>((a, p) => {
+    if (p.type !== "literal") a[p.type] = p.value;
+    return a;
+  }, {});
+  const asTz = Date.UTC(
+    parseInt(parts.year), parseInt(parts.month) - 1, parseInt(parts.day),
+    parseInt(parts.hour) % 24, parseInt(parts.minute), parseInt(parts.second),
+  );
+  const offsetMs = asTz - naiveUtc.getTime();
+  return new Date(naiveUtc.getTime() - offsetMs).toISOString();
+}
+
 type TemplateRow = {
   id: string;
   user_id: string;
