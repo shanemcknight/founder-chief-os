@@ -132,12 +132,15 @@ export default function SequencesPage() {
       map.set(t.sequence_name, arr);
     }
     for (const [, arr] of map) arr.sort((a, b) => a.sequence_step - b.sequence_step);
+    const filteredEnrollments = activePipelineId
+      ? enrollments.filter((e) => e.pipeline_id === activePipelineId)
+      : enrollments;
     return Array.from(map.entries()).map(([name, items]) => ({
       name,
       steps: items,
-      enrolled: enrollments.filter((e) => e.sequence_name === name).length,
+      enrolled: filteredEnrollments.filter((e) => e.sequence_name === name).length,
     }));
-  }, [templates, enrollments]);
+  }, [templates, enrollments, activePipelineId]);
 
   // ---------- Modal ----------
   const openNew = () => {
