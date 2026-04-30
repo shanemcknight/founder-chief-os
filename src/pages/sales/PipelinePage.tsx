@@ -28,7 +28,9 @@ export default function PipelinePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPipeline, setEditingPipeline] = useState<Pipeline | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [pipelineDropdownOpen, setPipelineDropdownOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Auto-select first pipeline once loaded; honor ?pipeline= query
   useEffect(() => {
