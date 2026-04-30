@@ -136,6 +136,11 @@ export default function SequenceEnrollmentModal({
         </div>
 
         <div className="p-5 space-y-4">
+          {!hasEmail && (
+            <div className="border border-rose-500/30 bg-rose-500/10 text-rose-400 text-xs rounded-lg p-3">
+              This contact needs an email address before it can be enrolled. Add an email in the contact details first.
+            </div>
+          )}
           {sequenceNames.length === 0 ? (
             <p className="text-xs text-muted-foreground">
               No sequences yet. Go to{" "}
