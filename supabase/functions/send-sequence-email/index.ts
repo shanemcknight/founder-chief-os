@@ -1,5 +1,6 @@
 // Tier-aware sender: enforces per-tier monthly + daily email limits and a
-// business-hours sending window (Mon-Fri 08:00-17:00 UTC by default).
+// business-hours sending window evaluated in EACH USER'S local timezone
+// (from user_email_settings.timezone). Mon-Fri only.
 // Sends due sequence emails via Resend using the platform RESEND_API_KEY.
 // - Skips and unsubscribes recipients in email_unsubscribes
 // - Replaces merge fields (e.g. {{first_name}}) in subject + body
