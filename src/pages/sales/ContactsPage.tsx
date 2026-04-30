@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
-import { Search } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { useCrm, PIPELINE_COLORS } from "@/contexts/CrmContext";
 import { useEmailSequences } from "@/hooks/useEmailSequences";
 import { useUserUsage } from "@/hooks/useUserUsage";
 import { cn } from "@/lib/utils";
+import PipelineSelector from "@/components/sales/PipelineSelector";
+import AddContactDialog from "@/components/sales/AddContactDialog";
 
 function formatShortDate(iso: string | null) {
   if (!iso) return "";
@@ -12,21 +14,20 @@ function formatShortDate(iso: string | null) {
 }
 
 type SortKey = "name" | "email" | "stage" | "value" | "last_contacted_at" | "created_at";
-const ALL = "__all__";
 
 function colorDot(color: string) {
   return PIPELINE_COLORS.find((c) => c.key === color)?.className || "bg-primary";
 }
 
 export default function ContactsPage() {
-  const { contacts, companies, loading, setSelectedContactId, pipelines } = useCrm();
+  const { contacts, companies, loading, setSelectedContactId, pipelines, activePipelineId } = useCrm();
   const { getActiveForContact } = useEmailSequences();
   const { usage } = useUserUsage();
   const limitReached = !!usage && (usage.emails_sent_this_month ?? 0) >= (usage.email_monthly_limit ?? 0);
   const [search, setSearch] = useState("");
-  const [pipelineFilter, setPipelineFilter] = useState<string>(ALL);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [addOpen, setAddOpen] = useState(false);
 
   const sorted = useMemo(() => {
     const q = search.toLowerCase();
