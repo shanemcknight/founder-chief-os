@@ -16,26 +16,35 @@ export type Database = {
     Tables: {
       activities: {
         Row: {
+          body: string | null
           contact_id: string | null
           created_at: string
           description: string | null
           id: string
+          metadata: Json | null
+          subject: string | null
           type: string
           user_id: string
         }
         Insert: {
+          body?: string | null
           contact_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          metadata?: Json | null
+          subject?: string | null
           type: string
           user_id: string
         }
         Update: {
+          body?: string | null
           contact_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          metadata?: Json | null
+          subject?: string | null
           type?: string
           user_id?: string
         }
@@ -504,6 +513,7 @@ export type Database = {
           last_sent_at: string | null
           next_send_at: string | null
           pipeline_id: string | null
+          replied_at: string | null
           sequence_name: string
           sequence_step: number | null
           status: string | null
@@ -516,6 +526,7 @@ export type Database = {
           last_sent_at?: string | null
           next_send_at?: string | null
           pipeline_id?: string | null
+          replied_at?: string | null
           sequence_name: string
           sequence_step?: number | null
           status?: string | null
@@ -528,6 +539,7 @@ export type Database = {
           last_sent_at?: string | null
           next_send_at?: string | null
           pipeline_id?: string | null
+          replied_at?: string | null
           sequence_name?: string
           sequence_step?: number | null
           status?: string | null
@@ -1480,6 +1492,21 @@ export type Database = {
           plan_tier?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_events_processed: {
+        Row: {
+          processed_at: string
+          svix_id: string
+        }
+        Insert: {
+          processed_at?: string
+          svix_id: string
+        }
+        Update: {
+          processed_at?: string
+          svix_id?: string
         }
         Relationships: []
       }
