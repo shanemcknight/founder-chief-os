@@ -80,6 +80,10 @@ export default function SequenceEnrollmentModal({
 
   const enroll = async () => {
     if (!user || !selectedName) return;
+    if (!hasEmail) {
+      toast.error("This contact needs an email address before it can be enrolled.");
+      return;
+    }
     setSubmitting(true);
 
     // Block if sending domain not verified
