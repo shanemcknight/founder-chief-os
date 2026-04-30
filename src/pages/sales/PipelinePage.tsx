@@ -44,14 +44,15 @@ export default function PipelinePage() {
     }
   }, [pipelines, searchParams, activePipelineId]);
 
-  // Close menu on outside click
+  // Close menus on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpenId(null);
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setPipelineDropdownOpen(false);
     };
-    if (menuOpenId) document.addEventListener("mousedown", handler);
+    if (menuOpenId || pipelineDropdownOpen) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpenId]);
+  }, [menuOpenId, pipelineDropdownOpen]);
 
   const activePipeline = useMemo(
     () => pipelines.find((p) => p.id === activePipelineId) || null,
