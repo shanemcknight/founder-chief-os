@@ -2,9 +2,19 @@ import { useMemo } from "react";
 import { Check } from "lucide-react";
 import { useCrm } from "@/contexts/CrmContext";
 import { cn } from "@/lib/utils";
+import PipelineSelector from "@/components/sales/PipelineSelector";
 
 export default function TasksPage() {
-  const { tasks, contacts, loading, toggleTask, setSelectedContactId } = useCrm();
+  const { tasks, contacts, loading, toggleTask, setSelectedContactId, activePipelineId } = useCrm();
+
+  const filteredTasks = useMemo(() => {
+    if (!activePipelineId) return tasks;
+    const contactPipelineMap = new Map(contacts.map((c) => [c.id, c.pipeline_id]));
+    return tasks.filter((t) => {
+      if (!t.contact_id) return false;
+      return contactPipelineMap.get(t.contact_id) === activePipelineId;
+    });
+  }, [tasks, contacts, activePipelineId]);
 
   const groups = useMemo(() => {
     const now = Date.now();
@@ -14,7 +24,7 @@ export default function TasksPage() {
     const upcoming: typeof tasks = [];
     const overdue: typeof tasks = [];
     const completed: typeof tasks = [];
-    tasks.forEach((t) => {
+    filteredTasks.forEach((t) => {
       if (t.completed) {
         completed.push(t);
         return;
