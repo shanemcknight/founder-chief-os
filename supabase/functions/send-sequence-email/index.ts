@@ -206,6 +206,25 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Per-user timezone gate: weekday + business-hours window in user's local tz.
+      const tzInfo = await resolveFrom(seq.user_id);
+      const { hour: localHour, day: localDay } = getLocalParts(now, tzInfo.timezone);
+      if (localDay === 0 || localDay === 6) {
+        skipped_weekend++;
+        continue;
+      }
+      if (localHour < tzInfo.windowStart || localHour >= tzInfo.windowEnd) {
+        console.log("skip local window", {
+          seq_id: seq.id,
+          user_id: seq.user_id,
+          tz: tzInfo.timezone,
+          local_hour: localHour,
+          window: [tzInfo.windowStart, tzInfo.windowEnd],
+        });
+        skipped_local_window++;
+        continue;
+      }
+
       // Load + roll over usage row once per user per run
       let usage = usageCache.get(seq.user_id);
       if (!usage) {
